@@ -12,6 +12,7 @@ import {
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
   RoadmapSection, DeepDiveSection,
 } from '@/components/report/ReportSections';
+import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from '@/components/report/ParetoSections';
 
 export default function ReportPage() {
   const { id } = useParams();
@@ -120,6 +121,15 @@ export default function ReportPage() {
 
       {/* I. Deep Dive */}
       <DeepDiveSection result={result} config={config} />
+
+      {/* J. Quick Wins (Pareto) */}
+      <QuickWinsSection config={config} result={result} stage={stage} />
+
+      {/* K. Meeting Agenda */}
+      <MeetingAgendaSection config={config} result={result} stage={stage} />
+
+      {/* L. Risk x Impact Matrix */}
+      <RiskImpactMatrixSection config={config} result={result} stage={stage} />
 
       {completeness.confidence === 'low' && (
         <div className="text-center py-4 text-xs text-muted-foreground italic">
