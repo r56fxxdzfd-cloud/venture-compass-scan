@@ -254,6 +254,10 @@ export default function SimulatorPage() {
               ))}
             </CardContent>
           </Card>
+
+          <QuickWinsSection config={config} result={result} stage={stage} />
+          <MeetingAgendaSection config={config} result={result} stage={stage} />
+          <RiskImpactMatrixSection config={config} result={result} stage={stage} />
         </div>
 
         {/* Full Report */}
@@ -273,10 +277,6 @@ export default function SimulatorPage() {
           <DimensionNarratives result={result} />
           <RoadmapSection result={result} config={config} stage={stage} />
           <DeepDiveSection result={result} config={config} />
-
-          <QuickWinsSection config={config} result={result} stage={stage} />
-          <MeetingAgendaSection config={config} result={result} stage={stage} />
-          <RiskImpactMatrixSection config={config} result={result} stage={stage} />
 
           <div className="text-center py-4 text-xs text-muted-foreground italic">
             ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
