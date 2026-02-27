@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
+import { Moon, Sun } from 'lucide-react';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +80,16 @@ export default function LoginPage() {
       </div>
 
       {/* Right side - form */}
-      <div className="flex flex-1 items-center justify-center p-6 bg-background">
+      <div className="flex flex-1 items-center justify-center p-6 bg-background relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label="Alternar tema"
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
         <motion.div initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -85,10 +97,10 @@ export default function LoginPage() {
 
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <span className="text-sm font-black text-primary-foreground">D</span>
+              <span className="text-sm font-black text-primary-foreground">ST</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold">Darwin</h1>
+              <h1 className="text-xl font-bold">CMJ/ Darwin</h1>
               <p className="text-xs text-muted-foreground">Startup Readiness</p>
             </div>
           </div>
