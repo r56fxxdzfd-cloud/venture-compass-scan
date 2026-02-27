@@ -229,14 +229,29 @@ export default function SimulatorPage() {
           <Card>
             <CardHeader><CardTitle className="text-sm">Dimensões</CardTitle></CardHeader>
             <CardContent className="space-y-5">
-              {config.dimensions.map((dim) => (
-                <div key={dim.id} className="space-y-2">
+          {config.dimensions.map((dim) => (
+                <motion.div
+                  key={dim.id}
+                  className="space-y-2"
+                  animate={{ scale: [1, 1.02, 1], backgroundColor: ['transparent', 'hsl(var(--primary) / 0.05)', 'transparent'] }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  // Re-trigger animation when slider value changes externally
+                  // Using key suffix forces remount on big changes (Random/Preset)
+                >
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium">{dim.label}</label>
-                    <span className="text-xs font-mono text-primary font-semibold">{(sliders[dim.id] || 3).toFixed(1)}</span>
+                    <motion.span
+                      key={sliders[dim.id]}
+                      className="text-xs font-mono text-primary font-semibold"
+                      initial={{ scale: 1.3, color: 'hsl(var(--primary))' }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {(sliders[dim.id] || 3).toFixed(1)}
+                    </motion.span>
                   </div>
                   <Slider value={[sliders[dim.id] || 3]} onValueChange={([val]) => setSliders((prev) => ({ ...prev, [dim.id]: val }))} min={1} max={5} step={0.1} />
-                </div>
+                </motion.div>
               ))}
             </CardContent>
           </Card>
