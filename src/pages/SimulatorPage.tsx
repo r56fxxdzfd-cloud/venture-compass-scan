@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Shuffle } from 'lucide-react';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
@@ -96,6 +96,25 @@ export default function SimulatorPage() {
     }
   };
 
+  const randomize = () => {
+    if (!config) return;
+    const rand: Record<string, number> = {};
+    config.dimensions.forEach((d) => {
+      rand[d.id] = Math.round((1 + Math.random() * 4) * 10) / 10;
+    });
+    setSliders(rand);
+    setNumericContext({
+      runway_months: Math.round(3 + Math.random() * 21),
+      burn_monthly: Math.round((20 + Math.random() * 180) * 1000),
+      headcount: Math.round(3 + Math.random() * 47),
+      gross_margin_pct: Math.round(20 + Math.random() * 60),
+      cac: Math.round(50 + Math.random() * 1950),
+      ltv: Math.round(500 + Math.random() * 19500),
+      revenue_concentration_top1_pct: Math.round(10 + Math.random() * 70),
+      revenue_concentration_top3_pct: Math.round(30 + Math.random() * 60),
+    });
+  };
+
   const updateNumeric = (key: string, value: string) => {
     const num = parseFloat(value);
     if (!isNaN(num)) setNumericContext((prev) => ({ ...prev, [key]: num }));
@@ -131,7 +150,12 @@ export default function SimulatorPage() {
         {/* Controls */}
         <div className="space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-sm">Configurações</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Configurações</CardTitle>
+              <Button variant="outline" size="sm" onClick={randomize} className="h-7 text-xs gap-1">
+                <Shuffle className="h-3 w-3" /> Random
+              </Button>
+            </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-xs">Estágio</Label>
