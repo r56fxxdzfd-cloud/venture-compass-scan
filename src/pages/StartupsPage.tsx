@@ -89,12 +89,47 @@ export default function StartupsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>CNPJ</Label>
-                  <Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} />
+                  <Input
+                    value={form.cnpj}
+                    placeholder="00.000.000/0000-00"
+                    maxLength={18}
+                    onChange={(e) => {
+                      // Only allow digits, auto-format as XX.XXX.XXX/XXXX-XX
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
+                      let formatted = digits;
+                      if (digits.length > 2) formatted = digits.slice(0, 2) + '.' + digits.slice(2);
+                      if (digits.length > 5) formatted = formatted.slice(0, 6) + '.' + digits.slice(5);
+                      if (digits.length > 8) formatted = formatted.slice(0, 10) + '/' + digits.slice(8);
+                      if (digits.length > 12) formatted = formatted.slice(0, 15) + '-' + digits.slice(12);
+                      setForm({ ...form, cnpj: formatted });
+                    }}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Setor</Label>
-                    <Input value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} />
+                    <Select value={form.sector} onValueChange={(v) => setForm({ ...form, sector: v })}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fintech">Fintech</SelectItem>
+                        <SelectItem value="healthtech">Healthtech</SelectItem>
+                        <SelectItem value="edtech">Edtech</SelectItem>
+                        <SelectItem value="agtech">Agtech</SelectItem>
+                        <SelectItem value="retailtech">Retailtech</SelectItem>
+                        <SelectItem value="logtech">Logtech</SelectItem>
+                        <SelectItem value="proptech">Proptech</SelectItem>
+                        <SelectItem value="legaltech">Legaltech</SelectItem>
+                        <SelectItem value="hrtech">HRtech</SelectItem>
+                        <SelectItem value="martech">Martech</SelectItem>
+                        <SelectItem value="foodtech">Foodtech</SelectItem>
+                        <SelectItem value="cleantech">Cleantech</SelectItem>
+                        <SelectItem value="insurtech">Insurtech</SelectItem>
+                        <SelectItem value="deeptech">Deeptech</SelectItem>
+                        <SelectItem value="saas">SaaS</SelectItem>
+                        <SelectItem value="marketplace">Marketplace</SelectItem>
+                        <SelectItem value="outros">Outros</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Estágio</Label>
