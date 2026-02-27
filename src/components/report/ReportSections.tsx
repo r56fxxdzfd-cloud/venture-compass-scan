@@ -122,7 +122,7 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
   const gaps = computeGaps(result.dimension_scores, config, stage);
 
   const barData = result.dimension_scores.map((ds) => ({
-    name: ds.label.length > 15 ? ds.label.slice(0, 15) + '…' : ds.label,
+    name: ds.label.length > 12 ? ds.label.slice(0, 12) + '…' : ds.label,
     score: scoreTo100(ds.score),
     target: scoreTo100(ds.target),
   }));
@@ -131,11 +131,11 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
     <Card>
       <CardContent className="pt-6 space-y-6">
         <h3 className="text-base font-semibold">Scores por Dimensão</h3>
-        <div className="h-[300px]">
+        <div className="h-[280px] sm:h-[300px] -ml-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 20 }}>
-              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+            <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 10 }}>
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10 }} />
               <Tooltip />
               <Bar dataKey="score" radius={[0, 4, 4, 0]} name="Score">
                 {barData.map((entry, i) => (
@@ -204,13 +204,13 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-base font-semibold flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" /> Red Flags ({result.red_flags.length})
           </h3>
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Council Risk Score: <strong className={`font-mono ${councilRisk < 50 ? 'text-destructive' : councilRisk < 75 ? 'text-warning' : 'text-success'}`}>{councilRisk}</strong>/100</span>
+            <span className="text-xs sm:text-sm">Risk Score: <strong className={`font-mono ${councilRisk < 50 ? 'text-destructive' : councilRisk < 75 ? 'text-warning' : 'text-success'}`}>{councilRisk}</strong>/100</span>
           </div>
         </div>
 
@@ -221,11 +221,11 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
         </div>
 
         {/* Impact chart */}
-        <div className="h-[200px]">
+        <div className="h-[200px] -ml-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={impactData} layout="vertical" margin={{ left: 10, right: 20 }}>
-              <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
+            <BarChart data={impactData} layout="vertical" margin={{ left: 0, right: 10 }}>
+              <XAxis type="number" tick={{ fontSize: 10 }} />
+              <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 9 }} />
               <Tooltip />
               <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]}>
                 {impactData.map((entry, i) => (
