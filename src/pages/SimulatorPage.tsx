@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
-import { SlidersHorizontal, Shuffle, Settings } from 'lucide-react';
+import { SlidersHorizontal, Shuffle, Settings, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -33,10 +33,11 @@ export default function SimulatorPage() {
   const [customerType, setCustomerType] = useState('B2B');
   const [revenueModel, setRevenueModel] = useState('recurring');
   const [animKey, setAnimKey] = useState(0);
-  const [numericContext, setNumericContext] = useState<Record<string, number>>({
+  const defaultNumericContext: Record<string, number> = {
     runway_months: 12, burn_monthly: 50000, headcount: 10, gross_margin_pct: 60,
     cac: 500, ltv: 5000, revenue_concentration_top1_pct: 30, revenue_concentration_top3_pct: 60,
-  });
+  };
+  const [numericContext, setNumericContext] = useState<Record<string, number>>({ ...defaultNumericContext });
 
   useEffect(() => {
     supabase
@@ -104,6 +105,18 @@ export default function SimulatorPage() {
     setAnimKey((k) => k + 1);
   };
 
+  const resetDefaults = () => {
+    if (!config) return;
+    const initial: Record<string, number> = {};
+    config.dimensions.forEach((d) => (initial[d.id] = 3));
+    setSliders(initial);
+    setStage('seed');
+    setCustomerType('B2B');
+    setRevenueModel('recurring');
+    setNumericContext({ ...defaultNumericContext });
+    setAnimKey((k) => k + 1);
+  };
+
   const updateNumeric = (key: string, value: string) => {
     const num = parseFloat(value);
     if (!isNaN(num)) setNumericContext((prev) => ({ ...prev, [key]: num }));
@@ -160,9 +173,14 @@ export default function SimulatorPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Configurações</CardTitle>
-              <Button variant="outline" size="sm" onClick={randomize} className="h-7 text-xs gap-1">
-                <Shuffle className="h-3 w-3" /> Random
-              </Button>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={resetDefaults} className="h-7 text-xs gap-1">
+                  <RotateCcw className="h-3 w-3" /> Reset
+                </Button>
+                <Button variant="outline" size="sm" onClick={randomize} className="h-7 text-xs gap-1">
+                  <Shuffle className="h-3 w-3" /> Random
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <motion.div key={`stage-${stage}-${animKey}`} className="space-y-2" initial={{ opacity: 0.5, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
