@@ -35,7 +35,7 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
-          Olá, {profile?.full_name || 'Usuário'} 👋
+          Olá, {profile?.full_name || 'Usuário'}
         </h1>
         <p className="text-muted-foreground mt-1">
           Bem-vindo ao CMJ/ Darwin — Startup Readiness Diagnostic
