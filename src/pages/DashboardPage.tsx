@@ -38,7 +38,7 @@ export default function DashboardPage() {
           Olá, {profile?.full_name || 'Usuário'} 👋
         </h1>
         <p className="text-muted-foreground mt-1">
-          Bem-vindo ao Darwin — Startup Readiness Diagnostic
+          Bem-vindo ao CMJ/ Darwin — Startup Readiness Diagnostic
         </p>
       </div>
 
