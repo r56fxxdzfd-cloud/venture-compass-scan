@@ -94,7 +94,7 @@ export function DarwinRadarChart({
                 <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-md text-xs space-y-1">
                   <p className="font-semibold text-sm">{item?.fullName}</p>
                   {payload.map((p: any) => (
-                    <p key={p.dataKey}>{p.name}: <strong>{p.value?.toFixed(1)}</strong></p>
+                    <p key={p.dataKey}>{p.name}: <strong>{typeof p.value === 'number' ? p.value.toFixed(1) : '—'}</strong></p>
                   ))}
                 </div>
               );
