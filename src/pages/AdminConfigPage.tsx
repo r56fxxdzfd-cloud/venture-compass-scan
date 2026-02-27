@@ -90,11 +90,26 @@ export default function AdminConfigPage() {
           );
         }
 
-        // Deep dive prompts
+      // Deep dive prompts — accept both map and array formats
         if (json.deep_dive_prompts) {
+          const dd = json.deep_dive_prompts;
+          const deepDiveMap: Record<string, string[]> = {};
+
+          if (Array.isArray(dd)) {
+            dd.forEach((item: any) => {
+              const dimId = item?.dimension_id;
+              const pList = Array.isArray(item?.prompts) ? item.prompts : [];
+              if (dimId) deepDiveMap[dimId] = pList;
+            });
+          } else if (typeof dd === 'object') {
+            Object.entries(dd).forEach(([dimId, promptList]) => {
+              deepDiveMap[dimId] = Array.isArray(promptList) ? promptList as string[] : [];
+            });
+          }
+
           const prompts: any[] = [];
-          Object.entries(json.deep_dive_prompts).forEach(([dimId, promptList]) => {
-            (promptList as string[]).forEach((prompt, i) => {
+          Object.entries(deepDiveMap).forEach(([dimId, pList]) => {
+            pList.forEach((prompt, i) => {
               prompts.push({
                 config_version_id: versionId,
                 dimension_id: dimId,
