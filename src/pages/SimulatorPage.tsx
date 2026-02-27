@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
-import { SlidersHorizontal, Shuffle } from 'lucide-react';
+import { SlidersHorizontal, Shuffle, Settings } from 'lucide-react';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
@@ -25,19 +26,13 @@ export default function SimulatorPage() {
   const [sliders, setSliders] = useState<Record<string, number>>({});
   const [stage, setStage] = useState('seed');
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [noConfig, setNoConfig] = useState(false);
 
-  // Context inputs
   const [customerType, setCustomerType] = useState('B2B');
   const [revenueModel, setRevenueModel] = useState('recurring');
   const [numericContext, setNumericContext] = useState<Record<string, number>>({
-    runway_months: 12,
-    burn_monthly: 50000,
-    headcount: 10,
-    gross_margin_pct: 60,
-    cac: 500,
-    ltv: 5000,
-    revenue_concentration_top1_pct: 30,
-    revenue_concentration_top3_pct: 60,
+    runway_months: 12, burn_monthly: 50000, headcount: 10, gross_margin_pct: 60,
+    cac: 500, ltv: 5000, revenue_concentration_top1_pct: 30, revenue_concentration_top3_pct: 60,
   });
 
   useEffect(() => {
@@ -54,6 +49,8 @@ export default function SimulatorPage() {
           const initial: Record<string, number> = {};
           cfg.dimensions.forEach((d) => (initial[d.id] = 3));
           setSliders(initial);
+        } else {
+          setNoConfig(true);
         }
       });
   }, []);
@@ -62,27 +59,15 @@ export default function SimulatorPage() {
     if (!config) return;
     const syntheticAnswers: Answer[] = [];
     const deltas = [-0.4, -0.2, 0, 0.2, 0.4];
-
     config.dimensions.forEach((dim) => {
       const baseScore = sliders[dim.id] || 3;
-      const dimQuestions = config.questions.filter(
-        (q) => q.dimension_id === dim.id && q.is_active !== false
-      );
+      const dimQuestions = config.questions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
       dimQuestions.forEach((q, i) => {
         const delta = deltas[i % deltas.length];
         const val = Math.max(1, Math.min(5, Math.round(baseScore + delta)));
-        syntheticAnswers.push({
-          id: `sim-${q.id}`,
-          assessment_id: 'simulation',
-          question_id: q.id,
-          value: val,
-          is_na: false,
-          notes: null,
-          created_at: new Date().toISOString(),
-        });
+        syntheticAnswers.push({ id: `sim-${q.id}`, assessment_id: 'simulation', question_id: q.id, value: val, is_na: false, notes: null, created_at: new Date().toISOString() });
       });
     });
-
     const res = calculateAssessmentResult(config, syntheticAnswers, stage, numericContext);
     setResult(res);
   }, [config, sliders, stage, numericContext]);
@@ -91,28 +76,20 @@ export default function SimulatorPage() {
     const preset = config?.simulator?.presets?.find((p) => p.id === presetId);
     if (preset) {
       setSliders(preset.dimension_scores);
-      if (preset.numeric_context_defaults) {
-        setNumericContext((prev) => ({ ...prev, ...preset.numeric_context_defaults }));
-      }
+      if (preset.numeric_context_defaults) setNumericContext((prev) => ({ ...prev, ...preset.numeric_context_defaults }));
     }
   };
 
   const randomize = () => {
     if (!config) return;
     const rand: Record<string, number> = {};
-    config.dimensions.forEach((d) => {
-      rand[d.id] = Math.round((1 + Math.random() * 4) * 10) / 10;
-    });
+    config.dimensions.forEach((d) => { rand[d.id] = Math.round((1 + Math.random() * 4) * 10) / 10; });
     setSliders(rand);
     setNumericContext({
-      runway_months: Math.round(3 + Math.random() * 21),
-      burn_monthly: Math.round((20 + Math.random() * 180) * 1000),
-      headcount: Math.round(3 + Math.random() * 47),
-      gross_margin_pct: Math.round(20 + Math.random() * 60),
-      cac: Math.round(50 + Math.random() * 1950),
-      ltv: Math.round(500 + Math.random() * 19500),
-      revenue_concentration_top1_pct: Math.round(10 + Math.random() * 70),
-      revenue_concentration_top3_pct: Math.round(30 + Math.random() * 60),
+      runway_months: Math.round(3 + Math.random() * 21), burn_monthly: Math.round((20 + Math.random() * 180) * 1000),
+      headcount: Math.round(3 + Math.random() * 47), gross_margin_pct: Math.round(20 + Math.random() * 60),
+      cac: Math.round(50 + Math.random() * 1950), ltv: Math.round(500 + Math.random() * 19500),
+      revenue_concentration_top1_pct: Math.round(10 + Math.random() * 70), revenue_concentration_top3_pct: Math.round(30 + Math.random() * 60),
     });
   };
 
@@ -121,10 +98,21 @@ export default function SimulatorPage() {
     if (!isNaN(num)) setNumericContext((prev) => ({ ...prev, [key]: num }));
   };
 
+  if (noConfig) {
+    return (
+      <div className="text-center py-16">
+        <Settings className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+        <p className="text-muted-foreground mb-4">Nenhuma configuração publicada. Acesse Configuração para importar e publicar uma versão.</p>
+        <Button asChild variant="outline">
+          <Link to="/app/admin/config">Ir para Configuração</Link>
+        </Button>
+      </div>
+    );
+  }
+
   if (!config || !result) return null;
 
   const completeness = getCompleteness(result);
-
   const numericFields = [
     { key: 'runway_months', label: 'Runway (meses)', step: 1 },
     { key: 'burn_monthly', label: 'Burn Mensal (R$)', step: 1000 },
@@ -142,13 +130,10 @@ export default function SimulatorPage() {
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <SlidersHorizontal className="h-6 w-6" /> Simulador
         </h1>
-        <p className="text-muted-foreground text-sm">
-          Ajuste scores e contexto — veja o relatório completo em tempo real
-        </p>
+        <p className="text-muted-foreground text-sm">Ajuste scores e contexto — veja o relatório completo em tempo real</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-        {/* Controls */}
         <div className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -169,7 +154,6 @@ export default function SimulatorPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               {config.simulator?.presets && config.simulator.presets.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-xs">Presets</Label>
@@ -183,7 +167,6 @@ export default function SimulatorPage() {
                   </Select>
                 </div>
               )}
-
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Tipo de Cliente</Label>
@@ -218,13 +201,7 @@ export default function SimulatorPage() {
               {numericFields.map((f) => (
                 <div key={f.key} className="space-y-1">
                   <Label className="text-xs">{f.label}</Label>
-                  <Input
-                    type="number"
-                    className="h-8 text-xs"
-                    value={numericContext[f.key] ?? ''}
-                    step={f.step}
-                    onChange={(e) => updateNumeric(f.key, e.target.value)}
-                  />
+                  <Input type="number" className="h-8 text-xs" value={numericContext[f.key] ?? ''} step={f.step} onChange={(e) => updateNumeric(f.key, e.target.value)} />
                 </div>
               ))}
             </CardContent>
@@ -237,19 +214,9 @@ export default function SimulatorPage() {
                 <div key={dim.id} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium">{dim.label}</label>
-                    <span className="text-xs font-mono text-primary font-semibold">
-                      {(sliders[dim.id] || 3).toFixed(1)}
-                    </span>
+                    <span className="text-xs font-mono text-primary font-semibold">{(sliders[dim.id] || 3).toFixed(1)}</span>
                   </div>
-                  <Slider
-                    value={[sliders[dim.id] || 3]}
-                    onValueChange={([val]) =>
-                      setSliders((prev) => ({ ...prev, [dim.id]: val }))
-                    }
-                    min={1}
-                    max={5}
-                    step={0.1}
-                  />
+                  <Slider value={[sliders[dim.id] || 3]} onValueChange={([val]) => setSliders((prev) => ({ ...prev, [dim.id]: val }))} min={1} max={5} step={0.1} />
                 </div>
               ))}
             </CardContent>
@@ -259,15 +226,8 @@ export default function SimulatorPage() {
           <MeetingAgendaSection config={config} result={result} stage={stage} />
         </div>
 
-        {/* Full Report */}
         <div className="space-y-6">
-          <ReportHeader
-            startupName="Simulação"
-            stage={stage}
-            date={new Date().toLocaleDateString('pt-BR')}
-            completeness={completeness}
-            isSimulation
-          />
+          <ReportHeader startupName="Simulação" stage={stage} date={new Date().toLocaleDateString('pt-BR')} completeness={completeness} isSimulation />
           <OverallScoreCard result={result} config={config} stage={stage} />
           <BlocksSection result={result} config={config} stage={stage} />
           <RadarSection result={result} />
@@ -277,7 +237,6 @@ export default function SimulatorPage() {
           <DimensionNarratives result={result} />
           <RoadmapSection result={result} config={config} stage={stage} />
           <DeepDiveSection result={result} config={config} />
-
           <div className="text-center py-4 text-xs text-muted-foreground italic">
             ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
           </div>

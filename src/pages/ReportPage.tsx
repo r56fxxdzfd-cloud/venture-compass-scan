@@ -15,6 +15,17 @@ import {
 } from '@/components/report/ReportSections';
 import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from '@/components/report/ParetoSections';
 
+const anchorLinks = [
+  { label: 'Score Geral', id: 'section-overall' },
+  { label: 'Blocos', id: 'section-blocks' },
+  { label: 'Radar', id: 'section-radar' },
+  { label: 'Gaps', id: 'section-gaps' },
+  { label: 'Red Flags', id: 'section-redflags' },
+  { label: 'Quick Wins', id: 'section-quickwins' },
+  { label: 'Roadmap', id: 'section-roadmap' },
+  { label: 'Deep Dive', id: 'section-deepdive' },
+];
+
 export default function ReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,34 +38,17 @@ export default function ReportPage() {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
-      const { data: a } = await supabase
-        .from('assessments')
-        .select('*, company:companies(*)')
-        .eq('id', id)
-        .single();
+      const { data: a } = await supabase.from('assessments').select('*, company:companies(*)').eq('id', id).single();
       if (!a) return;
       setAssessment(a as unknown as Assessment);
 
-      const { data: cv } = await supabase
-        .from('config_versions')
-        .select('config_json')
-        .eq('id', a.config_version_id)
-        .single();
+      const { data: cv } = await supabase.from('config_versions').select('config_json').eq('id', a.config_version_id).single();
       if (!cv) return;
       const cfg = cv.config_json as unknown as ConfigJSON;
       setConfig(cfg);
 
-      const { data: answers } = await supabase
-        .from('answers')
-        .select('*')
-        .eq('assessment_id', id);
-
-      const res = calculateAssessmentResult(
-        cfg,
-        (answers || []) as Answer[],
-        a.stage || 'seed',
-        (a.context_numeric as Record<string, number>) || {}
-      );
+      const { data: answers } = await supabase.from('answers').select('*').eq('assessment_id', id);
+      const res = calculateAssessmentResult(cfg, (answers || []) as Answer[], a.stage || 'seed', (a.context_numeric as Record<string, number>) || {});
       setResult(res);
     };
     load();
@@ -78,17 +72,10 @@ export default function ReportPage() {
       const element = document.getElementById('report-root');
       if (!element) throw new Error('Report element not found');
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        windowWidth: 1024,
-      });
-
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, windowWidth: 1024 });
+      const imgWidth = 210;
+      const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
       const pdf = new jsPDF('p', 'mm', 'a4');
       let heightLeft = imgHeight;
       let position = 0;
@@ -104,7 +91,6 @@ export default function ReportPage() {
         heightLeft -= pageHeight;
       }
 
-      // Simulation watermark
       if (isSimulation) {
         const totalPages = pdf.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
@@ -113,9 +99,7 @@ export default function ReportPage() {
           pdf.setTextColor(255, 0, 0);
           pdf.saveGraphicsState();
           pdf.setGState(new (pdf as any).GState({ opacity: 0.15 }));
-          const centerX = imgWidth / 2;
-          const centerY = pageHeight / 2;
-          pdf.text('SIMULAÇÃO', centerX, centerY, { align: 'center', angle: 45 });
+          pdf.text('SIMULAÇÃO', imgWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
           pdf.restoreGraphicsState();
         }
       }
@@ -138,6 +122,10 @@ export default function ReportPage() {
   const startupName = (assessment as any).company?.name || 'Startup';
   const isSimulation = assessment.is_simulation;
 
+  const scrollTo = (elId: string) => {
+    document.getElementById(elId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto overflow-x-hidden" id="report-root">
       {/* Navigation */}
@@ -156,66 +144,69 @@ export default function ReportPage() {
             </p>
           </div>
         </div>
-        {assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation && (
+        {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-            {exporting ? (
-              <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</>
-            ) : (
-              <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>
-            )}
+            {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
           </Button>
         )}
         {isSimulation && (
           <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-            {exporting ? (
-              <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</>
-            ) : (
-              <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>
-            )}
+            {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
           </Button>
         )}
       </div>
 
-      {/* A. Header */}
-      <ReportHeader
-        startupName={startupName}
-        stage={stage}
-        date={new Date(assessment.created_at).toLocaleDateString('pt-BR')}
-        completeness={completeness}
-        isSimulation={isSimulation}
-      />
+      {/* Anchor index bar - screen only */}
+      <div className="flex flex-wrap gap-2 border-b pb-3 print:hidden" data-html2canvas-ignore="true">
+        {anchorLinks.map((link, i) => (
+          <button
+            key={link.id}
+            onClick={() => scrollTo(link.id)}
+            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+          >
+            {link.label}
+            {i < anchorLinks.length - 1 && <span className="ml-2 text-border">|</span>}
+          </button>
+        ))}
+      </div>
 
-      {/* B. Overall Score */}
-      <OverallScoreCard result={result} config={config} stage={stage} />
+      <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
 
-      {/* C. Blocks */}
-      <BlocksSection result={result} config={config} stage={stage} />
+      <div id="section-overall">
+        <OverallScoreCard result={result} config={config} stage={stage} />
+      </div>
 
-      {/* D. Radar */}
-      <RadarSection result={result} />
+      <div id="section-blocks">
+        <BlocksSection result={result} config={config} stage={stage} />
+      </div>
 
-      {/* E. Dimension Scores + Gaps */}
-      <DimensionScoresSection result={result} config={config} stage={stage} />
+      <div id="section-radar">
+        <RadarSection result={result} />
+      </div>
 
-      {/* F. Red Flags */}
-      <RedFlagsSection result={result} config={config} />
+      <div id="section-gaps">
+        <DimensionScoresSection result={result} config={config} stage={stage} />
+      </div>
 
-      {/* G. Dimension Narratives */}
+      <div id="section-redflags">
+        <RedFlagsSection result={result} config={config} />
+      </div>
+
       <DimensionNarratives result={result} />
 
-      {/* H. Roadmap */}
-      <RoadmapSection result={result} config={config} stage={stage} />
+      <div id="section-roadmap">
+        <RoadmapSection result={result} config={config} stage={stage} />
+      </div>
 
-      {/* I. Deep Dive */}
-      <DeepDiveSection result={result} config={config} />
+      <div id="section-deepdive">
+        <DeepDiveSection result={result} config={config} />
+      </div>
 
-      {/* J. Quick Wins (Pareto) */}
-      <QuickWinsSection config={config} result={result} stage={stage} />
+      <div id="section-quickwins">
+        <QuickWinsSection config={config} result={result} stage={stage} />
+      </div>
 
-      {/* K. Meeting Agenda */}
       <MeetingAgendaSection config={config} result={result} stage={stage} />
-
-      {/* L. Risk x Impact Matrix */}
       <RiskImpactMatrixSection config={config} result={result} stage={stage} />
 
       {completeness.confidence === 'low' && (

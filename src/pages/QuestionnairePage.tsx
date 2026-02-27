@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +20,7 @@ export default function QuestionnairePage() {
   const [answers, setAnswers] = useState<Record<string, { value: number | null; is_na: boolean; notes: string }>>({});
   const [saving, setSaving] = useState(false);
   const [activeDim, setActiveDim] = useState('');
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -45,7 +46,6 @@ export default function QuestionnairePage() {
         if (cfg.dimensions.length > 0) setActiveDim(cfg.dimensions[0].id);
       }
 
-      // Load existing answers
       const { data: existingAnswers } = await supabase
         .from('answers')
         .select('*')
@@ -93,13 +93,20 @@ export default function QuestionnairePage() {
     }
 
     setSaving(false);
+    const now = new Date();
+    setLastSavedAt(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     toast({ title: 'Respostas salvas' });
   }, [id, answers, toast]);
 
   const completeAssessment = async () => {
     await saveAnswers();
     await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
-    navigate(`/app/assessments/${id}/report`);
+    const answeredCount = Object.values(answers).filter((a) => a.value !== null || a.is_na).length;
+    const totalQuestions = config?.questions.filter((q) => q.is_active !== false).length || 45;
+    toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas. Gerando relatório...` });
+    setTimeout(() => {
+      navigate(`/app/assessments/${id}/report`);
+    }, 1500);
   };
 
   if (!config) return null;
@@ -123,7 +130,10 @@ export default function QuestionnairePage() {
             </span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {lastSavedAt && (
+            <span className="text-[10px] text-muted-foreground">Salvo às {lastSavedAt}</span>
+          )}
           <Button variant="outline" size="sm" onClick={() => navigate(`/app/assessments/${id}/report`)}>
             <Eye className="mr-1 h-3 w-3" /> Relatório parcial
           </Button>
@@ -224,7 +234,6 @@ function QuestionCard({
               )}
             </div>
 
-            {/* Likert scale */}
             <div className="flex items-center gap-2 flex-wrap">
               {[1, 2, 3, 4, 5].map((val) => (
                 <button
@@ -257,7 +266,6 @@ function QuestionCard({
               </button>
             </div>
 
-            {/* Anchors */}
             {tooltip?.anchors && (
               <div className="flex justify-between text-[10px] text-muted-foreground px-1">
                 {Object.entries(tooltip.anchors).map(([k, v]) => (
