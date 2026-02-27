@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Download, Check, Archive, FileJson } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Upload, Download, Check, Trash2, FileJson } from 'lucide-react';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
@@ -198,6 +199,23 @@ export default function AdminConfigPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDelete = async (versionId: string) => {
+    try {
+      // Delete related data first (cascade manually)
+      const tables = ['dimensions', 'questions', 'deep_dive_prompts', 'red_flags', 'glossary_terms', 'simulator_presets'] as const;
+      for (const table of tables) {
+        await supabase.from(table).delete().eq('config_version_id', versionId);
+      }
+      // Delete the config version itself
+      const { error } = await supabase.from('config_versions').delete().eq('id', versionId);
+      if (error) throw error;
+      toast({ title: 'Versão excluída com sucesso' });
+      fetchVersions();
+    } catch (err: any) {
+      toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const statusColors: Record<string, string> = {
     draft: 'secondary',
     published: 'default',
@@ -267,6 +285,29 @@ export default function AdminConfigPage() {
                       <Button size="sm" onClick={() => handlePublish(v.id)}>
                         <Check className="mr-1 h-3 w-3" /> Publicar
                       </Button>
+                    )}
+                    {v.status !== 'published' && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir versão "{v.version_name}"?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Isso removerá permanentemente esta versão e todos os dados relacionados (dimensões, perguntas, prompts, red flags, glossário e presets). Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(v.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Excluir
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
                   </div>
                 </div>
