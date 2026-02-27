@@ -1,0 +1,253 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BookOpen } from 'lucide-react';
+import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
+
+export default function MethodologyPage() {
+  const [config, setConfig] = useState<ConfigJSON | null>(null);
+  const [version, setVersion] = useState<ConfigVersion | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from('config_versions')
+      .select('*')
+      .eq('status', 'published')
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setVersion(data as unknown as ConfigVersion);
+          setConfig(data.config_json as unknown as ConfigJSON);
+        }
+      });
+  }, []);
+
+  if (!config || !version) return null;
+
+  const stages = ['pre_seed', 'seed', 'series_a'];
+  const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
+
+  const severityColor = (s: string) => {
+    if (['high', 'critical'].includes(s)) return 'destructive';
+    if (['medium_high', 'medium'].includes(s)) return 'secondary';
+    return 'outline';
+  };
+
+  const triggerDescription = (trigger: any): string => {
+    switch (trigger.type) {
+      case 'score_threshold':
+        return `Score da dimensão "${trigger.dimension_id}" abaixo de ${trigger.threshold}`;
+      case 'numeric_threshold':
+        return `Campo "${trigger.field}" abaixo de ${trigger.threshold}`;
+      case 'numeric_missing':
+        return `Campo "${trigger.field}" não informado`;
+      default:
+        return trigger.type;
+    }
+  };
+
+  const glossaryEntries = config.glossary
+    ? Object.entries(config.glossary).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+    : [];
+
+  return (
+    <div className="space-y-8 max-w-5xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <BookOpen className="h-6 w-6" /> Metodologia
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
+        </p>
+      </div>
+
+      {/* Seção 1 — Sobre o Diagnóstico */}
+      <Card>
+        <CardHeader><CardTitle className="text-sm">Sobre o Diagnóstico</CardTitle></CardHeader>
+        <CardContent>
+          <div className="prose prose-sm max-w-none text-sm text-foreground whitespace-pre-wrap">
+            {config.methodology || 'Metodologia não definida.'}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Seção 2 — Dimensões e Perguntas */}
+      <Card>
+        <CardHeader><CardTitle className="text-sm">Dimensões e Perguntas</CardTitle></CardHeader>
+        <CardContent>
+          <Accordion type="multiple">
+            {config.dimensions
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((dim) => {
+                const dimQuestions = config.questions
+                  .filter(q => q.dimension_id === dim.id && q.is_active !== false)
+                  .sort((a, b) => a.sort_order - b.sort_order);
+
+                return (
+                  <AccordionItem key={dim.id} value={dim.id}>
+                    <AccordionTrigger className="text-sm">
+                      {dim.label}
+                      <Badge variant="outline" className="ml-2 text-[10px]">{dimQuestions.length} perguntas</Badge>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4">
+                        {dimQuestions.map((q, idx) => (
+                          <div key={q.id} className="pl-2 border-l-2 border-muted space-y-1">
+                            <p className="text-sm font-medium">{idx + 1}. {q.text}</p>
+                            {q.tooltip && (
+                              <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
+                                {q.tooltip.definition && <p><strong>Definição:</strong> {q.tooltip.definition}</p>}
+                                {q.tooltip.why && <p><strong>Por quê:</strong> {q.tooltip.why}</p>}
+                                {q.tooltip.anchors && (
+                                  <div className="flex gap-3 flex-wrap">
+                                    {Object.entries(q.tooltip.anchors).map(([k, v]) => (
+                                      <span key={k} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{k}: {v as string}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+          </Accordion>
+        </CardContent>
+      </Card>
+
+      {/* Seção 3 — Pesos e Targets por Estágio */}
+      <Card>
+        <CardHeader><CardTitle className="text-sm">Pesos e Targets por Estágio</CardTitle></CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Dimensão</TableHead>
+                {stages.map(s => (
+                  <TableHead key={s} className="text-center" colSpan={2}>{stageLabels[s]}</TableHead>
+                ))}
+              </TableRow>
+              <TableRow>
+                <TableHead></TableHead>
+                {stages.map(s => (
+                  <>
+                    <TableHead key={`${s}-w`} className="text-center text-xs">Peso</TableHead>
+                    <TableHead key={`${s}-t`} className="text-center text-xs">Target</TableHead>
+                  </>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {config.dimensions.sort((a, b) => a.sort_order - b.sort_order).map(dim => (
+                <TableRow key={dim.id}>
+                  <TableCell className="text-sm font-medium">{dim.label}</TableCell>
+                  {stages.map(s => (
+                    <>
+                      <TableCell key={`${s}-w-${dim.id}`} className="text-center text-sm">
+                        {config.weights_by_stage?.[s]?.[dim.id] ?? '—'}
+                      </TableCell>
+                      <TableCell key={`${s}-t-${dim.id}`} className="text-center text-sm">
+                        {config.targets_by_stage?.[s]?.[dim.id] ?? '—'}
+                      </TableCell>
+                    </>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Seção 4 — Red Flags */}
+      {config.red_flags && config.red_flags.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Red Flags</CardTitle></CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Label</TableHead>
+                  <TableHead>Severidade</TableHead>
+                  <TableHead>Triggers</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {config.red_flags.map(rf => (
+                  <TableRow key={rf.code}>
+                    <TableCell className="text-xs font-mono">{rf.code}</TableCell>
+                    <TableCell className="text-sm">{rf.label}</TableCell>
+                    <TableCell>
+                      <Badge variant={severityColor(rf.severity) as any} className="text-[10px]">
+                        {rf.severity}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {rf.triggers.map((t, i) => (
+                        <p key={i}>{triggerDescription(t)}</p>
+                      ))}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {rf.actions.map((a, i) => <p key={i}>{a}</p>)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Seção 5 — Glossário */}
+      {glossaryEntries.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Glossário</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {glossaryEntries.map(([term, def]) => (
+              <div key={term} className="border-b border-border pb-2 last:border-0">
+                <p className="text-sm font-semibold">{term}</p>
+                <p className="text-sm text-muted-foreground">{def}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Seção 6 — Presets do Simulador */}
+      {config.simulator?.presets && config.simulator.presets.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Presets do Simulador</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {config.simulator.presets.map(preset => (
+                <Card key={preset.id} className="bg-secondary/30">
+                  <CardContent className="pt-4 space-y-2">
+                    <p className="text-sm font-semibold">{preset.label}</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {Object.entries(preset.dimension_scores).map(([dimId, score]) => {
+                        const dim = config.dimensions.find(d => d.id === dimId);
+                        return (
+                          <div key={dimId} className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">{dim?.label || dimId}</span>
+                            <span className="font-mono font-semibold">{(score as number).toFixed(1)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

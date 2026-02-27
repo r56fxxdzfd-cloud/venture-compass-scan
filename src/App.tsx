@@ -15,6 +15,7 @@ import StartupDetailPage from "./pages/StartupDetailPage";
 import QuestionnairePage from "./pages/QuestionnairePage";
 import ReportPage from "./pages/ReportPage";
 import SimulatorPage from "./pages/SimulatorPage";
+import MethodologyPage from "./pages/MethodologyPage";
 import AdminConfigPage from "./pages/AdminConfigPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import NotFound from "./pages/NotFound";
@@ -33,6 +34,7 @@ function AppRoutes() {
       <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><QuestionnairePage /></AppLayout></ProtectedRoute>} />
       <Route path="/app/assessments/:id/report" element={<ProtectedRoute><AppLayout><ReportPage /></AppLayout></ProtectedRoute>} />
       <Route path="/app/simulator" element={<ProtectedRoute><AppLayout><SimulatorPage /></AppLayout></ProtectedRoute>} />
+      <Route path="/app/methodology" element={<ProtectedRoute><AppLayout><MethodologyPage /></AppLayout></ProtectedRoute>} />
       <Route path="/app/admin/config" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AdminConfigPage /></AppLayout></ProtectedRoute>} />
       <Route path="/app/admin/users" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AdminUsersPage /></AppLayout></ProtectedRoute>} />
 

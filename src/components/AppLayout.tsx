@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  LayoutDashboard, Building2, SlidersHorizontal,
+  LayoutDashboard, Building2, SlidersHorizontal, BookOpen,
   Settings, Users, LogOut, Menu, Moon, Sun } from
 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,8 @@ import { cn } from '@/lib/utils';
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
 { label: 'Startups', icon: Building2, href: '/app/startups' },
-{ label: 'Simulador', icon: SlidersHorizontal, href: '/app/simulator' }];
+{ label: 'Simulador', icon: SlidersHorizontal, href: '/app/simulator' },
+{ label: 'Metodologia', icon: BookOpen, href: '/app/methodology' }];
 
 
 const adminItems = [
