@@ -147,7 +147,7 @@ export default function SimulatorPage() {
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[350px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         {/* Controls */}
         <div className="space-y-4">
           <Card>
