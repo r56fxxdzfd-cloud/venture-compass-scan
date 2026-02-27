@@ -1,0 +1,283 @@
+import { useEffect, useState, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ArrowLeft, HelpCircle, Check, Eye } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
+
+export default function QuestionnairePage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [config, setConfig] = useState<ConfigJSON | null>(null);
+  const [answers, setAnswers] = useState<Record<string, { value: number | null; is_na: boolean; notes: string }>>({});
+  const [saving, setSaving] = useState(false);
+  const [activeDim, setActiveDim] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      const { data: assessment } = await supabase
+        .from('assessments')
+        .select('config_version_id')
+        .eq('id', id)
+        .single();
+
+      if (!assessment) return;
+
+      const { data: configVersion } = await supabase
+        .from('config_versions')
+        .select('config_json')
+        .eq('id', assessment.config_version_id)
+        .single();
+
+      if (configVersion) {
+        const cfg = configVersion.config_json as unknown as ConfigJSON;
+        setConfig(cfg);
+        if (cfg.dimensions.length > 0) setActiveDim(cfg.dimensions[0].id);
+      }
+
+      // Load existing answers
+      const { data: existingAnswers } = await supabase
+        .from('answers')
+        .select('*')
+        .eq('assessment_id', id);
+
+      if (existingAnswers) {
+        const map: Record<string, { value: number | null; is_na: boolean; notes: string }> = {};
+        existingAnswers.forEach((a: any) => {
+          map[a.question_id] = { value: a.value, is_na: a.is_na, notes: a.notes || '' };
+        });
+        setAnswers(map);
+      }
+    };
+    load();
+  }, [id]);
+
+  const setAnswer = (questionId: string, value: number | null, is_na: boolean = false) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: { value: is_na ? null : value, is_na, notes: prev[questionId]?.notes || '' },
+    }));
+  };
+
+  const setNotes = (questionId: string, notes: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionId]: { ...prev[questionId], notes },
+    }));
+  };
+
+  const saveAnswers = useCallback(async () => {
+    if (!id) return;
+    setSaving(true);
+
+    const upserts = Object.entries(answers).map(([question_id, ans]) => ({
+      assessment_id: id,
+      question_id,
+      value: ans.value,
+      is_na: ans.is_na,
+      notes: ans.notes || null,
+    }));
+
+    for (const upsert of upserts) {
+      await supabase.from('answers').upsert(upsert, { onConflict: 'assessment_id,question_id' });
+    }
+
+    setSaving(false);
+    toast({ title: 'Respostas salvas' });
+  }, [id, answers, toast]);
+
+  const completeAssessment = async () => {
+    await saveAnswers();
+    await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
+    navigate(`/app/assessments/${id}/report`);
+  };
+
+  if (!config) return null;
+
+  const totalQuestions = config.questions.filter((q) => q.is_active !== false).length;
+  const answeredCount = Object.values(answers).filter((a) => a.value !== null || a.is_na).length;
+  const progressPct = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Questionário</h1>
+          <div className="flex items-center gap-3 mt-1">
+            <Progress value={progressPct} className="flex-1 h-2" />
+            <span className="text-xs text-muted-foreground font-mono">
+              {answeredCount}/{totalQuestions}
+            </span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate(`/app/assessments/${id}/report`)}>
+            <Eye className="mr-1 h-3 w-3" /> Relatório parcial
+          </Button>
+          <Button size="sm" onClick={saveAnswers} disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={activeDim} onValueChange={setActiveDim}>
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          {config.dimensions.map((dim) => {
+            const dimQuestions = config.questions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
+            const dimAnswered = dimQuestions.filter((q) => answers[q.id]?.value !== null || answers[q.id]?.is_na).length;
+            const isComplete = dimAnswered === dimQuestions.length && dimQuestions.length > 0;
+
+            return (
+              <TabsTrigger key={dim.id} value={dim.id} className="text-xs relative">
+                {dim.label}
+                {isComplete && <Check className="ml-1 h-3 w-3 text-success" />}
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+
+        {config.dimensions.map((dim) => (
+          <TabsContent key={dim.id} value={dim.id} className="space-y-4 mt-4">
+            {config.questions
+              .filter((q) => q.dimension_id === dim.id && q.is_active !== false)
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((question, idx) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  index={idx + 1}
+                  answer={answers[question.id]}
+                  onAnswer={(val) => setAnswer(question.id, val)}
+                  onNA={() => setAnswer(question.id, null, true)}
+                  onNotes={(notes) => setNotes(question.id, notes)}
+                />
+              ))}
+          </TabsContent>
+        ))}
+      </Tabs>
+
+      <div className="flex justify-end gap-3 pt-4 border-t">
+        <Button onClick={saveAnswers} variant="outline" disabled={saving}>
+          Salvar rascunho
+        </Button>
+        <Button onClick={completeAssessment}>
+          Finalizar diagnóstico
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function QuestionCard({
+  question,
+  index,
+  answer,
+  onAnswer,
+  onNA,
+  onNotes,
+}: {
+  question: ConfigQuestion;
+  index: number;
+  answer?: { value: number | null; is_na: boolean; notes: string };
+  onAnswer: (val: number) => void;
+  onNA: () => void;
+  onNotes: (notes: string) => void;
+}) {
+  const [showNotes, setShowNotes] = useState(false);
+  const tooltip = question.tooltip;
+
+  return (
+    <Card className={answer?.value !== null && answer?.value !== undefined || answer?.is_na ? 'border-primary/20' : ''}>
+      <CardContent className="pt-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">
+            {index}
+          </span>
+          <div className="flex-1 space-y-3">
+            <div className="flex items-start gap-2">
+              <p className="text-sm font-medium leading-relaxed">{question.text}</p>
+              {tooltip && (tooltip.definition || tooltip.why) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <HelpCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      {tooltip.definition && <p className="text-xs mb-1"><strong>Definição:</strong> {tooltip.definition}</p>}
+                      {tooltip.why && <p className="text-xs"><strong>Por quê:</strong> {tooltip.why}</p>}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+
+            {/* Likert scale */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {[1, 2, 3, 4, 5].map((val) => (
+                <button
+                  key={val}
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-all ${
+                    answer?.value === val
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      : 'bg-card hover:bg-secondary border-border'
+                  }`}
+                  onClick={() => onAnswer(val)}
+                >
+                  {val}
+                </button>
+              ))}
+              <button
+                className={`flex h-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition-all ${
+                  answer?.is_na
+                    ? 'bg-muted text-muted-foreground border-primary/30'
+                    : 'bg-card hover:bg-secondary border-border text-muted-foreground'
+                }`}
+                onClick={onNA}
+              >
+                N/A
+              </button>
+              <button
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
+                onClick={() => setShowNotes(!showNotes)}
+              >
+                {showNotes ? 'Ocultar notas' : '+ Notas'}
+              </button>
+            </div>
+
+            {/* Anchors */}
+            {tooltip?.anchors && (
+              <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+                {Object.entries(tooltip.anchors).map(([k, v]) => (
+                  <span key={k}>{k}: {v as string}</span>
+                ))}
+              </div>
+            )}
+
+            {showNotes && (
+              <Textarea
+                placeholder="Observações..."
+                value={answer?.notes || ''}
+                onChange={(e) => onNotes(e.target.value)}
+                className="text-sm"
+                rows={2}
+              />
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
