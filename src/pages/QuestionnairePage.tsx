@@ -208,7 +208,7 @@ function QuestionCard({
           </span>
           <div className="flex-1 space-y-3">
             <div className="flex items-start gap-2">
-              <p className="text-sm font-medium leading-relaxed">{question.text}</p>
+              <p className="text-base font-medium leading-relaxed">{question.text}</p>
               {tooltip && (tooltip.definition || tooltip.why) && (
                 <TooltipProvider>
                   <Tooltip>
