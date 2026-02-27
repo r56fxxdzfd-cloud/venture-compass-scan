@@ -47,9 +47,9 @@
     --chart-3: 152 60% 40%;
     --chart-4: 280 55% 55%;
     --chart-5: 340 72% 52%;
-    --chart-current: 220 70% 50%;
-    --chart-benchmark: 38 95% 55%;
-    --chart-potential: 152 60% 40%;
+    --chart-current: 220 60% 55%;
+    --chart-benchmark: 220 20% 60%;
+    --chart-potential: 170 40% 50%;
 
     --gradient-hero: linear-gradient(135deg, hsl(220 30% 10%) 0%, hsl(220 50% 20%) 50%, hsl(220 70% 30%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 98%) 100%);
@@ -110,9 +110,9 @@
     --chart-3: 152 55% 50%;
     --chart-4: 280 55% 60%;
     --chart-5: 340 72% 58%;
-    --chart-current: 220 65% 60%;
-    --chart-benchmark: 38 90% 60%;
-    --chart-potential: 152 55% 50%;
+    --chart-current: 220 55% 60%;
+    --chart-benchmark: 220 15% 55%;
+    --chart-potential: 170 35% 55%;
 
     --gradient-hero: linear-gradient(135deg, hsl(220 18% 10%) 0%, hsl(220 25% 18%) 50%, hsl(220 40% 25%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(220 18% 16%) 0%, hsl(220 18% 14%) 100%);
