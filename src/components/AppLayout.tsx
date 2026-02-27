@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  LayoutDashboard, Building2, ClipboardList, SlidersHorizontal,
-  Settings, Users, LogOut, Menu, X, ChevronDown
+  LayoutDashboard, Building2, SlidersHorizontal,
+  Settings, Users, LogOut, Menu, Moon, Sun
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     await signOut();
@@ -96,10 +98,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </nav>
 
-        {/* User */}
-        <div className="border-t border-sidebar-border p-4">
+        {/* Footer */}
+        <div className="border-t border-sidebar-border p-4 space-y-2">
           <div className="flex items-center justify-between">
-            <div className="min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            <div className="min-w-0 flex-1 px-2">
               <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuário'}</p>
             </div>
             <Button
