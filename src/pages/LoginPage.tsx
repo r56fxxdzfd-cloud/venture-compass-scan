@@ -71,7 +71,7 @@ export default function LoginPage() {
           </h2>
           <p className="text-primary-foreground/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
-            Tudo configurável pela sua equipe.
+            Tudo configurável pela equipe da JV.
           </p>
         </motion.div>
       </div>
