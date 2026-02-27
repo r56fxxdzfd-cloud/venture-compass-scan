@@ -65,7 +65,7 @@ export function DarwinRadarChart({
             dataKey="atual"
             stroke="hsl(var(--chart-current))"
             fill="hsl(var(--chart-current))"
-            fillOpacity={0.25}
+            fillOpacity={0.15}
             strokeWidth={2}
           />
           {showBenchmark && (

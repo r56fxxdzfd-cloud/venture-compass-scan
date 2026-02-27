@@ -137,9 +137,9 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
               <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10 }} />
               <Tooltip />
-              <Bar dataKey="score" radius={[0, 4, 4, 0]} name="Score">
+              <Bar dataKey="score" radius={[0, 4, 4, 0]} name="Score" fill="hsl(var(--primary))">
                 {barData.map((entry, i) => (
-                  <Cell key={i} fill={entry.score >= 75 ? 'hsl(152 60% 40%)' : entry.score >= 55 ? 'hsl(220 70% 50%)' : entry.score >= 35 ? 'hsl(38 95% 55%)' : 'hsl(0 72% 51%)'} />
+                  <Cell key={i} fill={entry.score >= 55 ? 'hsl(var(--primary))' : 'hsl(var(--primary) / 0.5)'} />
                 ))}
               </Bar>
             </BarChart>
@@ -227,9 +227,9 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
               <XAxis type="number" tick={{ fontSize: 10 }} />
               <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 9 }} />
               <Tooltip />
-              <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]}>
+              <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]} fill="hsl(var(--destructive) / 0.7)">
                 {impactData.map((entry, i) => (
-                  <Cell key={i} fill={['high', 'critical'].includes(entry.severity) ? 'hsl(0 72% 51%)' : 'hsl(38 95% 55%)'} />
+                  <Cell key={i} fill={['high', 'critical'].includes(entry.severity) ? 'hsl(var(--destructive))' : 'hsl(var(--destructive) / 0.45)'} />
                 ))}
               </Bar>
             </BarChart>
