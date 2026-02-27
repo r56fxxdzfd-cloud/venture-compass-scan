@@ -86,6 +86,12 @@ export default function SimulatorPage() {
     const rand: Record<string, number> = {};
     config.dimensions.forEach((d) => { rand[d.id] = Math.round((1 + Math.random() * 4) * 10) / 10; });
     setSliders(rand);
+    const stages = ['pre_seed', 'seed', 'series_a'];
+    setStage(stages[Math.floor(Math.random() * stages.length)]);
+    const customerTypes = ['B2B', 'B2C', 'B2B2C'];
+    setCustomerType(customerTypes[Math.floor(Math.random() * customerTypes.length)]);
+    const revenueModels = ['non_recurring', 'recurring', 'subscription', 'usage_based'];
+    setRevenueModel(revenueModels[Math.floor(Math.random() * revenueModels.length)]);
     setNumericContext({
       runway_months: Math.round(3 + Math.random() * 21), burn_monthly: Math.round((20 + Math.random() * 180) * 1000),
       headcount: Math.round(3 + Math.random() * 47), gross_margin_pct: Math.round(20 + Math.random() * 60),
