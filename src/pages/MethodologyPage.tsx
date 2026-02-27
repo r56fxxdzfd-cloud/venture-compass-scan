@@ -68,8 +68,19 @@ export default function MethodologyPage() {
       <Card>
         <CardHeader><CardTitle className="text-sm">Sobre o Diagnóstico</CardTitle></CardHeader>
         <CardContent>
-          <div className="prose prose-sm max-w-none text-sm text-foreground whitespace-pre-wrap">
-            {config.methodology || 'Metodologia não definida.'}
+          <div className="prose prose-sm max-w-none text-sm text-foreground space-y-4">
+            {typeof config.methodology === 'string' ? (
+              <p className="whitespace-pre-wrap">{config.methodology}</p>
+            ) : config.methodology && typeof config.methodology === 'object' ? (
+              Object.entries(config.methodology).map(([key, value]) => (
+                <div key={key}>
+                  <h3 className="text-sm font-semibold capitalize mb-1">{key.replace(/_/g, ' ')}</h3>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{typeof value === 'string' ? value : JSON.stringify(value, null, 2)}</p>
+                </div>
+              ))
+            ) : (
+              <p>Metodologia não definida.</p>
+            )}
           </div>
         </CardContent>
       </Card>
