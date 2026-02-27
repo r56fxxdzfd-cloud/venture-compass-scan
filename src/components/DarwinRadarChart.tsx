@@ -1,6 +1,6 @@
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, Legend
+  ResponsiveContainer, Legend, Tooltip
 } from 'recharts';
 import type { DimensionScore } from '@/types/darwin';
 
@@ -11,6 +11,23 @@ interface RadarChartProps {
   potentialScores?: Record<string, number>;
 }
 
+/** Extract a short abbreviation from a dimension label */
+function abbreviate(label: string): string {
+  // If label has "&" or "e" separator, take initials of each part
+  const parts = label.split(/\s*[&e]\s*/i).map((p) => p.trim());
+  if (parts.length >= 2) {
+    // Take first word of each part, max 3-4 chars each
+    return parts.map((p) => {
+      const words = p.split(/\s+/);
+      return words[0].slice(0, 4);
+    }).join(' & ');
+  }
+  // Fallback: first two words
+  const words = label.split(/\s+/);
+  if (words.length >= 2) return words.slice(0, 2).join(' ');
+  return label.slice(0, 10);
+}
+
 export function DarwinRadarChart({
   dimensionScores,
   showBenchmark = true,
@@ -18,7 +35,7 @@ export function DarwinRadarChart({
   potentialScores,
 }: RadarChartProps) {
   const data = dimensionScores.map((ds) => ({
-    dimension: ds.label.length > 12 ? ds.label.slice(0, 12) + '…' : ds.label,
+    dimension: abbreviate(ds.label),
     fullName: ds.label,
     atual: ds.score,
     benchmark: ds.target,
@@ -27,8 +44,8 @@ export function DarwinRadarChart({
 
   return (
     <div className="radar-chart-container">
-      <ResponsiveContainer width="100%" height={350}>
-        <RadarChart data={data} cx="50%" cy="50%" outerRadius="75%">
+      <ResponsiveContainer width="100%" height={380}>
+        <RadarChart data={data} cx="50%" cy="50%" outerRadius="65%">
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis
             dataKey="dimension"
@@ -69,6 +86,20 @@ export function DarwinRadarChart({
               strokeDasharray="3 3"
             />
           )}
+          <Tooltip
+            content={({ payload }) => {
+              if (!payload?.length) return null;
+              const item = payload[0]?.payload;
+              return (
+                <div className="rounded-lg border bg-popover p-3 text-popover-foreground shadow-md text-xs space-y-1">
+                  <p className="font-semibold text-sm">{item?.fullName}</p>
+                  {payload.map((p: any) => (
+                    <p key={p.dataKey}>{p.name}: <strong>{p.value?.toFixed(1)}</strong></p>
+                  ))}
+                </div>
+              );
+            }}
+          />
           <Legend />
         </RadarChart>
       </ResponsiveContainer>
