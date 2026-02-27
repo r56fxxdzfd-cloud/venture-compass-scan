@@ -341,27 +341,29 @@ export function DeepDiveSection({ result, config }: { result: AssessmentResult; 
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        <h3 className="text-base font-semibold flex items-center gap-2">
-          <CheckCircle className="h-4 w-4 text-accent" /> Deep Dive — Questões para Aprofundamento
-        </h3>
-        {result.deep_dive_dimensions.map((dimId) => {
-          const dim = config.dimensions.find((d) => d.id === dimId);
-          const prompts = ddMap[dimId] || [];
-          if (!dim || prompts.length === 0) return null;
-          return (
-            <div key={dimId}>
-              <p className="text-sm font-semibold mb-2">{dim.label}</p>
-              <ul className="space-y-1">
-                {prompts.map((p, i) => (
-                  <li key={i} className="text-sm text-muted-foreground pl-4 border-l-2 border-accent">{p}</li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+    <div className="lg:relative lg:left-[calc(-50vw+50%)] lg:w-screen lg:px-4">
+      <Card className="lg:max-w-7xl lg:mx-auto">
+        <CardContent className="pt-6 space-y-4">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-accent" /> Deep Dive — Questões para Aprofundamento
+          </h3>
+          {result.deep_dive_dimensions.map((dimId) => {
+            const dim = config.dimensions.find((d) => d.id === dimId);
+            const prompts = ddMap[dimId] || [];
+            if (!dim || prompts.length === 0) return null;
+            return (
+              <div key={dimId}>
+                <p className="text-sm font-semibold mb-2">{dim.label}</p>
+                <ul className="space-y-1">
+                  {prompts.map((p, i) => (
+                    <li key={i} className="text-sm text-muted-foreground pl-4 border-l-2 border-accent">{p}</li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
