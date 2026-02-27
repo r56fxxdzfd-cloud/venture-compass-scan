@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import { SlidersHorizontal, Shuffle, Settings } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
@@ -244,21 +245,30 @@ export default function SimulatorPage() {
           <MeetingAgendaSection config={config} result={result} stage={stage} />
         </div>
 
-        <div className="space-y-6">
-          <ReportHeader startupName="Simulação" stage={stage} date={new Date().toLocaleDateString('pt-BR')} completeness={completeness} isSimulation />
-          <OverallScoreCard result={result} config={config} stage={stage} />
-          <BlocksSection result={result} config={config} stage={stage} />
-          <RadarSection result={result} />
-          <RiskImpactMatrixSection config={config} result={result} stage={stage} />
-          <DimensionScoresSection result={result} config={config} stage={stage} />
-          <RedFlagsSection result={result} config={config} />
-          <DimensionNarratives result={result} />
-          <RoadmapSection result={result} config={config} stage={stage} />
-          <DeepDiveSection result={result} config={config} />
-          <div className="text-center py-4 text-xs text-muted-foreground italic">
-            ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={JSON.stringify(result.overall_score) + stage}
+            className="space-y-6"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
+          >
+            <ReportHeader startupName="Simulação" stage={stage} date={new Date().toLocaleDateString('pt-BR')} completeness={completeness} isSimulation />
+            <OverallScoreCard result={result} config={config} stage={stage} />
+            <BlocksSection result={result} config={config} stage={stage} />
+            <RadarSection result={result} />
+            <RiskImpactMatrixSection config={config} result={result} stage={stage} />
+            <DimensionScoresSection result={result} config={config} stage={stage} />
+            <RedFlagsSection result={result} config={config} />
+            <DimensionNarratives result={result} />
+            <RoadmapSection result={result} config={config} stage={stage} />
+            <DeepDiveSection result={result} config={config} />
+            <div className="text-center py-4 text-xs text-muted-foreground italic">
+              ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
