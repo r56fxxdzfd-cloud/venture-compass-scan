@@ -65,7 +65,7 @@ export default function ReportPage() {
   const isSimulation = assessment.is_simulation;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto" id="report-root">
+    <div className="space-y-6 max-w-5xl mx-auto overflow-x-hidden" id="report-root">
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
