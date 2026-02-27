@@ -67,7 +67,7 @@ export default function LoginPage() {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-primary-foreground mb-4">
-            Diagnóstico completo de prontidão para startups
+            Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para Startups
           </h2>
           <p className="text-primary-foreground/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
