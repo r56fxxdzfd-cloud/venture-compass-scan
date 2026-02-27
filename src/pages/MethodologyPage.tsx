@@ -49,8 +49,11 @@ export default function MethodologyPage() {
     }
   };
 
-  const glossaryEntries = config.glossary
-    ? Object.entries(config.glossary).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+  const glossaryEntries: [string, string][] = config.glossary
+    ? (Array.isArray(config.glossary)
+        ? (config.glossary as any[]).map((g: any) => [g.term, g.definition] as [string, string])
+        : Object.entries(config.glossary).map(([k, v]) => [k, typeof v === 'string' ? v : (v as any)?.definition || JSON.stringify(v)] as [string, string])
+      ).sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
     : [];
 
   return (
@@ -75,7 +78,14 @@ export default function MethodologyPage() {
               Object.entries(config.methodology).map(([key, value]) => (
                 <div key={key}>
                   <h3 className="text-sm font-semibold capitalize mb-1">{key.replace(/_/g, ' ')}</h3>
-                  <p className="whitespace-pre-wrap text-muted-foreground">{typeof value === 'string' ? value : JSON.stringify(value, null, 2)}</p>
+                  <div className="whitespace-pre-wrap text-muted-foreground">
+                    {typeof value === 'string' ? value
+                      : typeof value === 'object' && value !== null
+                        ? Object.entries(value as Record<string, unknown>).map(([k2, v2]) => (
+                            <p key={k2}><strong className="capitalize">{k2.replace(/_/g, ' ')}:</strong> {typeof v2 === 'string' ? v2 : JSON.stringify(v2)}</p>
+                          ))
+                        : String(value)}
+                  </div>
                 </div>
               ))
             ) : (
