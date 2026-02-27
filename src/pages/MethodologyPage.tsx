@@ -49,6 +49,22 @@ export default function MethodologyPage() {
     }
   };
 
+  const formatCellValue = (value: unknown) => {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'number' || typeof value === 'string') return String(value);
+    if (typeof value === 'object') {
+      const benchmark = (value as Record<string, unknown>).benchmark;
+      const potential = (value as Record<string, unknown>).potential;
+      if (typeof benchmark === 'number' || typeof potential === 'number') {
+        const b = typeof benchmark === 'number' ? benchmark : '—';
+        const p = typeof potential === 'number' ? potential : '—';
+        return `Bench: ${b} • Pot: ${p}`;
+      }
+      return JSON.stringify(value);
+    }
+    return String(value);
+  };
+
   const glossaryEntries: [string, string][] = config.glossary
     ? (Array.isArray(config.glossary)
         ? (config.glossary as any[]).map((g: any) => [g.term, g.definition] as [string, string])
@@ -171,10 +187,10 @@ export default function MethodologyPage() {
                   {stages.map(s => (
                     <>
                       <TableCell key={`${s}-w-${dim.id}`} className="text-center text-sm">
-                        {config.weights_by_stage?.[s]?.[dim.id] ?? '—'}
+                        {formatCellValue(config.weights_by_stage?.[s]?.[dim.id])}
                       </TableCell>
                       <TableCell key={`${s}-t-${dim.id}`} className="text-center text-sm">
-                        {config.targets_by_stage?.[s]?.[dim.id] ?? '—'}
+                        {formatCellValue(config.targets_by_stage?.[s]?.[dim.id])}
                       </TableCell>
                     </>
                   ))}
