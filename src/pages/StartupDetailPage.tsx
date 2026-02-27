@@ -7,12 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Plus, ClipboardList, ArrowLeft, Pencil } from 'lucide-react';
+import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import type { Company, Assessment } from '@/types/darwin';
+import { calculateAssessmentResult } from '@/utils/scoring';
+import { scoreTo100, getLevel } from '@/utils/report-helpers';
+import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
@@ -23,6 +26,8 @@ export default function StartupDetailPage() {
   const { isAdmin, isAnalyst, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
+  const [lastResult, setLastResult] = useState<{ score100: number; level: string; levelColor: string; redFlagCount: number; assessmentId: string } | null>(null);
 
   const canWrite = isAdmin || isAnalyst;
 
@@ -41,12 +46,38 @@ export default function StartupDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from('companies').select('*').eq('id', id).single().then(({ data }) => {
-      if (data) setCompany(data as Company);
-    });
-    supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false }).then(({ data }) => {
-      if (data) setAssessments(data as Assessment[]);
-    });
+    const load = async () => {
+      const { data: companyData } = await supabase.from('companies').select('*').eq('id', id).single();
+      if (companyData) setCompany(companyData as Company);
+
+      const { data: assessData } = await supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false });
+      if (assessData) {
+        setAssessments(assessData as Assessment[]);
+
+        // Fetch answer counts for all assessments
+        const counts: Record<string, number> = {};
+        for (const a of assessData) {
+          const { count } = await supabase.from('answers').select('id', { count: 'exact', head: true }).eq('assessment_id', a.id);
+          counts[a.id] = count || 0;
+        }
+        setAnswerCounts(counts);
+
+        // Compute last completed assessment summary
+        const lastCompleted = assessData.find((a: any) => a.status === 'completed');
+        if (lastCompleted) {
+          const { data: cv } = await supabase.from('config_versions').select('config_json').eq('id', lastCompleted.config_version_id).single();
+          if (cv) {
+            const cfg = cv.config_json as unknown as ConfigJSON;
+            const { data: answers } = await supabase.from('answers').select('*').eq('assessment_id', lastCompleted.id);
+            const result = calculateAssessmentResult(cfg, (answers || []) as Answer[], lastCompleted.stage || 'seed', (lastCompleted.context_numeric as Record<string, number>) || {});
+            const s100 = scoreTo100(result.overall_score);
+            const level = getLevel(s100);
+            setLastResult({ score100: s100, level: level.label, levelColor: level.color, redFlagCount: result.red_flags.length, assessmentId: lastCompleted.id });
+          }
+        }
+      }
+    };
+    load();
   }, [id]);
 
   // ---- New Assessment Dialog ----
@@ -60,12 +91,7 @@ export default function StartupDetailPage() {
 
   const handleCreateAssessment = async () => {
     setCreating(true);
-    const { data: config } = await supabase
-      .from('config_versions')
-      .select('id')
-      .eq('status', 'published')
-      .single();
-
+    const { data: config } = await supabase.from('config_versions').select('id').eq('status', 'published').single();
     if (!config) {
       toast({ title: 'Erro', description: 'Nenhuma configuração publicada encontrada.', variant: 'destructive' });
       setCreating(false);
@@ -148,6 +174,8 @@ export default function StartupDetailPage() {
     { key: 'revenue_concentration_top3_pct', label: 'Concentração Top 3 clientes (%)' },
   ];
 
+  const totalQuestions = 45;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -170,6 +198,35 @@ export default function StartupDetailPage() {
         </div>
       </div>
 
+      {/* Last completed assessment summary */}
+      {lastResult && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{lastResult.score100}</p>
+                  <p className="text-xs text-muted-foreground">Score</p>
+                </div>
+                <Separator orientation="vertical" className="h-10" />
+                <div>
+                  <p className={`text-sm font-semibold ${lastResult.levelColor}`}>{lastResult.level}</p>
+                  {lastResult.redFlagCount > 0 && (
+                    <div className="flex items-center gap-1 text-xs text-destructive mt-0.5">
+                      <AlertTriangle className="h-3 w-3" />
+                      {lastResult.redFlagCount} red flag{lastResult.redFlagCount > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/app/assessments/${lastResult.assessmentId}/report`)}>
+                Ver relatório completo <ArrowRight className="ml-1 h-3 w-3" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-sm">Informações</CardTitle></CardHeader>
@@ -191,39 +248,57 @@ export default function StartupDetailPage() {
           </CardHeader>
           <CardContent>
             {assessments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum diagnóstico ainda</p>
+              <div className="text-center py-6">
+                <Inbox className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">Nenhum diagnóstico ainda. Crie o primeiro para começar a análise.</p>
+                {canWrite && (
+                  <Button size="sm" onClick={openNewDialog}>
+                    <Plus className="mr-1 h-3 w-3" /> Novo
+                  </Button>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
-                {assessments.map((a) => (
-                  <div
-                    key={a.id}
-                    className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 transition-colors"
-                    onClick={() => navigate(
-                      a.status === 'completed'
-                        ? `/app/assessments/${a.id}/report`
-                        : `/app/assessments/${a.id}/questionnaire`
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <span className="text-sm">
-                          {new Date(a.created_at).toLocaleDateString('pt-BR')}
-                        </span>
-                        {a.stage && (
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {stageLabels[a.stage] || a.stage}
-                          </span>
-                        )}
+                {assessments.map((a) => {
+                  const count = answerCounts[a.id] || 0;
+                  const pct = Math.min(100, Math.round((count / totalQuestions) * 100));
+                  return (
+                    <div
+                      key={a.id}
+                      className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 transition-colors"
+                      onClick={() => navigate(
+                        a.status === 'completed'
+                          ? `/app/assessments/${a.id}/report`
+                          : `/app/assessments/${a.id}/questionnaire`
+                      )}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">
+                              {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                            {a.stage && (
+                              <span className="text-xs text-muted-foreground">
+                                {stageLabels[a.stage] || a.stage}
+                              </span>
+                            )}
+                          </div>
+                          {a.status === 'in_progress' && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <Progress value={pct} className="flex-1 h-1.5" />
+                              <span className="text-[10px] text-muted-foreground font-mono">{count}/{totalQuestions}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={a.status === 'completed' ? 'default' : 'secondary'}>
-                        {a.status === 'completed' ? 'Ver relatório' : 'Em andamento'}
+                      <Badge variant={a.status === 'completed' ? 'default' : 'secondary'} className="ml-2 shrink-0">
+                        {a.status === 'completed' ? 'Ver relatório' : 'Continuar'}
                       </Badge>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

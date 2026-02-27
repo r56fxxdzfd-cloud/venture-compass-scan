@@ -43,7 +43,7 @@ export default function StartupsPage() {
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'Startup criada' });
+      toast({ title: `Startup '${form.name}' criada com sucesso.` });
       setOpen(false);
       setForm({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
       fetchCompanies();
@@ -94,7 +94,6 @@ export default function StartupsPage() {
                     placeholder="00.000.000/0000-00"
                     maxLength={18}
                     onChange={(e) => {
-                      // Only allow digits, auto-format as XX.XXX.XXX/XXXX-XX
                       const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
                       let formatted = digits;
                       if (digits.length > 2) formatted = digits.slice(0, 2) + '.' + digits.slice(2);
@@ -152,55 +151,71 @@ export default function StartupsPage() {
         )}
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar startup..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((company, i) => (
-          <motion.div
-            key={company.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-          >
-            <Link to={`/app/startups/${company.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{company.name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {company.stage && (
-                          <span className="badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
-                        )}
-                        {company.sector && (
-                          <span className="text-xs text-muted-foreground">{company.sector}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          </motion.div>
-        ))}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <Building2 className="mx-auto h-12 w-12 mb-3 opacity-30" />
-          <p>Nenhuma startup encontrada</p>
+      {companies.length > 0 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar startup..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
         </div>
+      )}
+
+      {companies.length === 0 ? (
+        <div className="text-center py-16">
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
+          <p className="text-muted-foreground mb-4">Nenhuma startup cadastrada ainda</p>
+          {canWrite && (
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Nova Startup
+            </Button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((company, i) => (
+              <motion.div
+                key={company.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Link to={`/app/startups/${company.id}`}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{company.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {company.stage && (
+                              <span className="badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
+                            )}
+                            {company.sector && (
+                              <span className="text-xs text-muted-foreground">{company.sector}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          {filtered.length === 0 && companies.length > 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="mx-auto h-12 w-12 mb-3 opacity-30" />
+              <p>Nenhuma startup encontrada para "{search}"</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

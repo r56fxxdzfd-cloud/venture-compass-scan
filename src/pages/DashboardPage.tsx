@@ -1,28 +1,44 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, ClipboardList, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Building2, ClipboardList, TrendingUp, ArrowRight, Inbox } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+
+interface RecentAssessment {
+  id: string;
+  created_at: string;
+  stage: string | null;
+  status: string | null;
+  company: { name: string } | null;
+}
+
+const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
 export default function DashboardPage() {
   const { profile } = useAuth();
   const [stats, setStats] = useState({ companies: 0, assessments: 0, completed: 0 });
+  const [recentAssessments, setRecentAssessments] = useState<RecentAssessment[]>([]);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const [companies, assessments, completed] = await Promise.all([
+    const fetchData = async () => {
+      const [companies, assessments, completed, recent] = await Promise.all([
         supabase.from('companies').select('id', { count: 'exact', head: true }),
         supabase.from('assessments').select('id', { count: 'exact', head: true }),
         supabase.from('assessments').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('assessments').select('id, created_at, stage, status, company:companies(name)').order('created_at', { ascending: false }).limit(5),
       ]);
       setStats({
         companies: companies.count || 0,
         assessments: assessments.count || 0,
         completed: completed.count || 0,
       });
+      if (recent.data) setRecentAssessments(recent.data as unknown as RecentAssessment[]);
     };
-    fetchStats();
+    fetchData();
   }, []);
 
   const cards = [
@@ -67,14 +83,45 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Início rápido</CardTitle>
+          <CardTitle className="text-base">Atividade Recente</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>1. Cadastre uma startup em <strong>Startups</strong></p>
-          <p>2. Crie um novo diagnóstico para a startup</p>
-          <p>3. Preencha o questionário (45 perguntas, 9 dimensões)</p>
-          <p>4. Visualize o relatório interativo com radar e gaps</p>
-          <p>5. Exporte o PDF para enviar ao cliente</p>
+        <CardContent>
+          {recentAssessments.length === 0 ? (
+            <div className="text-center py-8">
+              <Inbox className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground mb-3">Nenhum diagnóstico criado ainda.</p>
+              <Button asChild size="sm">
+                <Link to="/app/startups">Cadastre uma startup e crie o primeiro diagnóstico</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {recentAssessments.map((a) => (
+                <Link
+                  key={a.id}
+                  to={a.status === 'completed' ? `/app/assessments/${a.id}/report` : `/app/assessments/${a.id}/questionnaire`}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">{a.company?.name || 'Startup'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                        {a.stage && ` • ${stageLabels[a.stage] || a.stage}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={a.status === 'completed' ? 'default' : 'secondary'}>
+                      {a.status === 'completed' ? 'Concluído' : 'Em andamento'}
+                    </Badge>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
