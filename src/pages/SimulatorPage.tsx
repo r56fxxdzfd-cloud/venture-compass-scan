@@ -257,7 +257,6 @@ export default function SimulatorPage() {
 
           <QuickWinsSection config={config} result={result} stage={stage} />
           <MeetingAgendaSection config={config} result={result} stage={stage} />
-          <RiskImpactMatrixSection config={config} result={result} stage={stage} />
         </div>
 
         {/* Full Report */}
@@ -272,6 +271,7 @@ export default function SimulatorPage() {
           <OverallScoreCard result={result} config={config} stage={stage} />
           <BlocksSection result={result} config={config} stage={stage} />
           <RadarSection result={result} />
+          <RiskImpactMatrixSection config={config} result={result} stage={stage} />
           <DimensionScoresSection result={result} config={config} stage={stage} />
           <RedFlagsSection result={result} config={config} />
           <DimensionNarratives result={result} />
