@@ -12,6 +12,7 @@ import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import { SlidersHorizontal, Shuffle, Settings } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
@@ -110,7 +111,18 @@ export default function SimulatorPage() {
     );
   }
 
-  if (!config || !result) return null;
+  if (!config || !result) return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div><Skeleton className="h-7 w-48 mb-2" /><Skeleton className="h-4 w-72" /></div>
+      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+        <div className="space-y-4">
+          <Card><CardHeader><Skeleton className="h-4 w-28" /></CardHeader><CardContent className="space-y-3">{[1,2,3].map(i=><Skeleton key={i} className="h-8 w-full" />)}</CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-4 w-28" /></CardHeader><CardContent className="space-y-3">{[1,2,3,4].map(i=><Skeleton key={i} className="h-8 w-full" />)}</CardContent></Card>
+        </div>
+        <div className="space-y-4">{[1,2,3].map(i=><Skeleton key={i} className="h-40 w-full rounded-lg" />)}</div>
+      </div>
+    </div>
+  );
 
   const completeness = getCompleteness(result);
   const numericFields = [
