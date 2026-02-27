@@ -32,6 +32,7 @@ export default function SimulatorPage() {
 
   const [customerType, setCustomerType] = useState('B2B');
   const [revenueModel, setRevenueModel] = useState('recurring');
+  const [animKey, setAnimKey] = useState(0);
   const [numericContext, setNumericContext] = useState<Record<string, number>>({
     runway_months: 12, burn_monthly: 50000, headcount: 10, gross_margin_pct: 60,
     cac: 500, ltv: 5000, revenue_concentration_top1_pct: 30, revenue_concentration_top3_pct: 60,
@@ -79,6 +80,7 @@ export default function SimulatorPage() {
     if (preset) {
       setSliders(preset.dimension_scores);
       if (preset.numeric_context_defaults) setNumericContext((prev) => ({ ...prev, ...preset.numeric_context_defaults }));
+      setAnimKey((k) => k + 1);
     }
   };
 
@@ -99,6 +101,7 @@ export default function SimulatorPage() {
       cac: Math.round(50 + Math.random() * 1950), ltv: Math.round(500 + Math.random() * 19500),
       revenue_concentration_top1_pct: Math.round(10 + Math.random() * 70), revenue_concentration_top3_pct: Math.round(30 + Math.random() * 60),
     });
+    setAnimKey((k) => k + 1);
   };
 
   const updateNumeric = (key: string, value: string) => {
@@ -162,7 +165,7 @@ export default function SimulatorPage() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              <motion.div key={`stage-${stage}-${animKey}`} className="space-y-2" initial={{ opacity: 0.5, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
                 <Label className="text-xs">Estágio</Label>
                 <Select value={stage} onValueChange={setStage}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -172,7 +175,7 @@ export default function SimulatorPage() {
                     <SelectItem value="series_a">Series A</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+              </motion.div>
               {config.simulator?.presets && config.simulator.presets.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-xs">Presets</Label>
@@ -187,7 +190,7 @@ export default function SimulatorPage() {
                 </div>
               )}
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
+                <motion.div key={`ct-${customerType}-${animKey}`} className="space-y-1" initial={{ opacity: 0.5, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
                   <Label className="text-xs">Tipo de Cliente</Label>
                   <Select value={customerType} onValueChange={setCustomerType}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -197,8 +200,8 @@ export default function SimulatorPage() {
                       <SelectItem value="B2B2C">B2B2C</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-1">
+                </motion.div>
+                <motion.div key={`rm-${revenueModel}-${animKey}`} className="space-y-1" initial={{ opacity: 0.5, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
                   <Label className="text-xs">Modelo de Receita</Label>
                   <Select value={revenueModel} onValueChange={setRevenueModel}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -209,19 +212,25 @@ export default function SimulatorPage() {
                       <SelectItem value="usage_based">Uso</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
+                </motion.div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-sm">Contexto Numérico</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {numericFields.map((f) => (
-                <div key={f.key} className="space-y-1">
+             <CardContent className="space-y-3">
+              {numericFields.map((f, idx) => (
+                <motion.div
+                  key={`${f.key}-${numericContext[f.key]}-${animKey}`}
+                  className="space-y-1"
+                  initial={{ opacity: 0.5, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: idx * 0.03 }}
+                >
                   <Label className="text-xs">{f.label}</Label>
                   <Input type="number" className="h-8 text-xs" value={numericContext[f.key] ?? ''} step={f.step} onChange={(e) => updateNumeric(f.key, e.target.value)} />
-                </div>
+                </motion.div>
               ))}
             </CardContent>
           </Card>
