@@ -11,21 +11,18 @@ interface RadarChartProps {
   potentialScores?: Record<string, number>;
 }
 
-/** Extract a short abbreviation from a dimension label */
+/** Extract a short label from a dimension name */
 function abbreviate(label: string): string {
-  // If label has "&" or "e" separator, take initials of each part
-  const parts = label.split(/\s*[&e]\s*/i).map((p) => p.trim());
-  if (parts.length >= 2) {
-    // Take first word of each part, max 3-4 chars each
-    return parts.map((p) => {
-      const words = p.split(/\s+/);
-      return words[0].slice(0, 4);
-    }).join(' & ');
+  // Split on " & " or " e " (as a word, not the letter inside words)
+  const parts = label.split(/\s+[&]\s+|\s+e\s+/i).map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 2) {
+    // Take first word of each part
+    return parts.map((p) => p.split(/\s+/)[0]).join(' & ');
   }
   // Fallback: first two words
   const words = label.split(/\s+/);
   if (words.length >= 2) return words.slice(0, 2).join(' ');
-  return label.slice(0, 10);
+  return label;
 }
 
 export function DarwinRadarChart({
