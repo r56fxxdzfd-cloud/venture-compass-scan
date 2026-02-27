@@ -16,13 +16,19 @@ function abbreviate(label: string): string {
   // Split on " & " or " e " (as a word, not the letter inside words)
   const parts = label.split(/\s+[&]\s+|\s+e\s+/i).map((p) => p.trim()).filter(Boolean);
   if (parts.length === 2) {
-    // Take first word of each part
     return parts.map((p) => p.split(/\s+/)[0]).join(' & ');
   }
-  // Fallback: first two words
-  const words = label.split(/\s+/);
-  if (words.length >= 2) return words.slice(0, 2).join(' ');
-  return label;
+
+  const words = label.split(/\s+/).filter(Boolean);
+  if (words.length <= 2) return label;
+
+  // Avoid broken labels like "Modelo de"
+  const connectors = new Set(['de', 'da', 'do', 'das', 'dos', 'e', '&']);
+  if (connectors.has(words[1]?.toLowerCase())) {
+    return words.slice(0, 3).join(' ');
+  }
+
+  return words.slice(0, 2).join(' ');
 }
 
 export function DarwinRadarChart({
