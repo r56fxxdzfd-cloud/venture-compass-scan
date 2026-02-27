@@ -4,12 +4,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DarwinRadarChart } from '@/components/DarwinRadarChart';
 import { calculateAssessmentResult } from '@/utils/scoring';
-import type { ConfigJSON, DimensionScore, AssessmentResult, Answer } from '@/types/darwin';
+import { getCompleteness } from '@/utils/report-helpers';
+import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import { SlidersHorizontal } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
+  DimensionScoresSection, RedFlagsSection, DimensionNarratives,
+  RoadmapSection, DeepDiveSection,
+} from '@/components/report/ReportSections';
 
 export default function SimulatorPage() {
   const { user } = useAuth();
@@ -18,6 +24,20 @@ export default function SimulatorPage() {
   const [sliders, setSliders] = useState<Record<string, number>>({});
   const [stage, setStage] = useState('seed');
   const [result, setResult] = useState<AssessmentResult | null>(null);
+
+  // Context inputs
+  const [customerType, setCustomerType] = useState('B2B');
+  const [revenueModel, setRevenueModel] = useState('recurring');
+  const [numericContext, setNumericContext] = useState<Record<string, number>>({
+    runway_months: 12,
+    burn_monthly: 50000,
+    headcount: 10,
+    gross_margin_pct: 60,
+    cac: 500,
+    ltv: 5000,
+    revenue_concentration_top1_pct: 30,
+    revenue_concentration_top3_pct: 60,
+  });
 
   useEffect(() => {
     supabase
@@ -39,7 +59,6 @@ export default function SimulatorPage() {
 
   useEffect(() => {
     if (!config) return;
-    // Generate synthetic answers
     const syntheticAnswers: Answer[] = [];
     const deltas = [-0.4, -0.2, 0, 0.2, 0.4];
 
@@ -63,40 +82,59 @@ export default function SimulatorPage() {
       });
     });
 
-    const res = calculateAssessmentResult(config, syntheticAnswers, stage, {});
+    const res = calculateAssessmentResult(config, syntheticAnswers, stage, numericContext);
     setResult(res);
-  }, [config, sliders, stage]);
+  }, [config, sliders, stage, numericContext]);
 
   const loadPreset = (presetId: string) => {
     const preset = config?.simulator?.presets?.find((p) => p.id === presetId);
     if (preset) {
       setSliders(preset.dimension_scores);
+      if (preset.numeric_context_defaults) {
+        setNumericContext((prev) => ({ ...prev, ...preset.numeric_context_defaults }));
+      }
     }
+  };
+
+  const updateNumeric = (key: string, value: string) => {
+    const num = parseFloat(value);
+    if (!isNaN(num)) setNumericContext((prev) => ({ ...prev, [key]: num }));
   };
 
   if (!config || !result) return null;
 
+  const completeness = getCompleteness(result);
+
+  const numericFields = [
+    { key: 'runway_months', label: 'Runway (meses)', step: 1 },
+    { key: 'burn_monthly', label: 'Burn Mensal (R$)', step: 1000 },
+    { key: 'headcount', label: 'Headcount', step: 1 },
+    { key: 'gross_margin_pct', label: 'Margem Bruta (%)', step: 1 },
+    { key: 'cac', label: 'CAC (R$)', step: 50 },
+    { key: 'ltv', label: 'LTV (R$)', step: 100 },
+    { key: 'revenue_concentration_top1_pct', label: 'Concentração Top 1 (%)', step: 1 },
+    { key: 'revenue_concentration_top3_pct', label: 'Concentração Top 3 (%)', step: 1 },
+  ];
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <SlidersHorizontal className="h-6 w-6" /> Simulador
         </h1>
         <p className="text-muted-foreground text-sm">
-          Ajuste os scores por dimensão e veja o resultado em tempo real
+          Ajuste scores e contexto — veja o relatório completo em tempo real
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
+      <div className="grid gap-6 lg:grid-cols-[350px_1fr]">
         {/* Controls */}
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Configurações</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-sm">Configurações</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-xs text-muted-foreground">Estágio</label>
+                <Label className="text-xs">Estágio</Label>
                 <Select value={stage} onValueChange={setStage}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -109,7 +147,7 @@ export default function SimulatorPage() {
 
               {config.simulator?.presets && config.simulator.presets.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Presets</label>
+                  <Label className="text-xs">Presets</Label>
                   <Select onValueChange={loadPreset}>
                     <SelectTrigger><SelectValue placeholder="Escolher preset" /></SelectTrigger>
                     <SelectContent>
@@ -120,13 +158,55 @@ export default function SimulatorPage() {
                   </Select>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Tipo de Cliente</Label>
+                  <Select value={customerType} onValueChange={setCustomerType}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="B2B">B2B</SelectItem>
+                      <SelectItem value="B2C">B2C</SelectItem>
+                      <SelectItem value="B2B2C">B2B2C</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Modelo de Receita</Label>
+                  <Select value={revenueModel} onValueChange={setRevenueModel}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="non_recurring">Não recorrente</SelectItem>
+                      <SelectItem value="recurring">Recorrente</SelectItem>
+                      <SelectItem value="subscription">Assinatura</SelectItem>
+                      <SelectItem value="usage_based">Uso</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Dimensões</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-sm">Contexto Numérico</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {numericFields.map((f) => (
+                <div key={f.key} className="space-y-1">
+                  <Label className="text-xs">{f.label}</Label>
+                  <Input
+                    type="number"
+                    className="h-8 text-xs"
+                    value={numericContext[f.key] ?? ''}
+                    step={f.step}
+                    onChange={(e) => updateNumeric(f.key, e.target.value)}
+                  />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Dimensões</CardTitle></CardHeader>
             <CardContent className="space-y-5">
               {config.dimensions.map((dim) => (
                 <div key={dim.id} className="space-y-2">
@@ -151,40 +231,27 @@ export default function SimulatorPage() {
           </Card>
         </div>
 
-        {/* Results */}
-        <div className="space-y-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <p className="text-sm text-muted-foreground">Score Simulado</p>
-                <p className="hero-score">{result.overall_score.toFixed(1)}</p>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {/* Full Report */}
+        <div className="space-y-6">
+          <ReportHeader
+            startupName="Simulação"
+            stage={stage}
+            date={new Date().toLocaleDateString('pt-BR')}
+            completeness={completeness}
+            isSimulation
+          />
+          <OverallScoreCard result={result} config={config} stage={stage} />
+          <BlocksSection result={result} config={config} stage={stage} />
+          <RadarSection result={result} />
+          <DimensionScoresSection result={result} config={config} stage={stage} />
+          <RedFlagsSection result={result} config={config} />
+          <DimensionNarratives result={result} />
+          <RoadmapSection result={result} config={config} stage={stage} />
+          <DeepDiveSection result={result} config={config} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Radar Simulado</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark />
-            </CardContent>
-          </Card>
-
-          {result.red_flags.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm text-destructive">Red Flags ({result.red_flags.length})</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {result.red_flags.map((rf) => (
-                  <div key={rf.code} className="red-flag-badge text-sm">
-                    <strong>{rf.label}</strong> — {rf.severity}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+          <div className="text-center py-4 text-xs text-muted-foreground italic">
+            ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
+          </div>
         </div>
       </div>
     </div>
