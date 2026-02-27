@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator';
 import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { scoreTo100, getLevel } from '@/utils/report-helpers';
 import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
@@ -28,6 +29,7 @@ export default function StartupDetailPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
   const [lastResult, setLastResult] = useState<{ score100: number; level: string; levelColor: string; redFlagCount: number; assessmentId: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const canWrite = isAdmin || isAnalyst;
 
@@ -76,6 +78,7 @@ export default function StartupDetailPage() {
           }
         }
       }
+      setLoading(false);
     };
     load();
   }, [id]);
@@ -161,7 +164,18 @@ export default function StartupDetailPage() {
     }
   };
 
-  if (!company) return null;
+  if (loading || !company) return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-8 w-8 rounded" />
+        <div className="space-y-2"><Skeleton className="h-7 w-48" /><Skeleton className="h-5 w-24 rounded-full" /></div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-4 w-full" />)}</CardContent></Card>
+        <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-12 w-full rounded-lg" />)}</CardContent></Card>
+      </div>
+    </div>
+  );
 
   const numericFieldDefs = [
     { key: 'runway_months', label: 'Runway (meses)' },
