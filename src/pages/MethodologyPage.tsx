@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Download, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
 
 // ---- Helpers ----
@@ -27,6 +29,97 @@ function safeString(value: unknown): string {
 export default function MethodologyPage() {
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [version, setVersion] = useState<ConfigVersion | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const handleExportPDF = useCallback(async () => {
+    if (!contentRef.current || !version) return;
+    setExporting(true);
+
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ]);
+
+      const el = contentRef.current;
+
+      // Expand all accordions before capture
+      const closedTriggers = el.querySelectorAll<HTMLButtonElement>('[data-state="closed"][data-radix-collection-item]');
+      closedTriggers.forEach(t => t.click());
+      await new Promise(r => setTimeout(r, 400));
+
+      // Force A4 width for consistent pagination
+      const originalWidth = el.style.width;
+      const originalMaxWidth = el.style.maxWidth;
+      el.style.width = '794px';
+      el.style.maxWidth = '794px';
+
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: null,
+        windowWidth: 794,
+      });
+
+      // Restore original width
+      el.style.width = originalWidth;
+      el.style.maxWidth = originalMaxWidth;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // Cover page
+      pdf.setFillColor(15, 15, 20);
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
+      pdf.text('Metodologia', pageWidth / 2, 100, { align: 'center' });
+      pdf.setFontSize(14);
+      pdf.text('CMJ / Darwin Startup Readiness', pageWidth / 2, 115, { align: 'center' });
+      pdf.setFontSize(10);
+      pdf.setTextColor(160, 160, 160);
+      const versionSlug = version.version_name.replace(/\s+/g, '_').toLowerCase();
+      pdf.text(`Versão: ${version.version_name}`, pageWidth / 2, 140, { align: 'center' });
+      pdf.text(
+        `Publicada em: ${version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}`,
+        pageWidth / 2, 148, { align: 'center' }
+      );
+      pdf.text(
+        `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
+        pageWidth / 2, 156, { align: 'center' }
+      );
+
+      // Content pages
+      const sliceHeight = Math.floor((pageHeight / imgHeight) * canvas.height);
+      let y = 0;
+      while (y < canvas.height) {
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = Math.min(sliceHeight, canvas.height - y);
+        const ctx = sliceCanvas.getContext('2d')!;
+        ctx.drawImage(canvas, 0, -y);
+
+        pdf.addPage();
+        const sliceImgHeight = (sliceCanvas.height * imgWidth) / sliceCanvas.width;
+        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, sliceImgHeight);
+        y += sliceHeight;
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      pdf.save(`metodologia_cmj_darwin_${versionSlug}_${today}.pdf`);
+    } catch (err: any) {
+      console.error('PDF export error:', err);
+      toast({ title: 'Erro ao gerar PDF', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  }, [version, toast]);
 
   useEffect(() => {
     supabase
@@ -217,14 +310,20 @@ export default function MethodologyPage() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-8 max-w-5xl mx-auto">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <BookOpen className="h-6 w-6" /> Metodologia
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
-          </p>
+      <div ref={contentRef} id="methodology-content" className="space-y-8 max-w-5xl mx-auto">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <BookOpen className="h-6 w-6" /> Metodologia
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting} className="shrink-0 print:hidden">
+            {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+            {exporting ? 'Gerando...' : 'Exportar PDF'}
+          </Button>
         </div>
 
         {/* Seção 1 — Sobre o Diagnóstico */}
