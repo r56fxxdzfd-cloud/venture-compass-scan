@@ -547,8 +547,20 @@ export default function MethodologyPage() {
             <CardHeader>
               <CardTitle className="text-base">Presets do Simulador</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">Valores por dimensão (escala 1–5)</p>
+
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
+                {config.dimensions.sort((a, b) => a.sort_order - b.sort_order).map(dim => (
+                  <span key={dim.id}>
+                    <span className="font-mono font-semibold text-foreground/70">{dimAbbrev(dim.id)}</span>
+                    {' = '}
+                    {dim.label}
+                  </span>
+                ))}
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 {config.simulator.presets.map(preset => (
                   <Card key={preset.id} className="bg-secondary/30">
