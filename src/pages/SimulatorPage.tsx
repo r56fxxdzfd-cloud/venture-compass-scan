@@ -14,6 +14,7 @@ import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import { SlidersHorizontal, Shuffle, Settings, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
@@ -173,14 +174,26 @@ export default function SimulatorPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Configurações</CardTitle>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="sm" onClick={resetDefaults} className="h-7 text-xs gap-1">
-                  <RotateCcw className="h-3 w-3" /> Reset
-                </Button>
-                <Button variant="outline" size="sm" onClick={randomize} className="h-7 text-xs gap-1">
-                  <Shuffle className="h-3 w-3" /> Random
-                </Button>
-              </div>
+              <TooltipProvider>
+                <div className="flex gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={resetDefaults} className="h-7 text-xs gap-1">
+                        <RotateCcw className="h-3 w-3" /> Reset
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Restaurar todos os valores para os padrões iniciais</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={randomize} className="h-7 text-xs gap-1">
+                        <Shuffle className="h-3 w-3" /> Random
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Gerar valores aleatórios para todas as dimensões e contexto</TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
             </CardHeader>
             <CardContent className="space-y-4">
               <motion.div key={`stage-${stage}-${animKey}`} className="space-y-2" initial={{ opacity: 0.5, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>

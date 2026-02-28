@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, HelpCircle, Check, Eye } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Check, Eye, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 
@@ -118,9 +118,16 @@ export default function QuestionnairePage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Voltar</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <div className="flex-1">
           <h1 className="text-xl font-bold">Questionário</h1>
           <div className="flex items-center gap-3 mt-1">
@@ -134,12 +141,24 @@ export default function QuestionnairePage() {
           {lastSavedAt && (
             <span className="text-[10px] text-muted-foreground">Salvo às {lastSavedAt}</span>
           )}
-          <Button variant="outline" size="sm" onClick={() => navigate(`/app/assessments/${id}/report`)}>
-            <Eye className="mr-1 h-3 w-3" /> Relatório parcial
-          </Button>
-          <Button size="sm" onClick={saveAnswers} disabled={saving}>
-            {saving ? 'Salvando...' : 'Salvar'}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/app/assessments/${id}/report`)}>
+                  <Eye className="mr-1 h-3 w-3" /> Relatório parcial
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Visualizar o relatório com as respostas atuais</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" onClick={saveAnswers} disabled={saving}>
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Salvar todas as respostas como rascunho</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -180,12 +199,24 @@ export default function QuestionnairePage() {
       </Tabs>
 
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button onClick={saveAnswers} variant="outline" disabled={saving}>
-          Salvar rascunho
-        </Button>
-        <Button onClick={completeAssessment}>
-          Finalizar diagnóstico
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={saveAnswers} variant="outline" disabled={saving}>
+                Salvar rascunho
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Salvar progresso sem finalizar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={completeAssessment}>
+                Finalizar diagnóstico
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Marcar como concluído e gerar relatório final</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );

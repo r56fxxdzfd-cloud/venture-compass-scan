@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
@@ -233,45 +234,67 @@ export default function AdminConfigPage() {
                         </div>
                         <Badge variant={statusColors[v.status] as any}>{v.status}</Badge>
                       </div>
-                      <div className="flex gap-1">
-                        {v.status === 'draft' && (
-                          <Button variant="ghost" size="sm" onClick={() => setExpandedPreview(isExpanded ? null : v.id)}>
-                            <Eye className="h-3 w-3 mr-1" />
-                            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => handleExport(v)}>
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        {v.status === 'draft' && (
-                          <Button size="sm" onClick={() => setPublishTarget(v)}>
-                            <Check className="mr-1 h-3 w-3" /> Publicar
-                          </Button>
-                        )}
-                        {v.status !== 'published' && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                                <Trash2 className="h-3 w-3" />
+                      <TooltipProvider>
+                        <div className="flex gap-1">
+                          {v.status === 'draft' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" onClick={() => setExpandedPreview(isExpanded ? null : v.id)}>
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Pré-visualizar conteúdo da versão</TooltipContent>
+                            </Tooltip>
+                          )}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="sm" onClick={() => handleExport(v)}>
+                                <Download className="h-3 w-3" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir versão "{v.version_name}"?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Isso removerá permanentemente esta versão e todos os dados relacionados. Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(v.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
+                            </TooltipTrigger>
+                            <TooltipContent>Exportar como JSON</TooltipContent>
+                          </Tooltip>
+                          {v.status === 'draft' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" onClick={() => setPublishTarget(v)}>
+                                  <Check className="mr-1 h-3 w-3" /> Publicar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Ativar esta versão para novos diagnósticos</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {v.status !== 'published' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Excluir versão "{v.version_name}"?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Isso removerá permanentemente esta versão e todos os dados relacionados. Esta ação não pode ser desfeita.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(v.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Excluir
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </TooltipTrigger>
+                              <TooltipContent>Excluir esta versão permanentemente</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </div>
 
                     {/* Preview panel for drafts */}
