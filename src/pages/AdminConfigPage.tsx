@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox } from 'lucide-react';
+import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
@@ -18,7 +19,9 @@ export default function AdminConfigPage() {
   const [uploading, setUploading] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [expandedPreview, setExpandedPreview] = useState<string | null>(null);
+  const [expandedEditor, setExpandedEditor] = useState<string | null>(null);
   const [publishTarget, setPublishTarget] = useState<ConfigVersion | null>(null);
+  const [creatingDraft, setCreatingDraft] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,6 +36,38 @@ export default function AdminConfigPage() {
 
   useEffect(() => { fetchVersions(); }, []);
 
+  const hasDraft = versions.some(v => v.status === 'draft');
+  const publishedVersion = versions.find(v => v.status === 'published');
+
+  // ---- Create draft from published ----
+  const createDraftFromPublished = async () => {
+    if (!publishedVersion) return;
+    setCreatingDraft(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const name = `${publishedVersion.version_name}_edit_${today}`;
+      const clonedJson = JSON.parse(JSON.stringify(publishedVersion.config_json));
+
+      const { data, error } = await supabase.from('config_versions').insert({
+        version_name: name,
+        config_json: clonedJson,
+        created_by: user?.id,
+        status: 'draft',
+      }).select().single();
+
+      if (error) throw error;
+
+      toast({ title: 'Draft criado com sucesso' });
+      await fetchVersions();
+      if (data) setExpandedEditor(data.id);
+    } catch (err: any) {
+      toast({ title: 'Erro ao criar draft', description: err.message, variant: 'destructive' });
+    } finally {
+      setCreatingDraft(false);
+    }
+  };
+
+  // ---- Import (unchanged) ----
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -146,6 +181,7 @@ export default function AdminConfigPage() {
     await supabase.from('config_versions').update({ status: 'published', published_at: new Date().toISOString() }).eq('id', publishTarget.id);
     toast({ title: 'Config publicada' });
     setPublishTarget(null);
+    setExpandedEditor(null);
     fetchVersions();
   };
 
@@ -168,10 +204,15 @@ export default function AdminConfigPage() {
       const { error } = await supabase.from('config_versions').delete().eq('id', versionId);
       if (error) throw error;
       toast({ title: 'Versão excluída com sucesso' });
+      if (expandedEditor === versionId) setExpandedEditor(null);
       fetchVersions();
     } catch (err: any) {
       toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' });
     }
+  };
+
+  const handleConfigUpdated = (versionId: string, newConfig: ConfigJSON) => {
+    setVersions(prev => prev.map(v => v.id === versionId ? { ...v, config_json: newConfig } : v));
   };
 
   const statusColors: Record<string, string> = { draft: 'secondary', published: 'default', archived: 'outline' };
@@ -185,7 +226,7 @@ export default function AdminConfigPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold">Configuração</h1>
         <p className="text-sm text-muted-foreground">Gerenciar versões de config (dimensões, perguntas, pesos, etc.)</p>
@@ -208,6 +249,22 @@ export default function AdminConfigPage() {
         </CardContent>
       </Card>
 
+      {/* Create Draft button */}
+      {!hasDraft && publishedVersion && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Nenhum draft disponível</p>
+              <p className="text-xs text-muted-foreground">Crie um draft a partir da versão publicada para fazer edições visuais.</p>
+            </div>
+            <Button onClick={createDraftFromPublished} disabled={creatingDraft}>
+              <Copy className="mr-1.5 h-4 w-4" />
+              {creatingDraft ? 'Criando...' : 'Criar Draft para Edição'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Versões</CardTitle>
@@ -222,7 +279,9 @@ export default function AdminConfigPage() {
             <div className="space-y-3">
               {versions.map((v) => {
                 const preview = getPreviewInfo(v.config_json);
-                const isExpanded = expandedPreview === v.id;
+                const isPreviewExpanded = expandedPreview === v.id;
+                const isEditorExpanded = expandedEditor === v.id;
+                const isDraft = v.status === 'draft';
                 return (
                   <div key={v.id} className="rounded-lg border">
                     <div className="flex items-center justify-between p-3">
@@ -236,12 +295,26 @@ export default function AdminConfigPage() {
                       </div>
                       <TooltipProvider>
                         <div className="flex gap-1">
-                          {v.status === 'draft' && (
+                          {isDraft && (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm" onClick={() => setExpandedPreview(isExpanded ? null : v.id)}>
+                                <Button
+                                  variant={isEditorExpanded ? 'default' : 'outline'}
+                                  size="sm"
+                                  onClick={() => setExpandedEditor(isEditorExpanded ? null : v.id)}
+                                >
+                                  <Pencil className="h-3 w-3 mr-1" /> Editar
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Abrir editor visual de configuração</TooltipContent>
+                            </Tooltip>
+                          )}
+                          {isDraft && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm" onClick={() => { setExpandedPreview(isPreviewExpanded ? null : v.id); if (isEditorExpanded) setExpandedEditor(null); }}>
                                   <Eye className="h-3 w-3 mr-1" />
-                                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                  {isPreviewExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Pré-visualizar conteúdo da versão</TooltipContent>
@@ -255,7 +328,7 @@ export default function AdminConfigPage() {
                             </TooltipTrigger>
                             <TooltipContent>Exportar como JSON</TooltipContent>
                           </Tooltip>
-                          {v.status === 'draft' && (
+                          {isDraft && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="sm" onClick={() => setPublishTarget(v)}>
@@ -297,8 +370,8 @@ export default function AdminConfigPage() {
                       </TooltipProvider>
                     </div>
 
-                    {/* Preview panel for drafts */}
-                    {isExpanded && (
+                    {/* Preview panel */}
+                    {isPreviewExpanded && !isEditorExpanded && (
                       <div className="border-t p-3 bg-muted/30 space-y-2">
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                           <div><p className="text-lg font-bold">{preview.dims}</p><p className="text-[10px] text-muted-foreground">Dimensões</p></div>
@@ -323,6 +396,15 @@ export default function AdminConfigPage() {
                           </div>
                         )}
                       </div>
+                    )}
+
+                    {/* Editor panel */}
+                    {isEditorExpanded && isDraft && (
+                      <ConfigEditorPanel
+                        draftId={v.id}
+                        initialConfig={v.config_json}
+                        onConfigUpdated={(cfg) => handleConfigUpdated(v.id, cfg)}
+                      />
                     )}
                   </div>
                 );
