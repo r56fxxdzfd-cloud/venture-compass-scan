@@ -39,6 +39,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside
+        data-print-hide="true"
         className={cn(
           'fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -149,7 +150,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 items-center gap-4 border-b px-4 lg:px-6">
+        <header data-print-hide="true" className="flex h-14 items-center gap-4 border-b px-4 lg:px-6">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
