@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -288,44 +289,50 @@ export default function StartupDetailPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {assessments.map((a) => {
+                {assessments.map((a, i) => {
                   const count = answerCounts[a.id] || 0;
                   const pct = Math.min(100, Math.round((count / totalQuestions) * 100));
                   return (
-                    <div
+                    <motion.div
                       key={a.id}
-                      className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 transition-colors"
-                      onClick={() => navigate(
-                        a.status === 'completed'
-                          ? `/app/assessments/${a.id}/report`
-                          : `/app/assessments/${a.id}/questionnaire`
-                      )}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06, duration: 0.3 }}
                     >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">
-                              {new Date(a.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                            {a.stage && (
-                              <span className="text-xs text-muted-foreground">
-                                {stageLabels[a.stage] || a.stage}
+                      <div
+                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 hover:-translate-y-0.5 transition-all duration-200"
+                        onClick={() => navigate(
+                          a.status === 'completed'
+                            ? `/app/assessments/${a.id}/report`
+                            : `/app/assessments/${a.id}/questionnaire`
+                        )}
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <ClipboardList className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">
+                                {new Date(a.created_at).toLocaleDateString('pt-BR')}
                               </span>
+                              {a.stage && (
+                                <span className="text-xs text-muted-foreground">
+                                  {stageLabels[a.stage] || a.stage}
+                                </span>
+                              )}
+                            </div>
+                            {a.status === 'in_progress' && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Progress value={pct} className="flex-1 h-1.5" />
+                                <span className="text-[10px] text-muted-foreground font-mono">{count}/{totalQuestions}</span>
+                              </div>
                             )}
                           </div>
-                          {a.status === 'in_progress' && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <Progress value={pct} className="flex-1 h-1.5" />
-                              <span className="text-[10px] text-muted-foreground font-mono">{count}/{totalQuestions}</span>
-                            </div>
-                          )}
                         </div>
+                        <Badge variant={a.status === 'completed' ? 'default' : 'secondary'} className="ml-2 shrink-0">
+                          {a.status === 'completed' ? 'Ver relatório' : 'Continuar'}
+                        </Badge>
                       </div>
-                      <Badge variant={a.status === 'completed' ? 'default' : 'secondary'} className="ml-2 shrink-0">
-                        {a.status === 'completed' ? 'Ver relatório' : 'Continuar'}
-                      </Badge>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
