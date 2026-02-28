@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, HelpCircle, Check, Eye, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 
 export default function QuestionnairePage() {
@@ -109,7 +110,35 @@ export default function QuestionnairePage() {
     }, 1500);
   };
 
-  if (!config) return null;
+  if (!config) return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-9 rounded-md" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-2 w-full rounded-full" />
+        </div>
+        <Skeleton className="h-9 w-28 rounded-md" />
+      </div>
+      <Skeleton className="h-10 w-full rounded-lg" />
+      {[1, 2, 3, 4].map(i => (
+        <Card key={i}>
+          <CardContent className="pt-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-6 w-6 rounded-full" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <div className="flex gap-2">
+                  {[1,2,3,4,5].map(j => <Skeleton key={j} className="h-10 w-10 rounded-lg" />)}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   const totalQuestions = config.questions.filter((q) => q.is_active !== false).length;
   const answeredCount = Object.values(answers).filter((a) => a.value !== null || a.is_na).length;
@@ -269,7 +298,7 @@ function QuestionCard({
               {[1, 2, 3, 4, 5].map((val) => (
                 <button
                   key={val}
-                  className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-all ${
+                  className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     answer?.value === val
                       ? 'bg-primary text-primary-foreground border-primary shadow-sm'
                       : 'bg-card hover:bg-secondary border-border'

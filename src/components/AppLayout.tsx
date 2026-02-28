@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AppBreadcrumbs } from '@/components/AppBreadcrumbs';
 
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
@@ -101,7 +102,8 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-sidebar-border p-4 space-y-2">
+        <div className="border-t border-sidebar-border p-4 space-y-3">
+          <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — CMJ/Darwin</p>
           <TooltipProvider>
             <div className="flex items-center justify-between">
               <Tooltip>
@@ -162,6 +164,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
               <TooltipContent>Abrir menu lateral</TooltipContent>
             </Tooltip>
           </TooltipProvider>
+          <AppBreadcrumbs />
         </header>
 
         {/* Content */}

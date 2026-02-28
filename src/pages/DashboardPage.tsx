@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Building2, ClipboardList, TrendingUp, ArrowRight, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { useRef } from 'react';
 
 interface RecentAssessment {
   id: string;
@@ -80,7 +81,7 @@ export default function DashboardPage() {
                     <card.icon className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{card.value}</p>
+                    <AnimatedCounter value={card.value} />
                     <p className="text-sm text-muted-foreground">{card.label}</p>
                   </div>
                 </CardContent>
@@ -147,4 +148,25 @@ export default function DashboardPage() {
       </Card>
     </div>
   );
+}
+
+function AnimatedCounter({ value }: { value: number }) {
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const controls = animate(0, value, {
+      duration: 0.8,
+      ease: 'easeOut',
+      onUpdate(v) {
+        node.textContent = Math.round(v).toString();
+      },
+    });
+
+    return () => controls.stop();
+  }, [value]);
+
+  return <p ref={ref} className="text-2xl font-bold">0</p>;
 }

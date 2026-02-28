@@ -192,7 +192,7 @@ export default function StartupsPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Link to={`/app/startups/${company.id}`}>
-                  <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
