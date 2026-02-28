@@ -118,29 +118,35 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {recentAssessments.map((a) => (
-                <Link
+              {recentAssessments.map((a, i) => (
+                <motion.div
                   key={a.id}
-                  to={a.status === 'completed' ? `/app/assessments/${a.id}/report` : `/app/assessments/${a.id}/questionnaire`}
-                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 transition-colors"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
                 >
-                  <div className="flex items-center gap-3">
-                    <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">{a.company?.name || 'Startup'}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(a.created_at).toLocaleDateString('pt-BR')}
-                        {a.stage && ` • ${stageLabels[a.stage] || a.stage}`}
-                      </p>
+                  <Link
+                    to={a.status === 'completed' ? `/app/assessments/${a.id}/report` : `/app/assessments/${a.id}/questionnaire`}
+                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-secondary/50 hover:-translate-y-0.5 transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">{a.company?.name || 'Startup'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(a.created_at).toLocaleDateString('pt-BR')}
+                          {a.stage && ` • ${stageLabels[a.stage] || a.stage}`}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={a.status === 'completed' ? 'default' : 'secondary'}>
-                      {a.status === 'completed' ? 'Concluído' : 'Em andamento'}
-                    </Badge>
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                </Link>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={a.status === 'completed' ? 'default' : 'secondary'}>
+                        {a.status === 'completed' ? 'Concluído' : 'Em andamento'}
+                      </Badge>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                  </Link>
+                </motion.div>
               ))}
             </div>
           )}
