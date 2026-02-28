@@ -57,17 +57,75 @@ export default function MethodologyPage() {
     return 'outline';
   };
 
+  const getDimLabel = (dimId: string | undefined) => {
+    if (!dimId) return '—';
+    return config.dimensions.find(d => d.id === dimId)?.label || dimId;
+  };
+
   const triggerDescription = (trigger: any): string => {
+    const threshold = trigger.threshold ?? trigger.value ?? '—';
+    const field = trigger.field || '—';
+    const dimLabel = getDimLabel(trigger.dimension_id);
+
     switch (trigger.type) {
       case 'score_threshold':
-        return `Score da dimensão "${trigger.dimension_id}" abaixo de ${trigger.threshold}`;
+      case 'dimension_score_below':
+        return `Score da dimensão "${dimLabel}" abaixo de ${threshold}`;
       case 'numeric_threshold':
-        return `Campo "${trigger.field}" abaixo de ${trigger.threshold}`;
+      case 'context_field_below':
+        return `Campo "${field}" abaixo de ${threshold}`;
       case 'numeric_missing':
-        return `Campo "${trigger.field}" não informado`;
+      case 'context_field_missing':
+        return `Campo "${field}" não informado`;
+      case 'question_score_below':
+        return `Resposta da pergunta "${trigger.question_id || '—'}" abaixo de ${threshold}`;
+      case 'red_flag_triggered':
+        return `Qualquer red flag disparada`;
+      case 'requires':
+        return `Requer: ${trigger.field || trigger.dimension_id || '—'}`;
       default:
-        return trigger.type;
+        return trigger.type ? trigger.type.replace(/_/g, ' ') : '—';
     }
+  };
+
+  const formatValue = (value: unknown): string | React.ReactNode => {
+    if (value === null || value === undefined) return '—';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+      // Array of rule objects
+      if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null && 'type' in value[0]) {
+        return (
+          <ul className="list-disc list-inside space-y-0.5">
+            {value.map((item: any, i: number) => (
+              <li key={i}>{triggerDescription(item)}</li>
+            ))}
+          </ul>
+        );
+      }
+      // Array of strings
+      if (value.every((v: unknown) => typeof v === 'string')) {
+        return (
+          <ul className="list-disc list-inside space-y-0.5">
+            {value.map((v: string, i: number) => <li key={i}>{v}</li>)}
+          </ul>
+        );
+      }
+      return JSON.stringify(value);
+    }
+    if (typeof value === 'object') {
+      return (
+        <div className="space-y-1">
+          {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+            <div key={k}>
+              <strong className="capitalize">{k.replace(/_/g, ' ')}:</strong>{' '}
+              <span className="text-muted-foreground">{typeof v === 'string' ? v : typeof v === 'number' ? String(v) : formatValue(v) as any}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return String(value);
   };
 
   const formatCellValue = (value: unknown) => {
@@ -116,12 +174,7 @@ export default function MethodologyPage() {
                 <div key={key}>
                   <h3 className="text-sm font-semibold capitalize mb-1">{key.replace(/_/g, ' ')}</h3>
                   <div className="whitespace-pre-wrap text-muted-foreground">
-                    {typeof value === 'string' ? value
-                      : typeof value === 'object' && value !== null
-                        ? Object.entries(value as Record<string, unknown>).map(([k2, v2]) => (
-                            <p key={k2}><strong className="capitalize">{k2.replace(/_/g, ' ')}:</strong> {typeof v2 === 'string' ? v2 : JSON.stringify(v2)}</p>
-                          ))
-                        : String(value)}
+                    {formatValue(value)}
                   </div>
                 </div>
               ))

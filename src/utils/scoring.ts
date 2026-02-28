@@ -56,15 +56,18 @@ export function evaluateRedFlags(
   return configJson.red_flags.filter((rf) => {
     return rf.triggers.some((trigger) => {
       switch (trigger.type) {
-        case 'score_threshold': {
+        case 'score_threshold':
+        case 'dimension_score_below': {
           const ds = dimensionScores.find((d) => d.dimension_id === trigger.dimension_id);
           return ds && ds.score < (trigger.threshold || 2);
         }
-        case 'numeric_threshold': {
+        case 'numeric_threshold':
+        case 'context_field_below': {
           const val = contextNumeric[trigger.field || ''];
           return val !== undefined && val < (trigger.threshold || 0);
         }
-        case 'numeric_missing': {
+        case 'numeric_missing':
+        case 'context_field_missing': {
           return contextNumeric[trigger.field || ''] === undefined;
         }
         default:
