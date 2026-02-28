@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BookOpen } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
 
 export default function MethodologyPage() {
@@ -25,7 +26,27 @@ export default function MethodologyPage() {
       });
   }, []);
 
-  if (!config || !version) return null;
+  if (!config || !version) return (
+    <div className="space-y-8 max-w-5xl mx-auto">
+      <div>
+        <Skeleton className="h-8 w-56 mb-2" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      {[1, 2, 3, 4].map(i => (
+        <Card key={i}>
+          <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
+          <CardContent className="space-y-3">
+            {[1, 2, 3].map(j => (
+              <div key={j} className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   const stages = ['pre_seed', 'seed', 'series_a'];
   const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
