@@ -30,12 +30,14 @@ export default function MethodologyPage() {
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [version, setVersion] = useState<ConfigVersion | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const handleExportPDF = useCallback(async () => {
     if (!contentRef.current || !version) return;
     setExporting(true);
+    setExportProgress('Preparando conteúdo...');
 
     try {
       const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
@@ -56,19 +58,28 @@ export default function MethodologyPage() {
       el.style.width = '794px';
       el.style.maxWidth = '794px';
 
+      setExportProgress('Renderizando conteúdo...');
+      await new Promise(r => setTimeout(r, 50));
+
       const canvas = await html2canvas(el, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         logging: false,
         backgroundColor: null,
         windowWidth: 794,
       });
 
-      // Restore original width
+      // Restore original width immediately
       el.style.width = originalWidth;
       el.style.maxWidth = originalMaxWidth;
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
+
       const pageWidth = 210;
       const pageHeight = 297;
       const imgWidth = pageWidth;
@@ -95,21 +106,41 @@ export default function MethodologyPage() {
         pageWidth / 2, 156, { align: 'center' }
       );
 
-      // Content pages
-      const sliceHeight = Math.floor((pageHeight / imgHeight) * canvas.height);
+      // Slice into A4 pages using JPEG compression
+      const sliceHeightPx = Math.floor((pageHeight / imgHeight) * canvas.height);
+      const totalPages = Math.ceil(canvas.height / sliceHeightPx);
       let y = 0;
+      let pageNum = 0;
+
       while (y < canvas.height) {
+        pageNum++;
+        setExportProgress(`Renderizando página ${pageNum} de ${totalPages}...`);
+        await new Promise(r => setTimeout(r, 10));
+
+        const currentSliceH = Math.min(sliceHeightPx, canvas.height - y);
         const sliceCanvas = document.createElement('canvas');
         sliceCanvas.width = canvas.width;
-        sliceCanvas.height = Math.min(sliceHeight, canvas.height - y);
+        sliceCanvas.height = currentSliceH;
         const ctx = sliceCanvas.getContext('2d')!;
         ctx.drawImage(canvas, 0, -y);
 
+        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.82);
         pdf.addPage();
-        const sliceImgHeight = (sliceCanvas.height * imgWidth) / sliceCanvas.width;
-        pdf.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, sliceImgHeight);
-        y += sliceHeight;
+        const sliceImgH = (currentSliceH * imgWidth) / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, sliceImgH, '', 'FAST');
+
+        // Release slice memory
+        sliceCanvas.width = 0;
+        sliceCanvas.height = 0;
+        y += sliceHeightPx;
       }
+
+      // Release main canvas memory
+      canvas.width = 0;
+      canvas.height = 0;
+
+      setExportProgress('Finalizando PDF...');
+      await new Promise(r => setTimeout(r, 50));
 
       const today = new Date().toISOString().slice(0, 10);
       pdf.save(`metodologia_cmj_darwin_${versionSlug}_${today}.pdf`);
@@ -118,6 +149,7 @@ export default function MethodologyPage() {
       toast({ title: 'Erro ao gerar PDF', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setExporting(false);
+      setExportProgress('');
     }
   }, [version, toast]);
 
@@ -320,10 +352,13 @@ export default function MethodologyPage() {
               Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting} className="shrink-0 print:hidden">
-            {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-            {exporting ? 'Gerando...' : 'Exportar PDF'}
-          </Button>
+          <div className="shrink-0 print:hidden text-right">
+            <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+              {exporting ? 'Gerando...' : 'Exportar PDF'}
+            </Button>
+            {exportProgress && <p className="text-[10px] text-muted-foreground mt-1">{exportProgress}</p>}
+          </div>
         </div>
 
         {/* Seção 1 — Sobre o Diagnóstico */}
