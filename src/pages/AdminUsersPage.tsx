@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Users } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
 
@@ -91,19 +92,28 @@ export default function AdminUsersPage() {
                       {new Date(u.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
-                  <Select
-                    value={u.role || ''}
-                    onValueChange={(val) => handleRoleChange(u.id, val as AppRole)}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Sem role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="jv_admin">Admin</SelectItem>
-                      <SelectItem value="jv_analyst">Analista</SelectItem>
-                      <SelectItem value="jv_viewer">Visualizador</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Select
+                            value={u.role || ''}
+                            onValueChange={(val) => handleRoleChange(u.id, val as AppRole)}
+                          >
+                            <SelectTrigger className="w-40">
+                              <SelectValue placeholder="Sem role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="jv_admin">Admin</SelectItem>
+                              <SelectItem value="jv_analyst">Analista</SelectItem>
+                              <SelectItem value="jv_viewer">Visualizador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Alterar nível de acesso do usuário</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               ))}
             </div>

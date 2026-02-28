@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import { useToast } from '@/hooks/use-toast';
@@ -131,9 +132,16 @@ export default function ReportPage() {
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Voltar à página anterior</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div>
             <h1 className="text-xl font-bold">Relatório — {startupName}</h1>
             <p className="text-sm text-muted-foreground">
@@ -144,16 +152,28 @@ export default function ReportPage() {
             </p>
           </div>
         </div>
-        {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-            {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
-          </Button>
-        )}
-        {isSimulation && (
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-            {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
-          </Button>
-        )}
+        <TooltipProvider>
+          {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
+            </Tooltip>
+          )}
+          {isSimulation && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar relatório de simulação com marca d'água</TooltipContent>
+            </Tooltip>
+          )}
+        </TooltipProvider>
       </div>
 
       {/* Anchor index bar - screen only */}

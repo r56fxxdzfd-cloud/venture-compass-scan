@@ -8,6 +8,7 @@ import {
 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
@@ -101,28 +102,37 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}>
-
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <div className="min-w-0 flex-1 px-2">
-              <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuário'}</p>
+          <TooltipProvider>
+            <div className="flex items-center justify-between">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                    {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro'}</TooltipContent>
+              </Tooltip>
+              <div className="min-w-0 flex-1 px-2">
+                <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuário'}</p>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
+                    onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Sair da conta</TooltipContent>
+              </Tooltip>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-sidebar-foreground hover:text-sidebar-primary hover:bg-sidebar-accent"
-              onClick={handleSignOut}>
-
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          </TooltipProvider>
         </div>
       </aside>
 
@@ -138,14 +148,20 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
         <header className="flex h-14 items-center gap-4 border-b px-4 lg:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}>
-
-            <Menu className="h-5 w-5" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="lg:hidden"
+                  onClick={() => setSidebarOpen(true)}>
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Abrir menu lateral</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </header>
 
         {/* Content */}
