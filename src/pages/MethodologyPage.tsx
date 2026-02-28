@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { BookOpen, Download, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
+import '@/styles/methodology-print.css';
 
 // ---- Helpers ----
 
@@ -31,195 +32,43 @@ export default function MethodologyPage() {
   const [version, setVersion] = useState<ConfigVersion | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState('');
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [expandedDimensions, setExpandedDimensions] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const sectionNames: Record<string, string> = {
-    'section-header': 'Cabeçalho',
-    'section-about': 'Sobre o Diagnóstico',
-    'section-dimensions': 'Dimensões e Perguntas',
-    'section-weights': 'Pesos e Targets',
-    'section-redflags': 'Red Flags',
-    'section-glossary': 'Glossário',
-    'section-presets': 'Presets do Simulador',
-  };
-
   const handleExportPDF = useCallback(async () => {
-    if (!contentRef.current || !version) return;
+    if (!version || !config) return;
     setExporting(true);
     setExportProgress('Preparando conteúdo...');
 
     try {
-      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-        import('html2canvas'),
-        import('jspdf'),
-      ]);
+      // 1. Expand all accordion dimensions
+      const allDimIds = config.dimensions.map(d => d.id);
+      setExpandedDimensions(allDimIds);
 
-      const el = contentRef.current;
+      // 2. Wait for DOM to settle
+      await new Promise(r => setTimeout(r, 600));
 
-      // Fix 1: Hide UI chrome — export button, toasts, sticky headers
-      const style = document.createElement('style');
-      style.id = 'pdf-export-styles';
-      style.textContent = `
-        .pdf-export-hide { display: none !important; }
-        #methodology-content * {
-          overflow: visible !important;
-          max-height: none !important;
-        }
-        #methodology-content .line-clamp-2 {
-          -webkit-line-clamp: unset !important;
-          display: block !important;
-          overflow: visible !important;
-          text-overflow: unset !important;
-          white-space: normal !important;
-          word-break: break-word !important;
-        }
-        #methodology-content table {
-          table-layout: fixed !important;
-          width: 100% !important;
-        }
-        #methodology-content td, #methodology-content th {
-          white-space: normal !important;
-          word-break: break-word !important;
-          overflow: visible !important;
-          text-overflow: unset !important;
-          font-size: 11px !important;
-        }
-        #methodology-content .overflow-x-auto {
-          overflow: visible !important;
-        }
-      `;
-      document.head.appendChild(style);
+      setExportProgress('Abrindo diálogo de impressão...');
 
-      // Hide the export button wrapper
-      const exportBtn = el.querySelector('.print\\:hidden') as HTMLElement | null;
-      if (exportBtn) exportBtn.classList.add('pdf-export-hide');
-
-      // Hide toasts
-      const toasts = document.querySelectorAll('[data-sonner-toaster], [role="status"]');
-      toasts.forEach(t => (t as HTMLElement).classList.add('pdf-export-hide'));
-
-      // Fix 5: Expand all accordions before capture
-      const closedTriggers = el.querySelectorAll<HTMLButtonElement>('[data-state="closed"][data-radix-collection-item]');
-      closedTriggers.forEach(t => t.click());
-      await new Promise(r => setTimeout(r, 500));
-
-      // Force A4 width
-      const originalWidth = el.style.width;
-      const originalMaxWidth = el.style.maxWidth;
-      el.style.width = '794px';
-      el.style.maxWidth = '794px';
-
-      await new Promise(r => setTimeout(r, 100));
-
-      // Fix 6: Section-by-section capture
-      const sectionIds = [
-        'section-header', 'section-about', 'section-dimensions',
-        'section-weights', 'section-redflags', 'section-glossary', 'section-presets',
-      ];
-      const sections = sectionIds
-        .map(id => ({ id, el: el.querySelector(`#${id}`) as HTMLElement | null }))
-        .filter((s): s is { id: string; el: HTMLElement } => s.el !== null);
-
-      const totalSections = sections.length;
-
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true,
-      });
-
-      const pageWidth = 210;
-      const pageHeight = 297;
-
-      // Cover page
-      pdf.setFillColor(15, 15, 20);
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(22);
-      pdf.text('Metodologia', pageWidth / 2, 100, { align: 'center' });
-      pdf.setFontSize(14);
-      pdf.text('CMJ / Darwin Startup Readiness', pageWidth / 2, 115, { align: 'center' });
-      pdf.setFontSize(10);
-      pdf.setTextColor(160, 160, 160);
+      // 3. Set document title for PDF filename suggestion
+      const originalTitle = document.title;
       const versionSlug = version.version_name.replace(/\s+/g, '_').toLowerCase();
-      pdf.text(`Versão: ${version.version_name}`, pageWidth / 2, 140, { align: 'center' });
-      pdf.text(
-        `Publicada em: ${version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}`,
-        pageWidth / 2, 148, { align: 'center' }
-      );
-      pdf.text(
-        `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
-        pageWidth / 2, 156, { align: 'center' }
-      );
-
-      // Capture each section
-      for (let si = 0; si < sections.length; si++) {
-        const section = sections[si];
-        const label = sectionNames[section.id] || section.id;
-        setExportProgress(`Renderizando seção ${si + 1} de ${totalSections}: ${label}...`);
-        await new Promise(r => setTimeout(r, 30));
-
-        const canvas = await html2canvas(section.el, {
-          scale: 1.5,
-          useCORS: true,
-          logging: false,
-          backgroundColor: null,
-          windowWidth: 794,
-        });
-
-        const imgWidth = pageWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const sliceHeightPx = Math.floor((pageHeight / imgHeight) * canvas.height);
-
-        let y = 0;
-        while (y < canvas.height) {
-          const currentSliceH = Math.min(sliceHeightPx, canvas.height - y);
-          const sliceCanvas = document.createElement('canvas');
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = currentSliceH;
-          const ctx = sliceCanvas.getContext('2d')!;
-          ctx.drawImage(canvas, 0, -y);
-
-          const imgData = sliceCanvas.toDataURL('image/jpeg', 0.82);
-          pdf.addPage();
-          const sliceImgH = (currentSliceH * imgWidth) / canvas.width;
-          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, sliceImgH, '', 'FAST');
-
-          sliceCanvas.width = 0;
-          sliceCanvas.height = 0;
-          y += sliceHeightPx;
-        }
-
-        // Release section canvas memory
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-
-      // Restore everything
-      el.style.width = originalWidth;
-      el.style.maxWidth = originalMaxWidth;
-      if (exportBtn) exportBtn.classList.remove('pdf-export-hide');
-      toasts.forEach(t => (t as HTMLElement).classList.remove('pdf-export-hide'));
-      document.getElementById('pdf-export-styles')?.remove();
-
-      setExportProgress('Concluído — baixando arquivo');
-      await new Promise(r => setTimeout(r, 50));
-
       const today = new Date().toISOString().slice(0, 10);
-      pdf.save(`metodologia_cmj_darwin_${versionSlug}_${today}.pdf`);
+      document.title = `metodologia_cmj_darwin_${versionSlug}_${today}`;
+
+      // 4. Trigger print
+      window.print();
+
+      // 5. Restore everything after print dialog closes
+      document.title = originalTitle;
     } catch (err: any) {
       console.error('PDF export error:', err);
-      // Cleanup on error
-      document.getElementById('pdf-export-styles')?.remove();
-      document.querySelectorAll('.pdf-export-hide').forEach(e => e.classList.remove('pdf-export-hide'));
       toast({ title: 'Erro ao gerar PDF', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setExporting(false);
       setExportProgress('');
     }
-  }, [version, toast]);
+  }, [version, config, toast]);
 
   useEffect(() => {
     supabase
@@ -410,7 +259,16 @@ export default function MethodologyPage() {
 
   return (
     <TooltipProvider>
-      <div ref={contentRef} id="methodology-content" className="space-y-8 max-w-5xl mx-auto">
+      <div id="methodology-content" className="space-y-8 max-w-5xl mx-auto">
+        {/* Cover page — only visible in print */}
+        <div id="pdf-cover">
+          <h1>Metodologia</h1>
+          <h2>CMJ / Darwin Startup Readiness</h2>
+          <p>Versão: {version.version_name}</p>
+          <p>Publicada em: {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}</p>
+          <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+
         <div id="section-header" className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -420,7 +278,7 @@ export default function MethodologyPage() {
               Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
             </p>
           </div>
-          <div className="shrink-0 print:hidden text-right">
+          <div data-print-hide="true" className="shrink-0 print:hidden text-right">
             <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
               {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
               {exporting ? 'Gerando...' : 'Exportar PDF'}
@@ -454,7 +312,7 @@ export default function MethodologyPage() {
         <Card id="section-dimensions">
           <CardHeader><CardTitle className="text-base">Dimensões e Perguntas</CardTitle></CardHeader>
           <CardContent>
-            <Accordion type="multiple">
+            <Accordion type="multiple" value={expandedDimensions} onValueChange={setExpandedDimensions}>
               {config.dimensions
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map((dim) => {
@@ -464,14 +322,14 @@ export default function MethodologyPage() {
 
                   return (
                     <AccordionItem key={dim.id} value={dim.id}>
-                      <AccordionTrigger className="text-sm">
+                      <AccordionTrigger className="text-sm dimension-header">
                         {dim.label}
-                        <Badge variant="outline" className="ml-2 text-[10px]">{dimQuestions.length} perguntas</Badge>
+                        <Badge variant="outline" className="ml-2 text-[10px]" data-print-hide="true">{dimQuestions.length} perguntas</Badge>
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-4">
                           {dimQuestions.map((q, idx) => (
-                            <div key={q.id} className="pl-2 border-l-2 border-muted space-y-1">
+                            <div key={q.id} className="question-card pl-2 border-l-2 border-muted space-y-1">
                               <p className="text-sm font-medium">{idx + 1}. {q.text}</p>
                               {q.tooltip && (
                                 <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
@@ -571,7 +429,7 @@ export default function MethodologyPage() {
                     const fullTrigger = triggerTexts.join('; ');
 
                     return (
-                      <TableRow key={rf.code}>
+                      <TableRow key={rf.code} className="red-flag-row">
                         <TableCell>
                           <div>
                             <p className="text-sm font-medium leading-tight">{rf.label}</p>
@@ -614,7 +472,7 @@ export default function MethodologyPage() {
                       </div>
                       <dl className="space-y-2">
                         {entries.map(([term, def]) => (
-                          <div key={term} className="border-b border-border/50 pb-2 last:border-0">
+                          <div key={term} className="glossary-term border-b border-border/50 pb-2 last:border-0">
                             <dt className="text-sm font-semibold">{toSentenceCase(term)}</dt>
                             <dd className="text-sm text-muted-foreground mt-0.5">{def}</dd>
                           </div>
@@ -626,7 +484,7 @@ export default function MethodologyPage() {
               ) : (
                 <dl className="space-y-3">
                   {glossaryEntries.map(([term, def]) => (
-                    <div key={term} className="border-b border-border/50 pb-2.5 last:border-0">
+                    <div key={term} className="glossary-term border-b border-border/50 pb-2.5 last:border-0">
                       <dt className="text-sm font-semibold">{toSentenceCase(term)}</dt>
                       <dd className="text-sm text-muted-foreground mt-0.5">{def}</dd>
                     </div>
@@ -659,7 +517,7 @@ export default function MethodologyPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {config.simulator.presets.map(preset => (
-                  <Card key={preset.id} className="bg-secondary/30">
+                  <Card key={preset.id} className="preset-card bg-secondary/30">
                     <CardContent className="pt-4 space-y-2">
                       <p className="text-sm font-bold">{preset.label}</p>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
