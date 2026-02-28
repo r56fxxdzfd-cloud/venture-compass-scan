@@ -34,6 +34,16 @@ export default function MethodologyPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const sectionNames: Record<string, string> = {
+    'section-header': 'Cabeçalho',
+    'section-about': 'Sobre o Diagnóstico',
+    'section-dimensions': 'Dimensões e Perguntas',
+    'section-weights': 'Pesos e Targets',
+    'section-redflags': 'Red Flags',
+    'section-glossary': 'Glossário',
+    'section-presets': 'Presets do Simulador',
+  };
+
   const handleExportPDF = useCallback(async () => {
     if (!contentRef.current || !version) return;
     setExporting(true);
@@ -47,31 +57,71 @@ export default function MethodologyPage() {
 
       const el = contentRef.current;
 
-      // Expand all accordions before capture
+      // Fix 1: Hide UI chrome — export button, toasts, sticky headers
+      const style = document.createElement('style');
+      style.id = 'pdf-export-styles';
+      style.textContent = `
+        .pdf-export-hide { display: none !important; }
+        #methodology-content * {
+          overflow: visible !important;
+          max-height: none !important;
+        }
+        #methodology-content .line-clamp-2 {
+          -webkit-line-clamp: unset !important;
+          display: block !important;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+        }
+        #methodology-content table {
+          table-layout: fixed !important;
+          width: 100% !important;
+        }
+        #methodology-content td, #methodology-content th {
+          white-space: normal !important;
+          word-break: break-word !important;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          font-size: 11px !important;
+        }
+        #methodology-content .overflow-x-auto {
+          overflow: visible !important;
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Hide the export button wrapper
+      const exportBtn = el.querySelector('.print\\:hidden') as HTMLElement | null;
+      if (exportBtn) exportBtn.classList.add('pdf-export-hide');
+
+      // Hide toasts
+      const toasts = document.querySelectorAll('[data-sonner-toaster], [role="status"]');
+      toasts.forEach(t => (t as HTMLElement).classList.add('pdf-export-hide'));
+
+      // Fix 5: Expand all accordions before capture
       const closedTriggers = el.querySelectorAll<HTMLButtonElement>('[data-state="closed"][data-radix-collection-item]');
       closedTriggers.forEach(t => t.click());
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 500));
 
-      // Force A4 width for consistent pagination
+      // Force A4 width
       const originalWidth = el.style.width;
       const originalMaxWidth = el.style.maxWidth;
       el.style.width = '794px';
       el.style.maxWidth = '794px';
 
-      setExportProgress('Renderizando conteúdo...');
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 100));
 
-      const canvas = await html2canvas(el, {
-        scale: 1.5,
-        useCORS: true,
-        logging: false,
-        backgroundColor: null,
-        windowWidth: 794,
-      });
+      // Fix 6: Section-by-section capture
+      const sectionIds = [
+        'section-header', 'section-about', 'section-dimensions',
+        'section-weights', 'section-redflags', 'section-glossary', 'section-presets',
+      ];
+      const sections = sectionIds
+        .map(id => ({ id, el: el.querySelector(`#${id}`) as HTMLElement | null }))
+        .filter((s): s is { id: string; el: HTMLElement } => s.el !== null);
 
-      // Restore original width immediately
-      el.style.width = originalWidth;
-      el.style.maxWidth = originalMaxWidth;
+      const totalSections = sections.length;
 
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -82,8 +132,6 @@ export default function MethodologyPage() {
 
       const pageWidth = 210;
       const pageHeight = 297;
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       // Cover page
       pdf.setFillColor(15, 15, 20);
@@ -106,46 +154,66 @@ export default function MethodologyPage() {
         pageWidth / 2, 156, { align: 'center' }
       );
 
-      // Slice into A4 pages using JPEG compression
-      const sliceHeightPx = Math.floor((pageHeight / imgHeight) * canvas.height);
-      const totalPages = Math.ceil(canvas.height / sliceHeightPx);
-      let y = 0;
-      let pageNum = 0;
+      // Capture each section
+      for (let si = 0; si < sections.length; si++) {
+        const section = sections[si];
+        const label = sectionNames[section.id] || section.id;
+        setExportProgress(`Renderizando seção ${si + 1} de ${totalSections}: ${label}...`);
+        await new Promise(r => setTimeout(r, 30));
 
-      while (y < canvas.height) {
-        pageNum++;
-        setExportProgress(`Renderizando página ${pageNum} de ${totalPages}...`);
-        await new Promise(r => setTimeout(r, 10));
+        const canvas = await html2canvas(section.el, {
+          scale: 1.5,
+          useCORS: true,
+          logging: false,
+          backgroundColor: null,
+          windowWidth: 794,
+        });
 
-        const currentSliceH = Math.min(sliceHeightPx, canvas.height - y);
-        const sliceCanvas = document.createElement('canvas');
-        sliceCanvas.width = canvas.width;
-        sliceCanvas.height = currentSliceH;
-        const ctx = sliceCanvas.getContext('2d')!;
-        ctx.drawImage(canvas, 0, -y);
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        const sliceHeightPx = Math.floor((pageHeight / imgHeight) * canvas.height);
 
-        const imgData = sliceCanvas.toDataURL('image/jpeg', 0.82);
-        pdf.addPage();
-        const sliceImgH = (currentSliceH * imgWidth) / canvas.width;
-        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, sliceImgH, '', 'FAST');
+        let y = 0;
+        while (y < canvas.height) {
+          const currentSliceH = Math.min(sliceHeightPx, canvas.height - y);
+          const sliceCanvas = document.createElement('canvas');
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = currentSliceH;
+          const ctx = sliceCanvas.getContext('2d')!;
+          ctx.drawImage(canvas, 0, -y);
 
-        // Release slice memory
-        sliceCanvas.width = 0;
-        sliceCanvas.height = 0;
-        y += sliceHeightPx;
+          const imgData = sliceCanvas.toDataURL('image/jpeg', 0.82);
+          pdf.addPage();
+          const sliceImgH = (currentSliceH * imgWidth) / canvas.width;
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, sliceImgH, '', 'FAST');
+
+          sliceCanvas.width = 0;
+          sliceCanvas.height = 0;
+          y += sliceHeightPx;
+        }
+
+        // Release section canvas memory
+        canvas.width = 0;
+        canvas.height = 0;
       }
 
-      // Release main canvas memory
-      canvas.width = 0;
-      canvas.height = 0;
+      // Restore everything
+      el.style.width = originalWidth;
+      el.style.maxWidth = originalMaxWidth;
+      if (exportBtn) exportBtn.classList.remove('pdf-export-hide');
+      toasts.forEach(t => (t as HTMLElement).classList.remove('pdf-export-hide'));
+      document.getElementById('pdf-export-styles')?.remove();
 
-      setExportProgress('Finalizando PDF...');
+      setExportProgress('Concluído — baixando arquivo');
       await new Promise(r => setTimeout(r, 50));
 
       const today = new Date().toISOString().slice(0, 10);
       pdf.save(`metodologia_cmj_darwin_${versionSlug}_${today}.pdf`);
     } catch (err: any) {
       console.error('PDF export error:', err);
+      // Cleanup on error
+      document.getElementById('pdf-export-styles')?.remove();
+      document.querySelectorAll('.pdf-export-hide').forEach(e => e.classList.remove('pdf-export-hide'));
       toast({ title: 'Erro ao gerar PDF', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setExporting(false);
@@ -343,7 +411,7 @@ export default function MethodologyPage() {
   return (
     <TooltipProvider>
       <div ref={contentRef} id="methodology-content" className="space-y-8 max-w-5xl mx-auto">
-        <div className="flex items-start justify-between gap-4">
+        <div id="section-header" className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BookOpen className="h-6 w-6" /> Metodologia
@@ -362,7 +430,7 @@ export default function MethodologyPage() {
         </div>
 
         {/* Seção 1 — Sobre o Diagnóstico */}
-        <Card>
+        <Card id="section-about">
           <CardHeader><CardTitle className="text-base">Sobre o Diagnóstico</CardTitle></CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none text-sm text-foreground space-y-4">
@@ -383,7 +451,7 @@ export default function MethodologyPage() {
         </Card>
 
         {/* Seção 2 — Dimensões e Perguntas */}
-        <Card>
+        <Card id="section-dimensions">
           <CardHeader><CardTitle className="text-base">Dimensões e Perguntas</CardTitle></CardHeader>
           <CardContent>
             <Accordion type="multiple">
@@ -430,13 +498,13 @@ export default function MethodologyPage() {
         </Card>
 
         {/* Seção 3 — Pesos e Targets por Estágio */}
-        <Card>
+        <Card id="section-weights">
           <CardHeader><CardTitle className="text-base">Pesos e Targets por Estágio</CardTitle></CardHeader>
-          <CardContent className="overflow-x-auto space-y-3">
+          <CardContent className="space-y-3">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[140px]">Dimensão</TableHead>
+                  <TableHead className="w-[120px]">Dimensão</TableHead>
                   {stages.map(s => (
                     <TableHead key={s} className="text-center" colSpan={colsPerStage}>{stageLabels[s]}</TableHead>
                   ))}
@@ -445,9 +513,9 @@ export default function MethodologyPage() {
                   <TableHead />
                   {stages.map(s => (
                     <>
-                      <TableHead key={`${s}-w`} className="text-center text-xs">Peso (%)</TableHead>
-                      <TableHead key={`${s}-b`} className="text-center text-xs">Benchmark</TableHead>
-                      {hasAnyPotential && <TableHead key={`${s}-p`} className="text-center text-xs">Potencial 6m</TableHead>}
+                      <TableHead key={`${s}-w`} className="text-center text-[10px]">Peso</TableHead>
+                      <TableHead key={`${s}-b`} className="text-center text-[10px]">Bench.</TableHead>
+                      {hasAnyPotential && <TableHead key={`${s}-p`} className="text-center text-[10px]">Pot.</TableHead>}
                     </>
                   ))}
                 </TableRow>
@@ -484,9 +552,9 @@ export default function MethodologyPage() {
 
         {/* Seção 4 — Red Flags */}
         {config.red_flags && config.red_flags.length > 0 && (
-          <Card>
+          <Card id="section-redflags">
             <CardHeader><CardTitle className="text-base">Red Flags</CardTitle></CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -515,15 +583,8 @@ export default function MethodologyPage() {
                             {sev.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="max-w-[250px]">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <p className="text-xs text-muted-foreground line-clamp-2 cursor-help">{fullTrigger}</p>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="max-w-sm">
-                              <p className="text-xs whitespace-pre-wrap">{fullTrigger}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                        <TableCell className="max-w-[280px]">
+                          <p className="text-xs text-muted-foreground whitespace-normal break-words">{fullTrigger}</p>
                         </TableCell>
                         <TableCell>
                           <ul className="list-disc list-inside space-y-0.5 text-xs text-muted-foreground">
@@ -541,7 +602,7 @@ export default function MethodologyPage() {
 
         {/* Seção 5 — Glossário */}
         {glossaryEntries.length > 0 && (
-          <Card>
+          <Card id="section-glossary">
             <CardHeader><CardTitle className="text-base">Glossário</CardTitle></CardHeader>
             <CardContent>
               {useLetterDividers ? (
@@ -578,7 +639,7 @@ export default function MethodologyPage() {
 
         {/* Seção 6 — Presets do Simulador */}
         {config.simulator?.presets && config.simulator.presets.length > 0 && (
-          <Card>
+          <Card id="section-presets">
             <CardHeader>
               <CardTitle className="text-base">Presets do Simulador</CardTitle>
             </CardHeader>
