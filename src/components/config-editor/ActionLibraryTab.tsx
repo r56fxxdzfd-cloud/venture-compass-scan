@@ -240,6 +240,33 @@ export function ActionLibraryTab({ config, onChange }: Props) {
                         </div>
                       </div>
 
+                      {(config.red_flags?.length ?? 0) > 0 && (
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Red Flags endereçados</label>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {config.red_flags!.map((rf) => {
+                              const isSelected = action.addresses_red_flags?.includes(rf.code) ?? false;
+                              return (
+                                <Badge
+                                  key={rf.code}
+                                  variant={isSelected ? 'default' : 'outline'}
+                                  className={`text-[10px] cursor-pointer select-none ${isSelected ? '' : 'opacity-50'}`}
+                                  onClick={() => {
+                                    const current = action.addresses_red_flags || [];
+                                    const next = isSelected
+                                      ? current.filter((c) => c !== rf.code)
+                                      : [...current, rf.code];
+                                    updateAction(dim.id, idx, { addresses_red_flags: next.length ? next : undefined });
+                                  }}
+                                >
+                                  {rf.code}
+                                </Badge>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                         <Badge variant="outline" className={`text-[10px] ${EFFORT_COLORS[action.effort]}`}>
                           {EFFORT_LABELS[action.effort]}
