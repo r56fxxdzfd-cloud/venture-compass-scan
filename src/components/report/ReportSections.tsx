@@ -129,7 +129,7 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
   const gaps = computeGaps(result.dimension_scores, config, stage);
 
   const barData = result.dimension_scores.map((ds) => ({
-    name: ds.label.length > 12 ? ds.label.slice(0, 12) + '…' : ds.label,
+    name: ds.label,
     score: scoreTo100(ds.score),
     target: scoreTo100(ds.target),
   }));
@@ -138,11 +138,11 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
     <Card>
       <CardContent className="pt-6 space-y-6">
         <h3 className="text-base font-semibold">Scores por Dimensão</h3>
-        <div className="h-[280px] sm:h-[300px] -ml-2 overflow-x-auto">
+        <div className="h-[280px] sm:h-[320px] overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 10 }}>
-              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 10 }} />
+            <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 16 }}>
+              <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
               <Tooltip />
               <Bar dataKey="score" radius={[0, 4, 4, 0]} name="Score" fill="hsl(var(--primary))">
                 {barData.map((entry, i) => (
@@ -197,7 +197,7 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
 
   const councilRisk = computeCouncilRisk(result.red_flags, config);
   const impactData = result.red_flags.map((rf) => ({
-    name: rf.label.length > 25 ? rf.label.slice(0, 25) + '…' : rf.label,
+    name: rf.label,
     penalty: getPenalty(rf, config),
     severity: rf.severity,
   }));
@@ -228,11 +228,11 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
         </div>
 
         {/* Impact chart */}
-        <div className="h-[200px] -ml-2 overflow-x-auto">
+        <div className="h-[200px] overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={impactData} layout="vertical" margin={{ left: 0, right: 10 }}>
-              <XAxis type="number" tick={{ fontSize: 10 }} />
-              <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 9 }} />
+            <BarChart data={impactData} layout="vertical" margin={{ left: 10, right: 16 }}>
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 11 }} />
               <Tooltip />
               <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]} fill="hsl(var(--destructive) / 0.7)">
                 {impactData.map((entry, i) => (
