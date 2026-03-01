@@ -122,7 +122,15 @@ export function RadarSection({ result, config, stage }: { result: AssessmentResu
     const map: Record<string, number> = {};
     result.dimension_scores.forEach(ds => {
       const t = stageTargets[ds.dimension_id];
-      map[ds.dimension_id] = typeof t === 'object' ? ((t as any).potential ?? ds.target) : (t ?? ds.target);
+      let potential: number;
+      if (typeof t === 'object' && t !== null) {
+        potential = (t as any).potential ?? (t as any).benchmark ?? ds.target;
+      } else if (typeof t === 'number') {
+        potential = Math.min(5, t + 0.5);
+      } else {
+        potential = Math.min(5, ds.score + 1.0);
+      }
+      map[ds.dimension_id] = Math.max(potential, ds.score);
     });
     return map;
   }, [config, stage, result]);
