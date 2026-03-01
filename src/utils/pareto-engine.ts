@@ -1,4 +1,4 @@
-import type { ConfigJSON, AssessmentResult, EvaluatedRedFlag, DimensionScore, ConfigParetoAction } from '@/types/darwin';
+import type { ConfigJSON, AssessmentResult, EvaluatedRedFlag, DimensionScore, ConfigParetoAction, Answer } from '@/types/darwin';
 import { computeGaps, scoreTo100, DEFAULT_BLOCKS, type PrioritizedGap } from '@/utils/report-helpers';
 
 // ---- Action types (extend from config type) ----
@@ -193,23 +193,70 @@ export function selectTop5(
   return top5.slice(0, 5);
 }
 
+// ---- Question-level answer type for enrichment ----
+export interface QuestionAnswer {
+  question_id: string;
+  dimension_id: string;
+  score: number | null;
+  notes?: string | null;
+}
+
 // ---- Meeting Agenda ----
 export interface AgendaItem {
   topic: string;
   dimension?: string;
+  dimension_id?: string;
   deep_dive_prompts: string[];
   expected_decision: string;
   context_checks?: string[];
+  low_questions?: string[];
   red_flag?: EvaluatedRedFlag;
+}
+
+// Dimension-specific expected decisions
+const DIM_DECISIONS: Record<string, string> = {
+  FS: 'Definir gatilhos de corte/captação e revisar projeção de runway com 3 cenários.',
+  GT: 'Priorizar 1 canal/experimento de aquisição com budget, responsável e métrica de sucesso.',
+  GR: 'Resolver pendência societária mais crítica identificada no diagnóstico.',
+  MN: 'Validar ou revisar hipótese de monetização com dado real de margem/CAC.',
+  PM: 'Definir métrica de PMF e próxima ação para melhorar retenção/ativação.',
+  PT: 'Aprovar roadmap de produto para próximos 60 dias com prioridades justificadas.',
+  EE: 'Definir KPI de estratégia e responsável pelo acompanhamento semanal.',
+  PL: 'Mapear gap de time crítico e decidir: contratar, terceirizar ou re-alocar.',
+  IC: 'Definir 1 iniciativa de cultura/comunicação com owner e prazo.',
+};
+
+function getExpectedDecision(gap: PrioritizedGap, result: AssessmentResult): string {
+  let base = DIM_DECISIONS[gap.dimension_id] || `Definir 1 ação prioritária para ${gap.label} com responsável e prazo.`;
+  const ctx = (result as any).context_numeric || {};
+  if (gap.dimension_id === 'FS' && ctx.runway_months && ctx.runway_months < 6) {
+    base = `URGENTE — Runway crítico (${ctx.runway_months}m): ` + base;
+  }
+  if (gap.dimension_id === 'GT' && ctx.cac) {
+    base += ` (CAC atual: R$${ctx.cac})`;
+  }
+  return base;
+}
+
+function getLowQuestions(dimId: string, answers: QuestionAnswer[], config: ConfigJSON): string[] {
+  return answers
+    .filter(a => a.dimension_id === dimId && a.score !== null && a.score !== undefined && a.score <= 2)
+    .map(a => {
+      const q = config.questions?.find(q => q.id === a.question_id);
+      return q?.text || a.question_id;
+    })
+    .slice(0, 2);
 }
 
 export function generateMeetingAgenda(
   config: ConfigJSON,
   result: AssessmentResult,
-  stage: string
+  stage: string,
+  answers?: QuestionAnswer[]
 ): AgendaItem[] {
   const gaps = computeGaps(result.dimension_scores, config, stage);
   const items: AgendaItem[] = [];
+  const answersArr = answers || [];
 
   // Normalize deep_dive_prompts
   const dd = config.deep_dive_prompts || {};
@@ -225,20 +272,21 @@ export function generateMeetingAgenda(
   }
 
   // Item 1 & 2: top 2 priority gaps
-  gaps.slice(0, 2).forEach((gap, i) => {
+  gaps.slice(0, 2).forEach((gap) => {
     const prompts = (ddMap[gap.dimension_id] || []).slice(0, 2);
+    const lowQs = getLowQuestions(gap.dimension_id, answersArr, config);
     items.push({
       topic: `Fortalecer ${gap.label} (gap de ${gap.gap_potential}pts)`,
       dimension: gap.label,
+      dimension_id: gap.dimension_id,
       deep_dive_prompts: prompts.length > 0 ? prompts : [`Como elevar ${gap.label} de ${gap.score100} para ${gap.target100}?`],
-      expected_decision: i === 0
-        ? `Definir 1 ação prioritária para ${gap.label} com responsável e prazo.`
-        : `Aprovar plano de melhoria para ${gap.label}.`,
+      expected_decision: getExpectedDecision(gap, result),
+      low_questions: lowQs.length > 0 ? lowQs : undefined,
     });
   });
 
   // Item 3: top red flag (if any)
-  const topRf = result.red_flags.sort((a, b) => {
+  const topRf = [...result.red_flags].sort((a, b) => {
     const sev: Record<string, number> = { critical: 4, high: 3, medium_high: 2, medium: 1, low: 0 };
     return (sev[b.severity] || 0) - (sev[a.severity] || 0);
   })[0];
@@ -253,11 +301,14 @@ export function generateMeetingAgenda(
     });
   } else if (gaps.length > 2) {
     const g = gaps[2];
+    const lowQs = getLowQuestions(g.dimension_id, answersArr, config);
     items.push({
       topic: `Desenvolver ${g.label}`,
       dimension: g.label,
+      dimension_id: g.dimension_id,
       deep_dive_prompts: (ddMap[g.dimension_id] || []).slice(0, 2),
-      expected_decision: `Planejar iniciativa para ${g.label}.`,
+      expected_decision: getExpectedDecision(g, result),
+      low_questions: lowQs.length > 0 ? lowQs : undefined,
     });
   }
 

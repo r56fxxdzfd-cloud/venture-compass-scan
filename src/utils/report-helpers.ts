@@ -1,4 +1,4 @@
-import type { ConfigJSON, DimensionScore, EvaluatedRedFlag, AssessmentResult } from '@/types/darwin';
+import type { ConfigJSON, DimensionScore, EvaluatedRedFlag, AssessmentResult, Answer } from '@/types/darwin';
 
 // ---- Score conversion ----
 export function scoreTo100(score: number): number {
@@ -147,18 +147,51 @@ export interface RoadmapAction {
   waveLabel: string;
 }
 
+function getRoadmapTitle(g: PrioritizedGap, wave: number): string {
+  if (wave === 1) {
+    if (g.score100 < 25) return `Estruturar ${g.label} do zero — práticas mínimas críticas`;
+    if (g.score100 < 45) return `Formalizar processos de ${g.label} — sair do improviso`;
+    return `Tornar ${g.label} mais consistente e repetível`;
+  }
+  if (wave === 2) {
+    if (g.score100 < 40) return `Construir rotinas e métricas de ${g.label}`;
+    return `Otimizar e instrumentar ${g.label}`;
+  }
+  return `Consolidar melhoria contínua em ${g.label}`;
+}
+
+function getRoadmapRationale(g: PrioritizedGap, result: AssessmentResult): string {
+  const parts = [`Gap de ${g.gap_potential}pts vs potencial de 6 meses`];
+  const ctx = (result as any).context_numeric || {};
+  if (g.dimension_id === 'FS' && ctx.runway_months) {
+    parts.push(`Runway atual: ${ctx.runway_months} meses`);
+  }
+  if (g.dimension_id === 'GT' && ctx.cac) {
+    parts.push(`CAC atual: R$${ctx.cac}`);
+  }
+  if (g.dimension_id === 'MN' && ctx.ltv_cac_ratio) {
+    parts.push(`LTV/CAC: ${ctx.ltv_cac_ratio}`);
+  }
+  return parts.join(' · ');
+}
+
 export function generateRoadmap(
   gaps: PrioritizedGap[],
   redFlags: EvaluatedRedFlag[],
-  config: ConfigJSON
+  config: ConfigJSON,
+  result?: AssessmentResult
 ): RoadmapAction[] {
   const actions: RoadmapAction[] = [];
 
   // From high severity red flags first
   const highRf = redFlags.filter((rf) => ['high', 'critical', 'medium_high'].includes(rf.severity));
   highRf.slice(0, 3).forEach((rf) => {
-    const action = rf.actions[0] || rf.label;
-    actions.push({ title: action, rationale: `Red Flag: ${rf.label} (${rf.severity})`, wave: 1, waveLabel: '0-30 dias' });
+    actions.push({
+      title: rf.actions[0] || rf.label,
+      rationale: `Red Flag "${rf.label}" — ${['high', 'critical'].includes(rf.severity) ? 'Risco existencial' : 'Atenção necessária'}`,
+      wave: 1,
+      waveLabel: '0-30 dias',
+    });
   });
 
   // Fill remaining wave 1 from gaps
@@ -166,19 +199,34 @@ export function generateRoadmap(
   let idx = 0;
   while (actions.filter((a) => a.wave === 1).length < 3 && idx < gapActions.length) {
     const g = gapActions[idx++];
-    actions.push({ title: `Fortalecer ${g.label}`, rationale: `Gap de ${g.gap_potential}pts (prioridade ${Math.round(g.priority_score)})`, wave: 1, waveLabel: '0-30 dias' });
+    actions.push({
+      title: getRoadmapTitle(g, 1),
+      rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts (prioridade ${Math.round(g.priority_score)})`,
+      wave: 1,
+      waveLabel: '0-30 dias',
+    });
   }
 
   // Wave 2
   while (actions.filter((a) => a.wave === 2).length < 3 && idx < gapActions.length) {
     const g = gapActions[idx++];
-    actions.push({ title: `Desenvolver ${g.label}`, rationale: `Gap de ${g.gap_potential}pts`, wave: 2, waveLabel: '31-90 dias' });
+    actions.push({
+      title: getRoadmapTitle(g, 2),
+      rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts`,
+      wave: 2,
+      waveLabel: '31-90 dias',
+    });
   }
 
   // Wave 3
   while (actions.filter((a) => a.wave === 3).length < 3 && idx < gapActions.length) {
     const g = gapActions[idx++];
-    actions.push({ title: `Consolidar ${g.label}`, rationale: `Gap de ${g.gap_potential}pts`, wave: 3, waveLabel: '3-6 meses' });
+    actions.push({
+      title: getRoadmapTitle(g, 3),
+      rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts`,
+      wave: 3,
+      waveLabel: '3-6 meses',
+    });
   }
 
   return actions;
@@ -188,7 +236,8 @@ export function generateRoadmap(
 export function generateOverallNarrative(
   result: AssessmentResult,
   config: ConfigJSON,
-  stage: string
+  stage: string,
+  answers?: Answer[]
 ): string {
   const score100 = scoreTo100(result.overall_score);
   const level = getLevel(score100);
@@ -207,6 +256,21 @@ export function generateOverallNarrative(
     const highCount = result.red_flags.filter((rf) => ['high', 'critical'].includes(rf.severity)).length;
     if (highCount > 0) narrative += ` Atenção: ${highCount} red flag(s) de alta severidade requerem ação imediata.`;
   }
+
+  // Mention the single worst-scored question
+  if (answers && answers.length > 0) {
+    const worstAnswer = answers
+      .filter(a => a.value !== null && a.value !== undefined)
+      .sort((a, b) => (a.value ?? 5) - (b.value ?? 5))[0];
+    if (worstAnswer && worstAnswer.value !== null && worstAnswer.value <= 2) {
+      const worstQ = config.questions?.find(q => q.id === worstAnswer.question_id);
+      if (worstQ) {
+        const qText = worstQ.text.length > 80 ? worstQ.text.substring(0, 80) + '...' : worstQ.text;
+        narrative += ` Ponto mais crítico identificado: "${qText}" (score ${worstAnswer.value}/5).`;
+      }
+    }
+  }
+
   return narrative;
 }
 

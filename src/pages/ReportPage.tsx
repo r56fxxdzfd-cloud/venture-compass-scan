@@ -11,6 +11,7 @@ import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, Answer, Assessment, AssessmentResult } from '@/types/darwin';
+import type { QuestionAnswer } from '@/utils/pareto-engine';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
   DimensionScoresSection, RedFlagsSection, DimensionNarratives,
@@ -36,6 +37,7 @@ export default function ReportPage() {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -50,8 +52,10 @@ export default function ReportPage() {
       const cfg = cv.config_json as unknown as ConfigJSON;
       setConfig(cfg);
 
-      const { data: answers } = await supabase.from('answers').select('*').eq('assessment_id', id);
-      const res = calculateAssessmentResult(cfg, (answers || []) as Answer[], a.stage || 'seed', (a.context_numeric as Record<string, number>) || {});
+      const { data: answerRows } = await supabase.from('answers').select('*').eq('assessment_id', id);
+      const loadedAnswers = (answerRows || []) as Answer[];
+      setAnswers(loadedAnswers);
+      const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {});
       setResult(res);
     };
     load();
@@ -227,7 +231,7 @@ export default function ReportPage() {
       <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
 
       <div id="section-overall">
-        <OverallScoreCard result={result} config={config} stage={stage} />
+        <OverallScoreCard result={result} config={config} stage={stage} answers={answers} />
       </div>
 
       <div id="section-blocks">
@@ -253,14 +257,17 @@ export default function ReportPage() {
       </div>
 
       <div id="section-deepdive">
-        <DeepDiveSection result={result} config={config} />
+        <DeepDiveSection result={result} config={config} answers={answers.map(a => {
+          const q = config.questions?.find(q => q.id === a.question_id);
+          return { question_id: a.question_id, dimension_id: q?.dimension_id || '', score: a.value, notes: a.notes };
+        })} />
       </div>
 
       <div id="section-quickwins">
         <QuickWinsSection config={config} result={result} stage={stage} />
       </div>
 
-      <MeetingAgendaSection config={config} result={result} stage={stage} />
+      <MeetingAgendaSection config={config} result={result} stage={stage} answers={answers} />
       <RiskImpactMatrixSection config={config} result={result} stage={stage} />
 
       {completeness.confidence === 'low' && (
