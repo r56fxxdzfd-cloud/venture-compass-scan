@@ -227,7 +227,7 @@ export default function QuestionnairePage() {
         ))}
       </Tabs>
 
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-between items-center gap-3 pt-4 border-t">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -237,15 +237,49 @@ export default function QuestionnairePage() {
             </TooltipTrigger>
             <TooltipContent>Salvar progresso sem finalizar</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={completeAssessment}>
-                Finalizar diagnóstico
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Marcar como concluído e gerar relatório final</TooltipContent>
-          </Tooltip>
         </TooltipProvider>
+
+        <div className="flex items-center gap-3">
+          {(() => {
+            const dimIds = config.dimensions.map(d => d.id);
+            const currentIdx = dimIds.indexOf(activeDim);
+            const isLastDim = currentIdx >= dimIds.length - 1;
+            const allAnswered = answeredCount >= totalQuestions;
+
+            return (
+              <>
+                {!isLastDim && (
+                  <Button
+                    onClick={() => {
+                      setActiveDim(dimIds[currentIdx + 1]);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Próxima dimensão →
+                  </Button>
+                )}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={completeAssessment}
+                        variant={isLastDim && allAnswered ? 'default' : 'outline'}
+                        className={!isLastDim ? 'text-muted-foreground' : ''}
+                      >
+                        Finalizar diagnóstico
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {allAnswered
+                        ? 'Marcar como concluído e gerar relatório final'
+                        : `Ainda restam ${totalQuestions - answeredCount} questões sem resposta`}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );
