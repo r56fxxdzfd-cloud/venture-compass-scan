@@ -99,6 +99,19 @@ export default function QuestionnairePage() {
     toast({ title: 'Respostas salvas' });
   }, [id, answers, toast]);
 
+  // Auto-save a cada 30 segundos
+  useEffect(() => {
+    if (!id || !config) return;
+    const hasAnswers = Object.keys(answers).length > 0;
+    if (!hasAnswers) return;
+
+    const interval = setInterval(() => {
+      saveAnswers();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [id, config, answers, saveAnswers]);
+
   const completeAssessment = async () => {
     await saveAnswers();
     await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
