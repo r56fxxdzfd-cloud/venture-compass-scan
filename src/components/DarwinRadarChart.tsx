@@ -37,13 +37,28 @@ export function DarwinRadarChart({
   showPotential = false,
   potentialScores,
 }: RadarChartProps) {
-  const data = dimensionScores.map((ds) => ({
-    dimension: abbreviate(ds.label),
-    fullName: ds.label,
-    atual: ds.score,
-    benchmark: ds.target,
-    potencial: potentialScores?.[ds.dimension_id] || ds.score,
-  }));
+  const data = dimensionScores.map((ds) => {
+    const atual = ds.score;
+    const benchmark = ds.target;
+    const rawPotencial = potentialScores?.[ds.dimension_id] ?? benchmark;
+    const enforcedBenchmark = Math.max(benchmark, 0);
+    const potencial = Math.min(5, Math.max(rawPotencial, enforcedBenchmark, atual));
+
+    return {
+      dimension: abbreviate(ds.label),
+      fullName: ds.label,
+      atual,
+      benchmark: enforcedBenchmark,
+      potencial,
+    };
+  });
+
+  if (import.meta.env.DEV) {
+    data.forEach(d => {
+      if (d.potencial < d.atual) console.warn(`[Radar] Potencial (${d.potencial}) < Atual (${d.atual}) for "${d.fullName}"`);
+      if (d.potencial < d.benchmark) console.warn(`[Radar] Potencial (${d.potencial}) < Benchmark (${d.benchmark}) for "${d.fullName}"`);
+    });
+  }
 
   return (
     <div className="radar-chart-container">
