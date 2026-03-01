@@ -194,7 +194,7 @@ export function RiskImpactMatrixSection({
           <div><Badge variant="outline" className="text-xs">Baixa Prioridade</Badge></div>
         </div>
 
-        <div className="h-[300px] sm:h-[350px]">
+        <div className="h-[350px] sm:h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 20 }}>
               <XAxis
@@ -218,15 +218,36 @@ export function RiskImpactMatrixSection({
               <ReferenceLine x={50} stroke="hsl(var(--border))" strokeDasharray="4 4" />
               <ReferenceLine y={50} stroke="hsl(var(--border))" strokeDasharray="4 4" />
               <Tooltip content={<MatrixTooltipContent />} />
-              <Scatter data={points} name="Items">
-                {points.map((point, i) => (
-                  <Cell
-                    key={point.id}
-                    fill={point.type === 'red_flag' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))'}
-                    opacity={0.8}
-                    r={point.type === 'red_flag' ? 6 : 8}
-                  />
-                ))}
+              <Scatter data={points} name="Items" shape={(props: any) => {
+                const { cx, cy, payload } = props;
+                if (!cx || !cy) return null;
+                const isRf = payload.type === 'red_flag';
+                const color = isRf ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
+                const shortLabel = payload.label.length > 14 ? payload.label.slice(0, 12) + '…' : payload.label;
+                return (
+                  <g>
+                    {isRf ? (
+                      <polygon
+                        points={`${cx},${cy - 8} ${cx - 7},${cy + 5} ${cx + 7},${cy + 5}`}
+                        fill={color}
+                        opacity={0.85}
+                      />
+                    ) : (
+                      <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.8} />
+                    )}
+                    <text
+                      x={cx}
+                      y={cy - 12}
+                      textAnchor="middle"
+                      fill="hsl(var(--foreground))"
+                      fontSize={9}
+                      fontWeight={500}
+                    >
+                      {shortLabel}
+                    </text>
+                  </g>
+                );
+              }}>
               </Scatter>
             </ScatterChart>
           </ResponsiveContainer>
