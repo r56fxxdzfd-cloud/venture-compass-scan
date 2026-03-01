@@ -2,11 +2,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { ConfigJSON, AssessmentResult } from '@/types/darwin';
+import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import {
   computeParetoActions, selectTop5,
   generateMeetingAgenda, compute2x2Matrix,
-  type ScoredAction, type AgendaItem, type MatrixPoint,
+  type ScoredAction, type AgendaItem, type MatrixPoint, type QuestionAnswer,
 } from '@/utils/pareto-engine';
 import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine, Label } from 'recharts';
 
@@ -118,9 +118,13 @@ export function QuickWinsSection({
 
 // ======== Meeting Agenda ========
 export function MeetingAgendaSection({
-  config, result, stage,
-}: { config: ConfigJSON; result: AssessmentResult; stage: string }) {
-  const agenda = generateMeetingAgenda(config, result, stage);
+  config, result, stage, answers,
+}: { config: ConfigJSON; result: AssessmentResult; stage: string; answers?: Answer[] }) {
+  const questionAnswers: QuestionAnswer[] = (answers || []).map(a => {
+    const q = config.questions?.find(q => q.id === a.question_id);
+    return { question_id: a.question_id, dimension_id: q?.dimension_id || '', score: a.value, notes: a.notes };
+  });
+  const agenda = generateMeetingAgenda(config, result, stage, questionAnswers);
   if (agenda.length === 0) return null;
 
   return (
@@ -147,6 +151,16 @@ export function MeetingAgendaSection({
                   </Badge>
                 )}
               </div>
+              {item.low_questions && item.low_questions.length > 0 && (
+                <div className="pl-8 mb-1">
+                  <div className="rounded-md bg-destructive/5 border border-destructive/15 p-2">
+                    <p className="text-xs font-medium text-destructive mb-0.5">Pontos críticos identificados:</p>
+                    {item.low_questions.map((q, j) => (
+                      <p key={j} className="text-xs text-muted-foreground">• {q}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
               {item.deep_dive_prompts.length > 0 && (
                 <ul className="space-y-1 pl-8">
                   {item.deep_dive_prompts.map((p, j) => (

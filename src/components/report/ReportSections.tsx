@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle, Shield, CheckCircle } from 'lucide-react';
-import type { AssessmentResult, ConfigJSON, DimensionScore, EvaluatedRedFlag } from '@/types/darwin';
+import type { AssessmentResult, ConfigJSON, DimensionScore, EvaluatedRedFlag, Answer } from '@/types/darwin';
 import {
   scoreTo100, getLevel, getCompleteness, computeBlocks, getBlocks,
   computeGaps, getPenalty, computeCouncilRisk, getSeverityCategory,
@@ -12,6 +12,7 @@ import {
 import { DarwinRadarChart } from '@/components/DarwinRadarChart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
+import type { QuestionAnswer } from '@/utils/pareto-engine';
 
 // ======== A. Header ========
 export function ReportHeader({
@@ -58,10 +59,10 @@ export function ReportHeader({
 }
 
 // ======== B. Overall Score ========
-export function OverallScoreCard({ result, config, stage }: { result: AssessmentResult; config: ConfigJSON; stage: string }) {
+export function OverallScoreCard({ result, config, stage, answers }: { result: AssessmentResult; config: ConfigJSON; stage: string; answers?: Answer[] }) {
   const score100 = scoreTo100(result.overall_score);
   const level = getLevel(score100);
-  const narrative = generateOverallNarrative(result, config, stage);
+  const narrative = generateOverallNarrative(result, config, stage, answers);
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
@@ -295,7 +296,7 @@ export function DimensionNarratives({ result }: { result: AssessmentResult }) {
 // ======== H. Roadmap ========
 export function RoadmapSection({ result, config, stage }: { result: AssessmentResult; config: ConfigJSON; stage: string }) {
   const gaps = computeGaps(result.dimension_scores, config, stage);
-  const actions = generateRoadmap(gaps, result.red_flags, config);
+  const actions = generateRoadmap(gaps, result.red_flags, config, result);
   if (actions.length === 0) return null;
 
   const waves = [
@@ -331,21 +332,56 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
 }
 
 // ======== I. Deep Dive ========
-export function DeepDiveSection({ result, config }: { result: AssessmentResult; config: ConfigJSON }) {
+export function DeepDiveSection({ result, config, answers }: { result: AssessmentResult; config: ConfigJSON; answers?: QuestionAnswer[] }) {
   if (result.deep_dive_dimensions.length === 0 || !config.deep_dive_prompts) return null;
+
+  const triggeredRfIds = new Set(result.red_flags.map(rf => rf.code));
 
   // Normalize deep_dive_prompts (handle both formats)
   const dd = config.deep_dive_prompts;
-  let ddMap: Record<string, string[]> = {};
+  let ddMap: Record<string, any[]> = {};
   if (Array.isArray(dd)) {
     (dd as any[]).forEach((item: any) => {
       if (item?.dimension_id) ddMap[item.dimension_id] = Array.isArray(item?.prompts) ? item.prompts : [];
     });
   } else if (dd && typeof dd === 'object') {
     Object.entries(dd).forEach(([dimId, list]) => {
-      ddMap[dimId] = Array.isArray(list) ? list as string[] : [];
+      ddMap[dimId] = Array.isArray(list) ? list : [];
     });
   }
+
+  // Get low-scoring questions per dimension
+  const getLowQs = (dimId: string): string[] => {
+    if (!answers) return [];
+    return answers
+      .filter(a => a.dimension_id === dimId && a.score !== null && a.score !== undefined && a.score <= 2)
+      .map(a => {
+        const q = config.questions?.find(q => q.id === a.question_id);
+        return q?.text || a.question_id;
+      })
+      .slice(0, 3);
+  };
+
+  // Filter prompts by conditions if they have them
+  const selectPrompts = (dimId: string): string[] => {
+    const allPrompts = ddMap[dimId] || [];
+    const ds = result.dimension_scores.find(d => d.dimension_id === dimId);
+    const dimScore = ds?.score ?? 5;
+
+    // Check if prompts are objects with conditions
+    if (allPrompts.length > 0 && typeof allPrompts[0] === 'object' && allPrompts[0] !== null) {
+      const relevant = allPrompts.filter((p: any) => {
+        if (p.show_if_rf && !triggeredRfIds.has(p.show_if_rf)) return false;
+        if (p.show_if_score_below && dimScore >= p.show_if_score_below) return false;
+        return true;
+      });
+      const finalPrompts = relevant.length > 0 ? relevant : allPrompts.slice(0, 3);
+      return finalPrompts.map((p: any) => typeof p === 'string' ? p : p.prompt || p.text || String(p));
+    }
+
+    // Plain string prompts
+    return (allPrompts as string[]).slice(0, 3);
+  };
 
   return (
     <div>
@@ -356,11 +392,22 @@ export function DeepDiveSection({ result, config }: { result: AssessmentResult; 
           </h3>
           {result.deep_dive_dimensions.map((dimId) => {
             const dim = config.dimensions.find((d) => d.id === dimId);
-            const prompts = ddMap[dimId] || [];
+            const prompts = selectPrompts(dimId);
+            const lowQs = getLowQs(dimId);
             if (!dim || prompts.length === 0) return null;
             return (
               <div key={dimId}>
                 <p className="text-sm font-semibold mb-2">{dim.label}</p>
+                {lowQs.length > 0 && (
+                  <div className="mb-2 rounded-md bg-destructive/5 border border-destructive/15 p-2.5">
+                    <p className="text-xs font-medium text-destructive mb-1">Pontos críticos identificados:</p>
+                    <ul className="space-y-0.5">
+                      {lowQs.map((q, i) => (
+                        <li key={i} className="text-xs text-muted-foreground">• {q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
                 <ul className="space-y-1">
                   {prompts.map((p, i) => (
                     <li key={i} className="text-sm text-muted-foreground pl-4 border-l-2 border-accent">{p}</li>
