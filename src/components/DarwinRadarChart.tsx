@@ -81,9 +81,9 @@ export function DarwinRadarChart({
               dataKey="potencial"
               stroke="hsl(var(--chart-potential))"
               fill="hsl(var(--chart-potential))"
-              fillOpacity={0.1}
-              strokeWidth={2}
-              strokeDasharray="3 3"
+              fillOpacity={0.15}
+              strokeWidth={2.5}
+              strokeDasharray="6 3"
             />
           )}
           {showBenchmark && (
@@ -92,7 +92,7 @@ export function DarwinRadarChart({
               dataKey="benchmark"
               stroke="hsl(var(--chart-benchmark))"
               fill="hsl(var(--chart-benchmark))"
-              fillOpacity={0.08}
+              fillOpacity={0.12}
               strokeWidth={2.5}
               strokeDasharray="8 3"
             />
@@ -102,8 +102,8 @@ export function DarwinRadarChart({
             dataKey="atual"
             stroke="hsl(var(--chart-current))"
             fill="hsl(var(--chart-current))"
-            fillOpacity={0.15}
-            strokeWidth={2}
+            fillOpacity={0.2}
+            strokeWidth={2.5}
           />
           <Tooltip
             content={({ payload }) => {
