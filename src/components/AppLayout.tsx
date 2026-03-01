@@ -177,6 +177,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         {/* Content */}
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
+          <footer className="mt-12 pb-4 text-center">
+            <p className="text-[10px] text-muted-foreground/40 tracking-wide">Engine Developed by Victor Levy</p>
+          </footer>
         </main>
       </div>
     </div>);
