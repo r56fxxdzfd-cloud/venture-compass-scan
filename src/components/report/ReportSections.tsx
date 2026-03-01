@@ -362,25 +362,37 @@ export function DeepDiveSection({ result, config, answers }: { result: Assessmen
       .slice(0, 3);
   };
 
-  // Filter prompts by conditions if they have them
+  // Normalize prompt entry to text
+  const promptText = (p: any): string => {
+    if (typeof p === 'string') return p;
+    if (p && typeof p === 'object') return p.prompt || p.text || String(p);
+    return String(p);
+  };
+
+  // Filter prompts by conditions with guaranteed minimum 2
   const selectPrompts = (dimId: string): string[] => {
     const allPrompts = ddMap[dimId] || [];
     const ds = result.dimension_scores.find(d => d.dimension_id === dimId);
     const dimScore = ds?.score ?? 5;
 
-    // Check if prompts are objects with conditions
-    if (allPrompts.length > 0 && typeof allPrompts[0] === 'object' && allPrompts[0] !== null) {
-      const relevant = allPrompts.filter((p: any) => {
-        if (p.show_if_rf && !triggeredRfIds.has(p.show_if_rf)) return false;
-        if (p.show_if_score_below && dimScore >= p.show_if_score_below) return false;
-        return true;
-      });
-      const finalPrompts = relevant.length > 0 ? relevant : allPrompts.slice(0, 3);
-      return finalPrompts.map((p: any) => typeof p === 'string' ? p : p.prompt || p.text || String(p));
+    // Try conditional filtering
+    const relevant = allPrompts.filter((p: any) => {
+      if (typeof p !== 'object' || p === null) return true; // plain strings always pass
+      if (p.show_if_rf && !triggeredRfIds.has(p.show_if_rf)) return false;
+      if (p.show_if_score_below && dimScore >= p.show_if_score_below) return false;
+      return true;
+    });
+
+    if (relevant.length >= 2) {
+      return relevant.slice(0, 3).map(promptText);
     }
 
-    // Plain string prompts
-    return (allPrompts as string[]).slice(0, 3);
+    // Fallback: unconditional prompts only
+    const unconditional = allPrompts.filter((p: any) => {
+      if (typeof p !== 'object' || p === null) return true;
+      return !p.show_if_rf && !p.show_if_score_below;
+    });
+    return unconditional.slice(0, 3).map(promptText);
   };
 
   return (
