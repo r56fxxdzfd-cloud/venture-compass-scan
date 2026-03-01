@@ -101,10 +101,30 @@ export default function DashboardPage() {
   const coverage = stats.assessments > 0 ? Math.round((stats.completed / stats.assessments) * 100) : 0;
 
   const statCards = [
-    { label: 'Startups', sublabel: 'no programa', value: stats.companies, icon: Building2, accent: 'hsl(var(--primary))', href: '/app/startups' },
-    { label: 'Diagnósticos', sublabel: 'criados', value: stats.assessments, icon: ClipboardList, accent: 'hsl(var(--accent))', href: '/app/startups' },
-    { label: 'Finalizados', sublabel: 'com relatório gerado', value: stats.completed, icon: TrendingUp, accent: 'hsl(var(--success))', href: '/app/startups' },
-    { label: 'Cobertura Média', sublabel: 'dos diagnósticos', value: coverage, icon: Percent, accent: 'hsl(280, 55%, 55%)', href: '/app/startups', suffix: '%' },
+    {
+      label: 'Startups', sublabel: 'no programa', value: stats.companies,
+      icon: Building2, href: '/app/startups', suffix: undefined,
+      border: 'border-l-primary', bg: 'bg-primary/[0.06]',
+      iconBg: 'bg-primary/[0.12]', iconColor: 'text-primary',
+    },
+    {
+      label: 'Diagnósticos', sublabel: 'criados', value: stats.assessments,
+      icon: ClipboardList, href: '/app/startups', suffix: undefined,
+      border: 'border-l-accent', bg: 'bg-accent/[0.06]',
+      iconBg: 'bg-accent/[0.12]', iconColor: 'text-accent',
+    },
+    {
+      label: 'Finalizados', sublabel: 'com relatório gerado', value: stats.completed,
+      icon: TrendingUp, href: '/app/startups', suffix: undefined,
+      border: 'border-l-success', bg: 'bg-success/[0.06]',
+      iconBg: 'bg-success/[0.12]', iconColor: 'text-success',
+    },
+    {
+      label: 'Cobertura Média', sublabel: 'dos diagnósticos', value: coverage,
+      icon: Percent, href: '/app/startups', suffix: '%',
+      border: 'border-l-purple-400', bg: 'bg-purple-400/[0.06]',
+      iconBg: 'bg-purple-400/[0.12]', iconColor: 'text-purple-400',
+    },
   ];
 
   const quickActions = [
@@ -123,9 +143,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 relative">
       {/* Subtle radial gradient background */}
-      <div className="pointer-events-none fixed inset-0 z-0" style={{
-        background: 'radial-gradient(ellipse 60% 50% at 85% 10%, hsl(var(--primary) / 0.04), transparent 70%)',
-      }} />
+      <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_60%_50%_at_85%_10%,hsl(var(--primary)/0.04),transparent_70%)]" />
 
       {/* 1 — Header */}
       <motion.div
@@ -177,18 +195,9 @@ export default function DashboardPage() {
               transition={{ delay: i * 0.08, duration: 0.4 }}
             >
               <Link to={card.href}>
-                <Card
-                  className="rounded-xl border-l-[3px] cursor-pointer transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 group"
-                  style={{
-                    borderLeftColor: card.accent,
-                    background: `linear-gradient(135deg, ${card.accent.replace(')', ' / 0.04)')}, transparent 60%)`,
-                  }}
-                >
+                <Card className={`rounded-xl border-l-[3px] cursor-pointer transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 group ${card.border} ${card.bg}`}>
                   <CardContent className="flex items-center gap-4 pt-6 pb-5">
-                    <div
-                      className="flex h-11 w-11 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110"
-                      style={{ backgroundColor: card.accent.replace(')', ' / 0.12)'), color: card.accent }}
-                    >
+                    <div className={`flex h-11 w-11 items-center justify-center rounded-lg shrink-0 transition-transform duration-200 group-hover:scale-110 ${card.iconBg} ${card.iconColor}`}>
                       <card.icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
@@ -338,7 +347,7 @@ export default function DashboardPage() {
               <Link to={action.href}>
                 <Card className="rounded-xl cursor-pointer transition-all duration-200 hover:border-primary/40 hover:shadow-lg hover:scale-[1.02] group">
                   <CardContent className="flex items-center gap-4 py-5 px-5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/8 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200 shrink-0">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/[0.08] text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200 shrink-0">
                       <action.icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
