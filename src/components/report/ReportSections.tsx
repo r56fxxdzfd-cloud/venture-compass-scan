@@ -12,6 +12,7 @@ import {
 import { DarwinRadarChart } from '@/components/DarwinRadarChart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import type { QuestionAnswer } from '@/utils/pareto-engine';
 
 // ======== A. Header ========
@@ -114,12 +115,23 @@ export function BlocksSection({ result, config, stage }: { result: AssessmentRes
 }
 
 // ======== D. Radar ========
-export function RadarSection({ result }: { result: AssessmentResult }) {
+export function RadarSection({ result, config, stage }: { result: AssessmentResult; config?: ConfigJSON; stage?: string }) {
+  const potentialScores = useMemo(() => {
+    if (!config?.targets_by_stage || !stage) return undefined;
+    const stageTargets = (config.targets_by_stage as Record<string, any>)[stage] || {};
+    const map: Record<string, number> = {};
+    result.dimension_scores.forEach(ds => {
+      const t = stageTargets[ds.dimension_id];
+      map[ds.dimension_id] = typeof t === 'object' ? ((t as any).potential ?? ds.target) : (t ?? ds.target);
+    });
+    return map;
+  }, [config, stage, result]);
+
   return (
     <Card>
       <CardContent className="pt-6">
         <h3 className="text-base font-semibold mb-4">Radar — Atual vs Benchmark vs Potencial</h3>
-        <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark showPotential />
+        <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark showPotential potentialScores={potentialScores} />
       </CardContent>
     </Card>
   );

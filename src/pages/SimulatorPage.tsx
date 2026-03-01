@@ -312,7 +312,7 @@ export default function SimulatorPage() {
             <ReportHeader startupName="Simulação" stage={stage} date={new Date().toLocaleDateString('pt-BR')} completeness={completeness} isSimulation />
             <OverallScoreCard result={result} config={config} stage={stage} />
             <BlocksSection result={result} config={config} stage={stage} />
-            <RadarSection result={result} />
+            <RadarSection result={result} config={config} stage={stage} />
             <RiskImpactMatrixSection config={config} result={result} stage={stage} />
             <DimensionScoresSection result={result} config={config} stage={stage} />
             <RedFlagsSection result={result} config={config} />
