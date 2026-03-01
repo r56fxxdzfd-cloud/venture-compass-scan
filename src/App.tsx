@@ -9,7 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { AnimatedPage } from "@/components/AnimatedPage";
 import { AnimatePresence } from "framer-motion";
-import { ScrollToTop } from "@/components/ScrollToTop";
+
 
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -58,7 +58,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <ScrollToTop />
+            
             <AnimatedRoutes />
           </AuthProvider>
         </BrowserRouter>

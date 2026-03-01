@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Scroll to top on route change
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -169,7 +175,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>
       </div>
