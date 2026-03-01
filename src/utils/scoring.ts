@@ -5,7 +5,12 @@ export function calculateDimensionScores(
   answers: Answer[],
   stage: string
 ): DimensionScore[] {
-  const targets = configJson.targets_by_stage?.[stage] || {};
+  const rawTargets = configJson.targets_by_stage?.[stage] || {};
+  // targets_by_stage values can be numbers or objects like {benchmark: N, potential: N}
+  const targets: Record<string, number> = {};
+  for (const [k, v] of Object.entries(rawTargets)) {
+    targets[k] = typeof v === 'number' ? v : (typeof v === 'object' && v !== null ? ((v as any).benchmark ?? 3.5) : 3.5);
+  }
 
   return configJson.dimensions.map((dim) => {
     const dimQuestions = configJson.questions.filter(
