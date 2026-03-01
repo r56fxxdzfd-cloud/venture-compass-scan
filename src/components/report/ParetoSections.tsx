@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2 } from 'lucide-react';
+import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import {
@@ -8,9 +8,11 @@ import {
   generateMeetingAgenda, compute2x2Matrix,
   type ScoredAction, type AgendaItem, type MatrixPoint, type QuestionAnswer,
 } from '@/utils/pareto-engine';
-import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine, Label } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, Cell, ReferenceLine, Label } from 'recharts';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { humanizeFieldName, shortDimensionLabel, EFFORT_TOOLTIPS } from '@/utils/label-maps';
 
-// ---- Effort badge (Step 7 colors) ----
+// ---- Effort badge with tooltip ----
 function EffortBadge({ effort }: { effort: 'S' | 'M' | 'L' }) {
   const styles = {
     S: 'bg-primary/10 text-primary border-primary/20',
@@ -18,7 +20,16 @@ function EffortBadge({ effort }: { effort: 'S' | 'M' | 'L' }) {
     L: 'bg-destructive/10 text-destructive border-destructive/20',
   };
   const labels = { S: 'Rápido', M: 'Médio', L: 'Pesado' };
-  return <Badge variant="outline" className={`text-xs ${styles[effort]}`}>{labels[effort]}</Badge>;
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span><Badge variant="outline" className={`text-xs cursor-help ${styles[effort]}`}>{labels[effort]}</Badge></span>
+        </TooltipTrigger>
+        <TooltipContent><p className="text-xs max-w-[200px]">{EFFORT_TOOLTIPS[effort]}</p></TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 // ======== Quick Wins (Step 7 rendering) ========
@@ -71,7 +82,17 @@ export function QuickWinsSection({
               {/* First step (highlighted box) */}
               <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
                 <p className="text-xs">
-                  <span className="font-semibold text-primary">Primeiro passo:</span>{' '}
+                  <span className="font-semibold text-primary inline-flex items-center gap-1">
+                    Primeiro passo:
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent><p className="text-xs max-w-[220px]">Ação concreta para começar hoje — não precisa estar perfeito, apenas iniciado.</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>{' '}
                   <span className="text-foreground">{action.first_step}</span>
                 </p>
               </div>
@@ -80,21 +101,36 @@ export function QuickWinsSection({
               <div className="rounded-md bg-muted/50 border border-border/50 p-2.5 flex items-start gap-2">
                 <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                 <p className="text-xs">
-                  <span className="font-medium text-muted-foreground">Concluído quando:</span>{' '}
+                  <span className="font-medium text-muted-foreground inline-flex items-center gap-1">
+                    Concluído quando:
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent><p className="text-xs max-w-[220px]">Critério objetivo para considerar esta ação encerrada e medir o progresso.</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </span>{' '}
                   <span className="text-foreground">{action.done_definition}</span>
                 </p>
               </div>
 
               {/* Footer: badges + metadata */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                {/* Dimension badge */}
-                <Badge variant="secondary" className="text-xs">{action.dimension_id}</Badge>
+                {/* Dimension badge - use label not raw ID */}
+                <Badge variant="secondary" className="text-xs">
+                  {config.dimensions.find(d => d.id === action.dimension_id)?.label || action.dimension_id}
+                </Badge>
 
-                {/* Red flags indicator */}
+                {/* Red flags indicator - show label not code */}
                 {action.addresses_red_flags && action.addresses_red_flags.length > 0 && (
                   <Badge variant="destructive" className="text-xs gap-1">
                     <Flag className="h-3 w-3" />
-                    {action.addresses_red_flags.join(', ')}
+                    {action.addresses_red_flags.map(code => {
+                      const rf = config.red_flags?.find(r => r.code === code);
+                      return rf?.label || '';
+                    }).filter(Boolean).join(', ') || 'Red Flag'}
                   </Badge>
                 )}
 
@@ -180,7 +216,7 @@ export function MeetingAgendaSection({
                 <div className="pl-8 flex items-center gap-1 flex-wrap">
                   <span className="text-xs text-muted-foreground">Verificar:</span>
                   {item.context_checks.map((c) => (
-                    <Badge key={c} variant="outline" className="text-xs font-mono">{c}</Badge>
+                    <Badge key={c} variant="outline" className="text-xs">{humanizeFieldName(c)}</Badge>
                   ))}
                 </div>
               )}
@@ -283,7 +319,7 @@ export function RiskImpactMatrixSection({
           <div><Badge variant="outline" className="text-xs">Baixa Prioridade</Badge></div>
         </div>
 
-        <div className="h-[350px] sm:h-[400px] overflow-x-auto">
+        <div className="h-[350px] sm:h-[400px]" style={{ overflow: 'visible' }}>
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 20 }}>
               <XAxis type="number" dataKey="risk" domain={[0, 100]} tick={{ fontSize: 10 }} name="Risco">
@@ -294,7 +330,7 @@ export function RiskImpactMatrixSection({
               </YAxis>
               <ReferenceLine x={50} stroke="hsl(var(--border))" strokeDasharray="4 4" />
               <ReferenceLine y={50} stroke="hsl(var(--border))" strokeDasharray="4 4" />
-              <Tooltip content={<MatrixTooltipContent />} />
+              <RechartsTooltip content={<MatrixTooltipContent />} />
               <Scatter data={points} name="Items" shape={(props: any) => {
                 const { cx, cy, payload } = props;
                 if (!cx || !cy) return null;
@@ -332,16 +368,19 @@ export function RiskImpactMatrixSection({
           </ResponsiveContainer>
         </div>
 
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
-          {points.map((p) => (
-            <span key={p.id} className="flex items-center gap-1">
-              <span
-                className="inline-block h-2.5 w-2.5 rounded-full"
-                style={{ background: p.type === 'red_flag' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))' }}
-              />
-              {p.label.length > 20 ? p.label.slice(0, 20) + '…' : p.label}
-            </span>
-          ))}
+        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground justify-center pt-2 pb-1" style={{ whiteSpace: 'normal' }}>
+          {points.map((p) => {
+            const displayLabel = shortDimensionLabel(p.id, p.label, 22);
+            return (
+              <span key={p.id} className="flex items-center gap-1" title={p.label}>
+                <span
+                  className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
+                  style={{ background: p.type === 'red_flag' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))' }}
+                />
+                <span style={{ fontSize: '11px' }}>{displayLabel}</span>
+              </span>
+            );
+          })}
         </div>
       </CardContent>
     </Card>
