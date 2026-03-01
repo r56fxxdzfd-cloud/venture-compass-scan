@@ -47,8 +47,8 @@ export function DarwinRadarChart({
 
   return (
     <div className="radar-chart-container">
-      <ResponsiveContainer width="100%" height={380}>
-        <RadarChart data={data} cx="50%" cy="50%" outerRadius="65%">
+      <ResponsiveContainer width="100%" height={320} minHeight={260}>
+        <RadarChart data={data} cx="50%" cy="50%" outerRadius="60%">
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis
             dataKey="dimension"
