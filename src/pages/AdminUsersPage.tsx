@@ -35,7 +35,9 @@ export default function AdminUsersPage() {
 
     if (profiles) {
       const mapped = profiles.map((p: any) => {
-        const userRole = roles?.find((r: any) => r.user_id === p.id);
+        const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
+        // Prioritize super_admin role if user has multiple roles
+        const bestRole = userRoles.find((r: any) => r.role === 'super_admin') || userRoles[0];
         return {
           id: p.id,
           full_name: p.full_name,
@@ -43,7 +45,7 @@ export default function AdminUsersPage() {
           status: p.status || 'pending',
           requested_at: p.requested_at,
           approved_at: p.approved_at,
-          role: (userRole?.role as AppRole) || null,
+          role: (bestRole?.role as AppRole) || null,
         };
       });
       setUsers(mapped);
