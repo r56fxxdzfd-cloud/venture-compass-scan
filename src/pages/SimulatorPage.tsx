@@ -303,7 +303,7 @@ export default function SimulatorPage() {
         <AnimatePresence mode="wait">
           <motion.div
             key={JSON.stringify(result.overall_score) + stage}
-            className="space-y-6"
+            className="space-y-6 min-w-0 overflow-hidden"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
