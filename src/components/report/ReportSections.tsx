@@ -87,19 +87,26 @@ export function BlocksSection({ result, config, stage }: { result: AssessmentRes
 
   return (
     <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-      {blocks.map((block) => (
-        <Card key={block.id}>
-          <CardContent className="pt-6 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{block.label}</p>
-            <p className={`text-3xl font-bold font-mono ${block.level.color}`}>{block.score100}</p>
-            <Badge variant="outline" className="mt-2 text-xs">{block.level.label}</Badge>
-            {block.lowestDim && block.score100 < 75 && (
-              <p className="text-xs text-muted-foreground mt-3">
-                Foco em <strong>{block.lowestDim}</strong> elevará o conjunto.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+      {blocks.map((block, i) => (
+        <motion.div
+          key={block.id}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1, duration: 0.4, ease: 'easeOut' }}
+        >
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{block.label}</p>
+              <p className={`text-3xl font-bold font-mono ${block.level.color}`}>{block.score100}</p>
+              <Badge variant="outline" className="mt-2 text-xs">{block.level.label}</Badge>
+              {block.lowestDim && block.score100 < 75 && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  Foco em <strong>{block.lowestDim}</strong> elevará o conjunto.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       ))}
     </div>
   );
