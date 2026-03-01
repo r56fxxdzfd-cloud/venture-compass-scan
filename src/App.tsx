@@ -21,6 +21,7 @@ import SimulatorPage from "./pages/SimulatorPage";
 import MethodologyPage from "./pages/MethodologyPage";
 import AdminConfigPage from "./pages/AdminConfigPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import WaitingApprovalPage from "./pages/WaitingApprovalPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +34,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="/login" element={<AnimatedPage><LoginPage /></AnimatedPage>} />
-
+        <Route path="/waiting-approval" element={<AnimatedPage><WaitingApprovalPage /></AnimatedPage>} />
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
@@ -42,7 +43,7 @@ function AnimatedRoutes() {
         <Route path="/app/simulator" element={<ProtectedRoute><AppLayout><AnimatedPage><SimulatorPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/methodology" element={<ProtectedRoute><AppLayout><AnimatedPage><MethodologyPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/admin/config" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AnimatedPage><AdminConfigPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/admin/users" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AnimatedPage><AdminUsersPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/admin/users" element={<ProtectedRoute requiredRoles={['jv_admin', 'super_admin']}><AppLayout><AnimatedPage><AdminUsersPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
 
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
       </Routes>

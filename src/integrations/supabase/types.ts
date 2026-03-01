@@ -320,19 +320,31 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string | null
           full_name: string | null
           id: string
+          requested_at: string | null
+          status: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           full_name?: string | null
           id: string
+          requested_at?: string | null
+          status?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          requested_at?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -484,10 +496,12 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_analyst: { Args: { _user_id: string }; Returns: boolean }
+      is_approved_member: { Args: { _user_id: string }; Returns: boolean }
       is_jv_member: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "jv_admin" | "jv_analyst" | "jv_viewer"
+      app_role: "jv_admin" | "jv_analyst" | "jv_viewer" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -615,7 +629,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["jv_admin", "jv_analyst", "jv_viewer"],
+      app_role: ["jv_admin", "jv_analyst", "jv_viewer", "super_admin"],
     },
   },
 } as const

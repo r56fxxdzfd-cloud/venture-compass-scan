@@ -1,20 +1,23 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
-import type { AppRole, Profile } from '@/types/darwin';
+import type { AppRole, Profile, ProfileStatus } from '@/types/darwin';
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   roles: AppRole[];
   loading: boolean;
+  profileStatus: ProfileStatus | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   isAnalyst: boolean;
   isViewer: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -31,7 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('*')
       .eq('id', userId)
       .single();
-    if (data) setProfile(data as Profile);
+    if (data) {
+      setProfile(data as unknown as Profile);
+      setProfileStatus((data as any).status as ProfileStatus);
+    }
   };
 
   const fetchRoles = async (userId: string) => {
@@ -40,6 +47,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('role')
       .eq('user_id', userId);
     if (data) setRoles(data.map((r: any) => r.role as AppRole));
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
+      await fetchRoles(user.id);
+    }
   };
 
   useEffect(() => {
@@ -55,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setProfile(null);
           setRoles([]);
+          setProfileStatus(null);
         }
         setLoading(false);
       }
@@ -99,13 +114,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         roles,
         loading,
+        profileStatus,
         signIn,
         signUp,
         signOut,
         hasRole,
-        isAdmin: hasRole('jv_admin'),
+        isAdmin: hasRole('jv_admin') || hasRole('super_admin'),
+        isSuperAdmin: hasRole('super_admin'),
         isAnalyst: hasRole('jv_analyst'),
         isViewer: hasRole('jv_viewer'),
+        refreshProfile,
       }}
     >
       {children}
