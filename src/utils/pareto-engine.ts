@@ -10,55 +10,60 @@ export interface ScoredAction extends ParetoAction {
   impacted_dimensions: string[];
 }
 
-// ---- Default action library (~3 per dimension for brevity, covering all 9) ----
-const DEFAULT_ACTION_LIBRARY: Record<string, ParetoAction[]> = {
+// ---- Default action library — 2+ actions per dimension, 18+ total ----
+export const DEFAULT_ACTION_LIBRARY: Record<string, ParetoAction[]> = {
   MN: [
-    { id: 'MN-01', title: 'Validar unit economics com dados reais', description: 'Calcular CAC, LTV e payback com métricas atuais.', first_step: 'Levantar CAC dos últimos 3 meses por canal.', done_definition: 'Planilha com unit economics por cohort.', effort: 'S', time_to_impact_days: 7, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'MN', kpi_hint: 'LTV/CAC ratio' },
-    { id: 'MN-02', title: 'Testar novo canal de aquisição', description: 'Experimentar canal não explorado para diversificar.', first_step: 'Selecionar 1 canal e definir budget de teste.', done_definition: 'Teste de 2 semanas com CAC medido.', effort: 'M', time_to_impact_days: 21, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'MN' },
-    { id: 'MN-03', title: 'Documentar pricing strategy', description: 'Formalizar lógica de precificação e margens.', first_step: 'Mapear preços atuais vs concorrentes.', done_definition: 'Documento de pricing aprovado.', effort: 'S', time_to_impact_days: 5, impact_weight: 3, stage_tags: ['pre_seed', 'seed'], business_model_tags: [], dimension_id: 'MN' },
+    { id: 'MN-01', title: 'Validar unit economics com dados reais', description: 'Calcular CAC, LTV e payback com métricas atuais de cada canal.', first_step: 'Levantar CAC dos últimos 3 meses por canal de aquisição.', done_definition: 'Planilha com unit economics por cohort mensal publicada.', effort: 'S', time_to_impact_days: 7, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'MN', kpi_hint: 'LTV/CAC ratio' },
+    { id: 'MN-02', title: 'Testar novo canal de aquisição', description: 'Experimentar canal não explorado para diversificar fontes de receita.', first_step: 'Selecionar 1 canal e definir budget de teste de R$500-2000.', done_definition: 'Teste de 2 semanas com CAC medido e comparado aos canais atuais.', effort: 'M', time_to_impact_days: 21, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'MN' },
+    { id: 'MN-03', title: 'Documentar pricing strategy', description: 'Formalizar lógica de precificação, margens e posicionamento competitivo.', first_step: 'Mapear preços atuais vs 3 concorrentes diretos.', done_definition: 'Documento de pricing aprovado pelo founding team.', effort: 'S', time_to_impact_days: 5, impact_weight: 3, stage_tags: ['pre_seed', 'seed'], business_model_tags: [], dimension_id: 'MN' },
   ],
   GT: [
-    { id: 'GT-01', title: 'Definir North Star Metric', description: 'Alinhar time em torno de métrica principal de crescimento.', first_step: 'Reunião de alinhamento sobre métrica candidata.', done_definition: 'NSM definida e visível em dashboard.', effort: 'S', time_to_impact_days: 3, impact_weight: 5, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
-    { id: 'GT-02', title: 'Implementar growth loop principal', description: 'Criar ciclo viral ou de retenção.', first_step: 'Mapear loops existentes e identificar o principal.', done_definition: 'Loop implementado e métrica de ciclo medida.', effort: 'L', time_to_impact_days: 45, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
-    { id: 'GT-03', title: 'Criar dashboard de métricas semanais', description: 'Visibilidade sobre KPIs de crescimento.', first_step: 'Listar top 5 métricas e fonte de dados.', done_definition: 'Dashboard atualizado automaticamente.', effort: 'M', time_to_impact_days: 14, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
+    { id: 'GT-01', title: 'Definir North Star Metric', description: 'Alinhar time em torno de métrica principal de crescimento.', first_step: 'Reunião de 1h com founders para alinhar métrica candidata.', done_definition: 'NSM definida, documentada e visível em dashboard compartilhado.', effort: 'S', time_to_impact_days: 3, impact_weight: 5, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
+    { id: 'GT-02', title: 'Implementar growth loop principal', description: 'Criar ciclo viral, de conteúdo ou de retenção que gere crescimento composto.', first_step: 'Mapear loops existentes e identificar o de maior potencial.', done_definition: 'Loop implementado com métrica de ciclo medida por 2 semanas.', effort: 'L', time_to_impact_days: 45, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
+    { id: 'GT-03', title: 'Criar dashboard de métricas semanais', description: 'Dar visibilidade contínua sobre KPIs de crescimento para o time.', first_step: 'Listar top 5 métricas e identificar fonte de dados para cada.', done_definition: 'Dashboard automático atualizado e revisado na weekly.', effort: 'M', time_to_impact_days: 14, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GT' },
   ],
   EE: [
-    { id: 'EE-01', title: 'Mapear jornada do cliente end-to-end', description: 'Identificar pontos de fricção e oportunidades.', first_step: 'Entrevistar 5 clientes sobre experiência.', done_definition: 'Mapa de jornada com pain points priorizados.', effort: 'M', time_to_impact_days: 14, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'EE' },
-    { id: 'EE-02', title: 'Implementar NPS ou CSAT', description: 'Medir satisfação de forma recorrente.', first_step: 'Escolher ferramenta e criar survey.', done_definition: 'Primeira rodada de NPS coletada.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'EE' },
+    { id: 'EE-01', title: 'Mapear jornada do cliente end-to-end', description: 'Identificar pontos de fricção e oportunidades de encantamento.', first_step: 'Entrevistar 5 clientes sobre sua experiência completa.', done_definition: 'Mapa de jornada com pain points priorizados e quick fixes identificados.', effort: 'M', time_to_impact_days: 14, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'EE' },
+    { id: 'EE-02', title: 'Implementar NPS ou CSAT recorrente', description: 'Medir satisfação de forma contínua para detectar tendências.', first_step: 'Escolher ferramenta (Typeform, Hotjar) e criar survey de 3 perguntas.', done_definition: 'Primeira rodada de NPS coletada com 30+ respostas.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'EE' },
   ],
   FS: [
-    { id: 'FS-01', title: 'Projetar runway com cenários', description: 'Modelar otimista, base e pessimista.', first_step: 'Atualizar planilha financeira com 3 cenários.', done_definition: 'Projeção de 12 meses com cenários.', effort: 'S', time_to_impact_days: 5, impact_weight: 5, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'FS', kpi_hint: 'Runway em meses', addresses_red_flags: ['RF_RUNWAY'] },
-    { id: 'FS-02', title: 'Reduzir burn rate em 15%', description: 'Identificar gastos cortáveis sem impacto no crescimento.', first_step: 'Categorizar despesas por essencialidade.', done_definition: 'Burn reduzido e validado por 1 mês.', effort: 'M', time_to_impact_days: 30, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'FS', addresses_red_flags: ['RF_RUNWAY', 'RF_BURN'] },
+    { id: 'FS-01', title: 'Projetar runway com cenários', description: 'Modelar cenários otimista, base e pessimista para os próximos 12 meses.', first_step: 'Atualizar planilha financeira com receitas e custos reais do último trimestre.', done_definition: 'Projeção de 12 meses com 3 cenários e breakeven estimado.', effort: 'S', time_to_impact_days: 5, impact_weight: 5, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'FS', kpi_hint: 'Runway em meses', addresses_red_flags: ['RF_RUNWAY'] },
+    { id: 'FS-02', title: 'Reduzir burn rate em 15%', description: 'Identificar gastos cortáveis sem impacto negativo no crescimento.', first_step: 'Categorizar todas as despesas por grau de essencialidade (1-3).', done_definition: 'Burn reduzido em pelo menos 15% e validado por 1 mês completo.', effort: 'M', time_to_impact_days: 30, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'FS', addresses_red_flags: ['RF_RUNWAY', 'RF_BURN'] },
   ],
   PM: [
-    { id: 'PM-01', title: 'Validar product-market fit com dados', description: 'Aplicar Sean Ellis test ou análise de retenção.', first_step: 'Enviar survey "How disappointed would you be?" para 40+ users.', done_definition: 'Score PMF calculado.', effort: 'S', time_to_impact_days: 10, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PM' },
-    { id: 'PM-02', title: 'Criar roadmap baseado em feedback', description: 'Priorizar features com framework ICE/RICE.', first_step: 'Compilar top 10 pedidos de clientes.', done_definition: 'Roadmap de 3 meses priorizado.', effort: 'M', time_to_impact_days: 14, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PM' },
+    { id: 'PM-01', title: 'Validar product-market fit com dados', description: 'Aplicar Sean Ellis test ou análise de retenção por cohort.', first_step: 'Enviar survey "How disappointed would you be?" para 40+ users ativos.', done_definition: 'Score PMF calculado e apresentado ao time com plano de ação.', effort: 'S', time_to_impact_days: 10, impact_weight: 5, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PM' },
+    { id: 'PM-02', title: 'Criar roadmap baseado em feedback', description: 'Priorizar features usando framework ICE ou RICE com dados de clientes.', first_step: 'Compilar top 10 pedidos/reclamações de clientes dos últimos 60 dias.', done_definition: 'Roadmap de 3 meses priorizado e comunicado ao time.', effort: 'M', time_to_impact_days: 14, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PM' },
   ],
   GR: [
-    { id: 'GR-01', title: 'Formalizar governança mínima', description: 'Board advisory, cap table limpo, acordos de sócios.', first_step: 'Revisar cap table e identificar pendências.', done_definition: 'Documentação de governança atualizada.', effort: 'M', time_to_impact_days: 21, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GR' },
-    { id: 'GR-02', title: 'Implementar report mensal para stakeholders', description: 'Transparência com investidores e advisors.', first_step: 'Criar template de update mensal.', done_definition: 'Primeiro report enviado.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GR' },
+    { id: 'GR-01', title: 'Formalizar governança mínima', description: 'Board advisory, cap table limpo e acordos de sócios atualizados.', first_step: 'Revisar cap table atual e identificar pendências jurídicas.', done_definition: 'Documentação de governança revisada e assinada por todos os sócios.', effort: 'M', time_to_impact_days: 21, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GR' },
+    { id: 'GR-02', title: 'Implementar report mensal para stakeholders', description: 'Criar cadência de transparência com investidores e advisors.', first_step: 'Criar template de investor update com KPIs, highlights e asks.', done_definition: 'Primeiro report mensal enviado a todos os stakeholders.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'GR' },
   ],
   PT: [
-    { id: 'PT-01', title: 'Adotar metodologia ágil simplificada', description: 'Sprints de 2 semanas com retro.', first_step: 'Definir cadência e ferramentas.', done_definition: 'Primeira sprint completa com retro.', effort: 'M', time_to_impact_days: 14, impact_weight: 4, stage_tags: ['pre_seed', 'seed'], business_model_tags: [], dimension_id: 'PT' },
-    { id: 'PT-02', title: 'Definir OKRs trimestrais', description: 'Alinhar time com objetivos claros.', first_step: 'Workshop de OKRs com founders.', done_definition: 'OKRs Q+1 definidos e comunicados.', effort: 'S', time_to_impact_days: 5, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PT' },
+    { id: 'PT-01', title: 'Adotar metodologia ágil simplificada', description: 'Implementar sprints de 2 semanas com planning, daily e retro.', first_step: 'Definir cadência (bi-semanal), ferramenta (Linear, Jira) e facilitador.', done_definition: 'Primeira sprint completa com retrospectiva documentada.', effort: 'M', time_to_impact_days: 14, impact_weight: 4, stage_tags: ['pre_seed', 'seed'], business_model_tags: [], dimension_id: 'PT' },
+    { id: 'PT-02', title: 'Definir OKRs trimestrais', description: 'Alinhar time com objetivos mensuráveis e key results claros.', first_step: 'Workshop de 2h com founders para definir 3 objectives e 9 KRs.', done_definition: 'OKRs do próximo trimestre definidos, publicados e comunicados.', effort: 'S', time_to_impact_days: 5, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PT' },
   ],
   PL: [
-    { id: 'PL-01', title: 'Criar plano de hiring para próximos 6 meses', description: 'Priorizar contratações críticas.', first_step: 'Mapear gaps de competência vs roadmap.', done_definition: 'Plano de hiring aprovado.', effort: 'S', time_to_impact_days: 7, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PL' },
-    { id: 'PL-02', title: 'Implementar 1:1s semanais', description: 'Melhorar feedback loop com o time.', first_step: 'Agendar 1:1s recorrentes.', done_definition: 'Cadência mantida por 4 semanas.', effort: 'S', time_to_impact_days: 3, impact_weight: 3, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'PL' },
+    { id: 'PL-01', title: 'Criar plano de hiring para 6 meses', description: 'Priorizar contratações críticas alinhadas ao roadmap de produto.', first_step: 'Mapear gaps de competência vs roadmap e listar posições prioritárias.', done_definition: 'Plano de hiring aprovado com timeline e perfis documentados.', effort: 'S', time_to_impact_days: 7, impact_weight: 4, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'PL' },
+    { id: 'PL-02', title: 'Implementar 1:1s semanais', description: 'Melhorar feedback loop e retenção do time com cadência individual.', first_step: 'Agendar 1:1s recorrentes de 30min com cada report direto.', done_definition: 'Cadência de 1:1s mantida por 4 semanas consecutivas.', effort: 'S', time_to_impact_days: 3, impact_weight: 3, stage_tags: ['pre_seed', 'seed', 'series_a'], business_model_tags: [], dimension_id: 'PL' },
   ],
   IC: [
-    { id: 'IC-01', title: 'Documentar cultura e valores', description: 'Formalizar princípios do time.', first_step: 'Workshop com founders sobre valores.', done_definition: 'Documento de cultura publicado.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'IC' },
-    { id: 'IC-02', title: 'Criar onboarding estruturado', description: 'Reduzir time-to-productivity de novos membros.', first_step: 'Documentar processos chave e checklist de onboarding.', done_definition: 'Próximo hire passa pelo onboarding novo.', effort: 'M', time_to_impact_days: 21, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'IC' },
+    { id: 'IC-01', title: 'Documentar cultura e valores', description: 'Formalizar princípios do time para guiar decisões e contratações.', first_step: 'Workshop de 2h com founders para extrair e priorizar valores.', done_definition: 'Documento de cultura publicado e compartilhado com todo o time.', effort: 'S', time_to_impact_days: 7, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'IC' },
+    { id: 'IC-02', title: 'Criar onboarding estruturado', description: 'Reduzir time-to-productivity de novos membros com processo claro.', first_step: 'Documentar processos-chave e criar checklist de primeira semana.', done_definition: 'Próximo hire completou onboarding novo com feedback positivo.', effort: 'M', time_to_impact_days: 21, impact_weight: 3, stage_tags: ['seed', 'series_a'], business_model_tags: [], dimension_id: 'IC' },
   ],
 };
 
 // ---- Get action library (from config or defaults) ----
 function getActionLibrary(config: ConfigJSON): Record<string, ParetoAction[]> {
-  if (config.action_library && Object.keys(config.action_library).length > 0) return config.action_library;
+  if (config.action_library && Object.keys(config.action_library).length > 0) {
+    // Check it's not an empty object with empty arrays
+    const hasActions = Object.values(config.action_library).some(arr => arr.length > 0);
+    if (hasActions) return config.action_library;
+  }
+  console.warn('[QuickWins] action_library not found in config, using DEFAULT_ACTION_LIBRARY fallback');
   return DEFAULT_ACTION_LIBRARY;
 }
 
-// ---- Compute Pareto scores ----
+// ---- Compute Pareto scores (Step 5 formula) ----
 const EFFORT_FACTOR: Record<string, number> = { S: 1, M: 2, L: 3 };
 
 export function computeParetoActions(
@@ -67,35 +72,38 @@ export function computeParetoActions(
   stage: string
 ): ScoredAction[] {
   const library = getActionLibrary(config);
-  const gaps = computeGaps(result.dimension_scores, config, stage);
-  const gapMap = new Map(gaps.map((g) => [g.dimension_id, g]));
+  const weights = config.weights_by_stage?.[stage] || {};
+  const targets = config.targets_by_stage?.[stage] || {};
+  const dimScoreMap = new Map(result.dimension_scores.map(d => [d.dimension_id, d]));
+  const triggeredRfIds = new Set(result.red_flags.map(rf => rf.code));
   const triggeredHighRf = new Set(
-    result.red_flags.filter((rf) => ['high', 'critical'].includes(rf.severity)).map((rf) => rf.code)
+    result.red_flags.filter(rf => ['high', 'critical'].includes(rf.severity)).map(rf => rf.code)
   );
 
   const allActions: ScoredAction[] = [];
 
   for (const [dimId, actions] of Object.entries(library)) {
-    const gap = gapMap.get(dimId);
-    const priorityScoreDim = gap?.priority_score || 0;
-    const dimLabel = result.dimension_scores.find((d) => d.dimension_id === dimId)?.label || dimId;
+    const ds = dimScoreMap.get(dimId);
+    const dimLabel = ds?.label || dimId;
+    const dimensionWeight = (weights[dimId] as number) ?? 0.1;
+    const targetScore = (targets[dimId] as number) ?? 3;
+    const currentScore = ds?.score ?? 1;
+    const gapPotential = Math.max(0, targetScore - currentScore);
+    const priorityScoreDim = gapPotential * dimensionWeight;
 
     for (const action of actions) {
       const effortFactor = EFFORT_FACTOR[action.effort] || 2;
-      let paretoScore = (action.impact_weight * (priorityScoreDim || 1)) / effortFactor;
-
-      // Boost if addresses triggered high-severity red flag
-      const addressesHighRf = action.addresses_red_flags?.some((code) => triggeredHighRf.has(code));
-      if (addressesHighRf) paretoScore *= 1.5;
+      const redFlagBoost = action.addresses_red_flags?.some(rfId => triggeredRfIds.has(rfId)) ? 1.5 : 1;
+      const paretoScore = ((action.impact_weight / 5) * priorityScoreDim / effortFactor) * redFlagBoost;
 
       const reasons: string[] = [];
-      if (gap && gap.gap_potential > 0) reasons.push(`Gap ${gap.gap_potential}pts em ${dimLabel}`);
-      if (addressesHighRf) reasons.push('Endereça red flag crítico');
+      if (gapPotential > 0) reasons.push(`Gap ${gapPotential.toFixed(1)}pts em ${dimLabel}`);
+      if (redFlagBoost > 1) reasons.push('Endereça red flag ativo');
       if (action.effort === 'S') reasons.push('Baixo esforço');
 
       allActions.push({
         ...action,
-        pareto_score: Math.round(paretoScore * 10) / 10,
+        pareto_score: Math.round(paretoScore * 100) / 100,
         reason: reasons.join(' · ') || 'Impacto geral',
         impacted_dimensions: [dimLabel],
       });
@@ -107,61 +115,82 @@ export function computeParetoActions(
   return allActions;
 }
 
-// ---- Select Top 5 with constraints ----
+// ---- Select Top 5 with diversity rule (Step 6) ----
 export function selectTop5(
   scored: ScoredAction[],
   result: AssessmentResult,
   config: ConfigJSON
 ): ScoredAction[] {
   const blocks = DEFAULT_BLOCKS;
-  const growthDims = new Set(blocks[0].dimensions);
-  const foundationDims = new Set(blocks[1].dimensions);
-  const executionDims = new Set(blocks[2].dimensions);
+  const blockMap = new Map<string, string>(); // dimId -> blockId
+  blocks.forEach(b => b.dimensions.forEach(d => blockMap.set(d, b.id)));
 
   const triggeredHighRf = result.red_flags
-    .filter((rf) => ['high', 'critical'].includes(rf.severity))
-    .map((rf) => rf.code);
+    .filter(rf => ['high', 'critical'].includes(rf.severity))
+    .map(rf => rf.code);
 
-  const selected: ScoredAction[] = [];
+  // Step 6: Diversity rule
+  const blockCounts: Record<string, number> = {};
+  blocks.forEach(b => blockCounts[b.id] = 0);
+
+  const top5: ScoredAction[] = [];
+  const remaining: ScoredAction[] = [];
   const used = new Set<string>();
 
-  const pick = (action: ScoredAction) => {
+  // First pass: guarantee 1 per block
+  for (const action of scored) {
+    const block = blockMap.get(action.dimension_id) || 'other';
+    if (blockCounts[block] === 0 && top5.length < 5 && !used.has(action.id)) {
+      top5.push(action);
+      used.add(action.id);
+      blockCounts[block] = (blockCounts[block] || 0) + 1;
+    } else if (!used.has(action.id)) {
+      remaining.push(action);
+    }
+  }
+
+  // Second pass: fill remaining slots by score
+  for (const action of remaining) {
+    if (top5.length >= 5) break;
     if (!used.has(action.id)) {
-      selected.push(action);
+      top5.push(action);
       used.add(action.id);
     }
-  };
+  }
 
-  // If high severity red flag, ensure at least 1 addressing it in top 3
+  // Sort top5 by score
+  top5.sort((a, b) => b.pareto_score - a.pareto_score);
+
+  // High severity red flag enforcement: ensure at least 1 action addressing it in positions 1-3
   if (triggeredHighRf.length > 0) {
-    const rfAction = scored.find((a) => a.addresses_red_flags?.some((c) => triggeredHighRf.includes(c)));
-    if (rfAction) pick(rfAction);
-  }
+    const hasRfInTop3 = top5.slice(0, 3).some(a =>
+      a.addresses_red_flags?.some(c => triggeredHighRf.includes(c))
+    );
 
-  // Fill from top scored
-  for (const a of scored) {
-    if (selected.length >= 5) break;
-    pick(a);
-  }
+    if (!hasRfInTop3) {
+      // Find an action addressing it (in top5 or remaining)
+      const rfAction = top5.slice(3).find(a =>
+        a.addresses_red_flags?.some(c => triggeredHighRf.includes(c))
+      ) || remaining.find(a =>
+        a.addresses_red_flags?.some(c => triggeredHighRf.includes(c)) && !used.has(a.id)
+      );
 
-  // Ensure block coverage
-  const hasGrowth = selected.some((a) => growthDims.has(a.dimension_id));
-  const hasFoundation = selected.some((a) => foundationDims.has(a.dimension_id));
-  const hasExecution = selected.some((a) => executionDims.has(a.dimension_id));
-
-  const ensureBlock = (dimSet: Set<string>) => {
-    const candidate = scored.find((a) => dimSet.has(a.dimension_id) && !used.has(a.id));
-    if (candidate) {
-      if (selected.length >= 5) selected.pop();
-      pick(candidate);
+      if (rfAction) {
+        // Remove from current position if in top5
+        const existingIdx = top5.indexOf(rfAction);
+        if (existingIdx >= 3) {
+          top5.splice(existingIdx, 1);
+        }
+        // Insert at position 3 (index 2), push displaced out
+        if (top5.length >= 5) {
+          top5.splice(4, 1); // remove last
+        }
+        top5.splice(2, 0, rfAction);
+      }
     }
-  };
+  }
 
-  if (!hasGrowth) ensureBlock(growthDims);
-  if (!hasFoundation) ensureBlock(foundationDims);
-  if (!hasExecution) ensureBlock(executionDims);
-
-  return selected.slice(0, 5);
+  return top5.slice(0, 5);
 }
 
 // ---- Meeting Agenda ----
@@ -223,7 +252,6 @@ export function generateMeetingAgenda(
       context_checks: ['runway_months', 'burn_monthly', 'revenue_concentration_top1_pct'],
     });
   } else if (gaps.length > 2) {
-    // If no red flags, add third gap
     const g = gaps[2];
     items.push({
       topic: `Desenvolver ${g.label}`,
@@ -240,8 +268,8 @@ export function generateMeetingAgenda(
 export interface MatrixPoint {
   id: string;
   label: string;
-  impact: number; // 0-100
-  risk: number;   // 0-100
+  impact: number;
+  risk: number;
   type: 'dimension' | 'red_flag';
   quadrant: 'high_risk_high_impact' | 'high_risk_low_impact' | 'low_risk_high_impact' | 'low_risk_low_impact';
 }
@@ -252,40 +280,34 @@ export function compute2x2Matrix(
   stage: string
 ): MatrixPoint[] {
   const gaps = computeGaps(result.dimension_scores, config, stage);
-  const gapMap = new Map(gaps.map((g) => [g.dimension_id, g]));
+  const gapMap = new Map(gaps.map(g => [g.dimension_id, g]));
   const weights = config.weights_by_stage?.[stage] || {};
   const points: MatrixPoint[] = [];
 
-  // Max weight for normalization
-  const allWeights = Object.values(weights).map((w: any) => w?.weight || 1);
+  const allWeights = Object.values(weights).map((w: any) => w?.weight || w || 1);
   const maxWeight = Math.max(...allWeights, 1);
 
-  // High-risk dimension IDs (structural)
   const structuralDims = new Set(['FS', 'GR', 'PT']);
 
-  // Map red flags to dimensions
   const rfByDim: Record<string, number> = {};
-  result.red_flags.forEach((rf) => {
-    const cfgRf = config.red_flags?.find((r) => r.code === rf.code);
+  result.red_flags.forEach(rf => {
+    const cfgRf = config.red_flags?.find(r => r.code === rf.code);
     const sevPoints: Record<string, number> = { critical: 4, high: 3, medium_high: 2, medium: 1, low: 0.5 };
     const sp = sevPoints[rf.severity] || 1;
-    cfgRf?.triggers.forEach((t) => {
+    cfgRf?.triggers.forEach(t => {
       if (t.dimension_id) rfByDim[t.dimension_id] = (rfByDim[t.dimension_id] || 0) + sp;
     });
   });
 
-  // ALL dimension points (not just gaps)
-  result.dimension_scores.forEach((ds) => {
+  result.dimension_scores.forEach(ds => {
     const gap = gapMap.get(ds.dimension_id);
-    const dimWeight = (weights as any)[ds.dimension_id]?.weight || 1;
+    const dimWeight = (weights as any)[ds.dimension_id]?.weight || (weights as any)[ds.dimension_id] || 1;
     const score100 = scoreTo100(ds.score);
 
-    // Impact = weight-based importance + gap magnitude
     const weightImpact = (dimWeight / maxWeight) * 60;
     const gapImpact = gap ? Math.min(40, gap.gap_potential * 2) : 0;
     const impact = Math.min(100, Math.round(weightImpact + gapImpact));
 
-    // Risk = how far below 60 + structural bonus + red flag association
     const lowScore = Math.max(0, 60 - score100);
     const structuralBonus = structuralDims.has(ds.dimension_id) ? 15 : 0;
     const rfRisk = (rfByDim[ds.dimension_id] || 0) * 10;
@@ -298,8 +320,7 @@ export function compute2x2Matrix(
     points.push({ id: ds.dimension_id, label: ds.label, impact, risk, type: 'dimension', quadrant });
   });
 
-  // Red flag points
-  result.red_flags.forEach((rf) => {
+  result.red_flags.forEach(rf => {
     const sevImpact: Record<string, number> = { critical: 90, high: 75, medium_high: 55, medium: 40, low: 20 };
     const sevRisk: Record<string, number> = { critical: 95, high: 80, medium_high: 60, medium: 45, low: 25 };
     points.push({
