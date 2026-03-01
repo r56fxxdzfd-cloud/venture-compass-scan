@@ -60,24 +60,6 @@ export function DarwinRadarChart({
             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
             tickCount={6}
           />
-          <Radar
-            name="Atual"
-            dataKey="atual"
-            stroke="hsl(var(--chart-current))"
-            fill="hsl(var(--chart-current))"
-            fillOpacity={0.15}
-            strokeWidth={2}
-          />
-          {showBenchmark && (
-            <Radar
-              name="Benchmark"
-              dataKey="benchmark"
-              stroke="hsl(var(--chart-benchmark))"
-              fill="none"
-              strokeWidth={2}
-              strokeDasharray="6 4"
-            />
-          )}
           {showPotential && (
             <Radar
               name="Potencial"
@@ -89,6 +71,25 @@ export function DarwinRadarChart({
               strokeDasharray="3 3"
             />
           )}
+          {showBenchmark && (
+            <Radar
+              name="Benchmark"
+              dataKey="benchmark"
+              stroke="hsl(var(--chart-benchmark))"
+              fill="hsl(var(--chart-benchmark))"
+              fillOpacity={0.08}
+              strokeWidth={2.5}
+              strokeDasharray="8 3"
+            />
+          )}
+          <Radar
+            name="Atual"
+            dataKey="atual"
+            stroke="hsl(var(--chart-current))"
+            fill="hsl(var(--chart-current))"
+            fillOpacity={0.15}
+            strokeWidth={2}
+          />
           <Tooltip
             content={({ payload }) => {
               if (!payload?.length) return null;

@@ -239,7 +239,7 @@ export default function ReportPage() {
       </div>
 
       <div id="section-radar">
-        <RadarSection result={result} />
+        <RadarSection result={result} config={config} stage={stage} />
       </div>
 
       <div id="section-gaps">
