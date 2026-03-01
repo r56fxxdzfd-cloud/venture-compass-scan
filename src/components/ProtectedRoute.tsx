@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { user, roles, loading } = useAuth();
+  const { user, roles, loading, profileStatus } = useAuth();
 
   if (loading) {
     return (
@@ -23,6 +23,19 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  // Check approval status
+  if (profileStatus === 'pending') {
+    return <Navigate to="/waiting-approval" replace />;
+  }
+
+  if (profileStatus === 'rejected') {
+    return <Navigate to="/login?error=rejected" replace />;
+  }
+
+  if (roles.length === 0 && profileStatus !== 'approved') {
+    return <Navigate to="/waiting-approval" replace />;
+  }
 
   if (roles.length === 0) {
     return (
@@ -38,6 +51,10 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   }
 
   if (requiredRoles && !requiredRoles.some((r) => roles.includes(r))) {
+    // Allow super_admin to access admin pages
+    if (roles.includes('super_admin') && requiredRoles.includes('jv_admin')) {
+      return <>{children}</>;
+    }
     return <Navigate to="/app/dashboard" replace />;
   }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,8 +20,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+
+  const rejectedError = searchParams.get('error') === 'rejected';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,12 +33,31 @@ export default function LoginPage() {
       if (isSignUp) {
         await signUp(email, password, fullName);
         toast({
-          title: 'Conta criada',
-          description: 'Verifique seu email para confirmar o cadastro.'
+          title: 'Cadastro realizado!',
+          description: 'Aguarde a aprovação do administrador para acessar o sistema.',
         });
+        // Check if email needs verification
+        navigate('/waiting-approval');
       } else {
         await signIn(email, password);
-        navigate('/app/dashboard');
+        // Check profile status after login
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', user.id)
+            .single();
+
+          if (profile?.status === 'pending') {
+            navigate('/waiting-approval');
+          } else if (profile?.status === 'rejected') {
+            await supabase.auth.signOut();
+            toast({ title: 'Acesso negado', description: 'Seu cadastro foi rejeitado.', variant: 'destructive' });
+          } else {
+            navigate('/app/dashboard');
+          }
+        }
       }
     } catch (error: any) {
       toast({
@@ -53,17 +76,14 @@ export default function LoginPage() {
       <div
         className="hidden lg:flex lg:w-1/2 items-center justify-center p-12"
         style={{ background: 'var(--gradient-hero)' }}>
-
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           className="max-w-md">
-
           <div className="flex items-center gap-3 mb-8">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-              <span className="text-lg font-black text-accent-foreground">ST
-              </span>
+              <span className="text-lg font-black text-accent-foreground">ST</span>
             </div>
             <div>
               <h1 className="text-2xl font-bold text-primary-foreground">CMJ/ Darwin</h1>
@@ -99,9 +119,9 @@ export default function LoginPage() {
           </Tooltip>
         </TooltipProvider>
         <motion.div initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="w-full max-w-sm">
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full max-w-sm">
 
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
@@ -113,31 +133,37 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {rejectedError && (
+            <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+              Seu cadastro foi rejeitado pelo administrador.
+            </div>
+          )}
+
           <Card className="border-0 shadow-lg">
             <CardHeader className="space-y-1 pb-4">
               <h2 className="text-xl font-semibold">
                 {isSignUp ? 'Criar conta' : 'Entrar'}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {isSignUp ?
-                'Crie sua conta para acessar o sistema' :
-                'Acesse com suas credenciais'}
+                {isSignUp
+                  ? 'Crie sua conta — acesso será liberado após aprovação'
+                  : 'Acesse com suas credenciais'}
               </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {isSignUp &&
-                <div className="space-y-2">
+                {isSignUp && (
+                  <div className="space-y-2">
                     <Label htmlFor="fullName">Nome completo</Label>
                     <Input
-                    id="fullName"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Seu nome"
-                    required />
-
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Seu nome"
+                      required
+                    />
                   </div>
-                }
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -146,8 +172,8 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
-                    required />
-
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha</Label>
@@ -158,8 +184,8 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    minLength={6} />
-
+                    minLength={6}
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Carregando...' : isSignUp ? 'Criar conta' : 'Entrar'}
@@ -170,11 +196,9 @@ export default function LoginPage() {
                 <button
                   type="button"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  onClick={() => setIsSignUp(!isSignUp)}>
-
-                  {isSignUp ?
-                  'Já tem conta? Entrar' :
-                  'Não tem conta? Cadastre-se'}
+                  onClick={() => setIsSignUp(!isSignUp)}
+                >
+                  {isSignUp ? 'Já tem conta? Entrar' : 'Não tem conta? Cadastre-se'}
                 </button>
               </div>
             </CardContent>
@@ -185,6 +209,6 @@ export default function LoginPage() {
           </p>
         </motion.div>
       </div>
-    </div>);
-
+    </div>
+  );
 }

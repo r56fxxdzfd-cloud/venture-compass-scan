@@ -1,9 +1,15 @@
-export type AppRole = 'jv_admin' | 'jv_analyst' | 'jv_viewer';
+export type AppRole = 'super_admin' | 'jv_admin' | 'jv_analyst' | 'jv_viewer';
+
+export type ProfileStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Profile {
   id: string;
   full_name: string | null;
   created_at: string;
+  status: ProfileStatus;
+  requested_at: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
 }
 
 export interface UserRole {
