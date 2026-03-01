@@ -258,22 +258,46 @@ export function generateMeetingAgenda(
   const items: AgendaItem[] = [];
   const answersArr = answers || [];
 
+  const triggeredRfIds = new Set(result.red_flags.map(rf => rf.code));
+
   // Normalize deep_dive_prompts
   const dd = config.deep_dive_prompts || {};
-  let ddMap: Record<string, string[]> = {};
+  let ddMap: Record<string, any[]> = {};
   if (Array.isArray(dd)) {
     (dd as any[]).forEach((item: any) => {
       if (item?.dimension_id) ddMap[item.dimension_id] = Array.isArray(item?.prompts) ? item.prompts : [];
     });
   } else {
     Object.entries(dd).forEach(([dimId, list]) => {
-      ddMap[dimId] = Array.isArray(list) ? list as string[] : [];
+      ddMap[dimId] = Array.isArray(list) ? list : [];
     });
   }
 
+  // Select prompts with conditional filtering
+  const selectPromptsForDim = (dimId: string): string[] => {
+    const allPrompts = ddMap[dimId] || [];
+    const ds = result.dimension_scores.find(d => d.dimension_id === dimId);
+    const dimScore = ds?.score ?? 5;
+    const toText = (p: any): string => typeof p === 'string' ? p : (p?.prompt || p?.text || String(p));
+
+    const relevant = allPrompts.filter((p: any) => {
+      if (typeof p !== 'object' || p === null) return true;
+      if (p.show_if_rf && !triggeredRfIds.has(p.show_if_rf)) return false;
+      if (p.show_if_score_below && dimScore >= p.show_if_score_below) return false;
+      return true;
+    });
+
+    if (relevant.length >= 2) return relevant.slice(0, 3).map(toText);
+    const unconditional = allPrompts.filter((p: any) => {
+      if (typeof p !== 'object' || p === null) return true;
+      return !p.show_if_rf && !p.show_if_score_below;
+    });
+    return unconditional.slice(0, 3).map(toText);
+  };
+
   // Item 1 & 2: top 2 priority gaps
   gaps.slice(0, 2).forEach((gap) => {
-    const prompts = (ddMap[gap.dimension_id] || []).slice(0, 2);
+    const prompts = selectPromptsForDim(gap.dimension_id).slice(0, 2);
     const lowQs = getLowQuestions(gap.dimension_id, answersArr, config);
     items.push({
       topic: `Fortalecer ${gap.label} (gap de ${gap.gap_potential}pts)`,
@@ -306,7 +330,7 @@ export function generateMeetingAgenda(
       topic: `Desenvolver ${g.label}`,
       dimension: g.label,
       dimension_id: g.dimension_id,
-      deep_dive_prompts: (ddMap[g.dimension_id] || []).slice(0, 2),
+      deep_dive_prompts: selectPromptsForDim(g.dimension_id).slice(0, 2),
       expected_decision: getExpectedDecision(g, result),
       low_questions: lowQs.length > 0 ? lowQs : undefined,
     });
