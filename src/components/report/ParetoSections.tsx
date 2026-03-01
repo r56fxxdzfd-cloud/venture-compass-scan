@@ -156,6 +156,55 @@ const QUADRANT_LABELS = {
   low_risk_low_impact: 'Baixa Prioridade',
 };
 
+/** Compute non-overlapping label offsets for scatter points */
+function computeLabelOffsets(points: MatrixPoint[]): Record<string, { dx: number; dy: number; anchor: string }> {
+  const offsets: Record<string, { dx: number; dy: number; anchor: string }> = {};
+  const placed: { x: number; y: number; id: string }[] = [];
+
+  // 8 candidate positions around the point (dx, dy, anchor)
+  const candidates: [number, number, string][] = [
+    [0, -14, 'middle'],     // top
+    [12, -8, 'start'],      // top-right
+    [14, 3, 'start'],       // right
+    [12, 14, 'start'],      // bottom-right
+    [0, 18, 'middle'],      // bottom
+    [-12, 14, 'end'],       // bottom-left
+    [-14, 3, 'end'],        // left
+    [-12, -8, 'end'],       // top-left
+  ];
+
+  for (const point of points) {
+    let best = candidates[0];
+    let bestScore = -Infinity;
+
+    for (const [dx, dy, anchor] of candidates) {
+      const labelX = point.risk + dx;
+      const labelY = point.impact + dy;
+
+      // Score: distance from all placed labels (higher = less overlap)
+      let minDist = Infinity;
+      for (const p of placed) {
+        const dist = Math.sqrt((labelX - p.x) ** 2 + (labelY - p.y) ** 2);
+        minDist = Math.min(minDist, dist);
+      }
+
+      // Prefer top positions, penalize if label goes out of bounds
+      const boundsPenalty = (labelX < 5 || labelX > 95 || labelY < 5 || labelY > 95) ? -20 : 0;
+      const score = (minDist === Infinity ? 50 : minDist) + boundsPenalty;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = [dx, dy, anchor];
+      }
+    }
+
+    offsets[point.id] = { dx: best[0], dy: best[1], anchor: best[2] };
+    placed.push({ x: point.risk + best[0], y: point.impact + best[1], id: point.id });
+  }
+
+  return offsets;
+}
+
 function MatrixTooltipContent({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload as MatrixPoint;
@@ -173,6 +222,7 @@ export function RiskImpactMatrixSection({
   config, result, stage,
 }: { config: ConfigJSON; result: AssessmentResult; stage: string }) {
   const points = compute2x2Matrix(config, result, stage);
+  const labelOffsets = computeLabelOffsets(points);
   if (points.length === 0) return null;
 
   return (
@@ -224,6 +274,7 @@ export function RiskImpactMatrixSection({
                 const isRf = payload.type === 'red_flag';
                 const color = isRf ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
                 const shortLabel = payload.label.length > 14 ? payload.label.slice(0, 12) + '…' : payload.label;
+                const offset = labelOffsets[payload.id] || { dx: 0, dy: -14, anchor: 'middle' };
                 return (
                   <g>
                     {isRf ? (
@@ -236,12 +287,13 @@ export function RiskImpactMatrixSection({
                       <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.8} />
                     )}
                     <text
-                      x={cx}
-                      y={cy - 12}
-                      textAnchor="middle"
+                      x={cx + offset.dx}
+                      y={cy + offset.dy}
+                      textAnchor={offset.anchor}
                       fill="hsl(var(--foreground))"
                       fontSize={9}
                       fontWeight={500}
+                      opacity={0.9}
                     >
                       {shortLabel}
                     </text>
