@@ -24,30 +24,20 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Check approval status
-  if (profileStatus === 'pending') {
-    return <Navigate to="/waiting-approval" replace />;
+  // Wait for profile data to load (Safari race condition fix)
+  if (user && profileStatus === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
-  if (profileStatus === 'rejected') {
-    return <Navigate to="/login?error=rejected" replace />;
-  }
+  if (profileStatus === 'pending') return <Navigate to="/waiting-approval" replace />;
+  if (profileStatus === 'rejected') return <Navigate to="/login?error=rejected" replace />;
 
   if (roles.length === 0 && profileStatus !== 'approved') {
     return <Navigate to="/waiting-approval" replace />;
-  }
-
-  if (roles.length === 0) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center max-w-md mx-auto p-8">
-          <h2 className="text-xl font-semibold mb-2">Acesso Pendente</h2>
-          <p className="text-muted-foreground">
-            Sua conta ainda não possui permissões. Solicite acesso a um administrador.
-          </p>
-        </div>
-      </div>
-    );
   }
 
   if (requiredRoles && !requiredRoles.some((r) => roles.includes(r))) {
