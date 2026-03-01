@@ -5,6 +5,7 @@ import { SaveStatusIndicator } from './SaveStatusIndicator';
 import { DimensionsQuestionsTab } from './DimensionsQuestionsTab';
 import { WeightsTargetsTab } from './WeightsTargetsTab';
 import { RedFlagsTab } from './RedFlagsTab';
+import { ActionLibraryTab } from './ActionLibraryTab';
 import type { ConfigJSON } from '@/types/darwin';
 
 interface Props {
@@ -40,6 +41,7 @@ export function ConfigEditorPanel({ draftId, initialConfig, onConfigUpdated }: P
           <TabsTrigger value="dimensions" className="text-xs">Dimensões & Perguntas</TabsTrigger>
           <TabsTrigger value="weights" className="text-xs">Pesos & Targets</TabsTrigger>
           <TabsTrigger value="redflags" className="text-xs">Red Flags</TabsTrigger>
+          <TabsTrigger value="actions" className="text-xs">Quick Wins</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dimensions" className="mt-3">
@@ -52,6 +54,10 @@ export function ConfigEditorPanel({ draftId, initialConfig, onConfigUpdated }: P
 
         <TabsContent value="redflags" className="mt-3">
           <RedFlagsTab config={config} onChange={handleChange} />
+        </TabsContent>
+
+        <TabsContent value="actions" className="mt-3">
+          <ActionLibraryTab config={config} onChange={handleChange} />
         </TabsContent>
       </Tabs>
     </div>
