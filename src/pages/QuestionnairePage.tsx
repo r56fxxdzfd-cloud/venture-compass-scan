@@ -141,7 +141,7 @@ export default function QuestionnairePage() {
   );
 
   const totalQuestions = config.questions.filter((q) => q.is_active !== false).length;
-  const answeredCount = Object.values(answers).filter((a) => a.value !== null || a.is_na).length;
+  const answeredCount = Object.entries(answers).filter(([_, a]) => a && (a.value !== null || a.is_na)).length;
   const progressPct = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   return (
@@ -195,7 +195,7 @@ export default function QuestionnairePage() {
         <TabsList className="flex flex-wrap h-auto gap-1">
           {config.dimensions.map((dim) => {
             const dimQuestions = config.questions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
-            const dimAnswered = dimQuestions.filter((q) => answers[q.id]?.value !== null || answers[q.id]?.is_na).length;
+            const dimAnswered = dimQuestions.filter((q) => answers[q.id] && (answers[q.id].value !== null || answers[q.id].is_na)).length;
             const isComplete = dimAnswered === dimQuestions.length && dimQuestions.length > 0;
 
             return (
