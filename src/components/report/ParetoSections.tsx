@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Calendar, Target, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { ConfigJSON, AssessmentResult } from '@/types/darwin';
 import {
@@ -10,18 +10,18 @@ import {
 } from '@/utils/pareto-engine';
 import { ScatterChart, Scatter, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, ReferenceLine, Label } from 'recharts';
 
-// ---- Effort badge ----
+// ---- Effort badge (Step 7 colors) ----
 function EffortBadge({ effort }: { effort: 'S' | 'M' | 'L' }) {
   const styles = {
     S: 'bg-primary/10 text-primary border-primary/20',
     M: 'bg-warning/10 text-warning border-warning/20',
     L: 'bg-destructive/10 text-destructive border-destructive/20',
   };
-  const labels = { S: 'Baixo esforço', M: 'Médio esforço', L: 'Alto esforço' };
+  const labels = { S: 'Rápido', M: 'Médio', L: 'Pesado' };
   return <Badge variant="outline" className={`text-xs ${styles[effort]}`}>{labels[effort]}</Badge>;
 }
 
-// ======== Quick Wins ========
+// ======== Quick Wins (Step 7 rendering) ========
 export function QuickWinsSection({
   config, result, stage,
 }: { config: ConfigJSON; result: AssessmentResult; stage: string }) {
@@ -47,8 +47,9 @@ export function QuickWinsSection({
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="p-4 rounded-lg border bg-secondary/20 space-y-2"
+              className="p-4 rounded-lg border bg-secondary/20 space-y-3"
             >
+              {/* Header */}
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold shrink-0">
@@ -59,21 +60,50 @@ export function QuickWinsSection({
                 <div className="flex items-center gap-2 shrink-0">
                   <EffortBadge effort={action.effort} />
                   <Badge variant="outline" className="text-xs">
-                    {action.time_to_impact_days}d
+                    ~{action.time_to_impact_days}d
                   </Badge>
                 </div>
               </div>
+
+              {/* Description */}
               <p className="text-xs text-muted-foreground">{action.description}</p>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p><strong>Razão:</strong> {action.reason}</p>
-                <p><strong>Primeiro passo:</strong> {action.first_step}</p>
-                <p><strong>Definição de pronto:</strong> {action.done_definition}</p>
-                {action.kpi_hint && <p><strong>KPI:</strong> {action.kpi_hint}</p>}
+
+              {/* First step (highlighted box) */}
+              <div className="rounded-md bg-primary/5 border border-primary/10 p-2.5">
+                <p className="text-xs">
+                  <span className="font-semibold text-primary">Primeiro passo:</span>{' '}
+                  <span className="text-foreground">{action.first_step}</span>
+                </p>
               </div>
-              <div className="flex items-center gap-1 flex-wrap">
-                {action.impacted_dimensions.map((d) => (
-                  <Badge key={d} variant="secondary" className="text-xs">{d}</Badge>
-                ))}
+
+              {/* Done definition (subtle box) */}
+              <div className="rounded-md bg-muted/50 border border-border/50 p-2.5 flex items-start gap-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-xs">
+                  <span className="font-medium text-muted-foreground">Concluído quando:</span>{' '}
+                  <span className="text-foreground">{action.done_definition}</span>
+                </p>
+              </div>
+
+              {/* Footer: badges + metadata */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Dimension badge */}
+                <Badge variant="secondary" className="text-xs">{action.dimension_id}</Badge>
+
+                {/* Red flags indicator */}
+                {action.addresses_red_flags && action.addresses_red_flags.length > 0 && (
+                  <Badge variant="destructive" className="text-xs gap-1">
+                    <Flag className="h-3 w-3" />
+                    {action.addresses_red_flags.join(', ')}
+                  </Badge>
+                )}
+
+                {/* KPI hint */}
+                {action.kpi_hint && (
+                  <Badge variant="outline" className="text-xs font-mono">{action.kpi_hint}</Badge>
+                )}
+
+                {/* Pareto score */}
                 <span className="text-xs text-muted-foreground font-mono ml-auto">
                   Score: {action.pareto_score}
                 </span>
@@ -156,21 +186,19 @@ const QUADRANT_LABELS = {
   low_risk_low_impact: 'Baixa Prioridade',
 };
 
-/** Compute non-overlapping label offsets for scatter points */
 function computeLabelOffsets(points: MatrixPoint[]): Record<string, { dx: number; dy: number; anchor: string }> {
   const offsets: Record<string, { dx: number; dy: number; anchor: string }> = {};
   const placed: { x: number; y: number; id: string }[] = [];
 
-  // 8 candidate positions around the point (dx, dy, anchor)
   const candidates: [number, number, string][] = [
-    [0, -14, 'middle'],     // top
-    [12, -8, 'start'],      // top-right
-    [14, 3, 'start'],       // right
-    [12, 14, 'start'],      // bottom-right
-    [0, 18, 'middle'],      // bottom
-    [-12, 14, 'end'],       // bottom-left
-    [-14, 3, 'end'],        // left
-    [-12, -8, 'end'],       // top-left
+    [0, -14, 'middle'],
+    [12, -8, 'start'],
+    [14, 3, 'start'],
+    [12, 14, 'start'],
+    [0, 18, 'middle'],
+    [-12, 14, 'end'],
+    [-14, 3, 'end'],
+    [-12, -8, 'end'],
   ];
 
   for (const point of points) {
@@ -181,14 +209,12 @@ function computeLabelOffsets(points: MatrixPoint[]): Record<string, { dx: number
       const labelX = point.risk + dx;
       const labelY = point.impact + dy;
 
-      // Score: distance from all placed labels (higher = less overlap)
       let minDist = Infinity;
       for (const p of placed) {
         const dist = Math.sqrt((labelX - p.x) ** 2 + (labelY - p.y) ** 2);
         minDist = Math.min(minDist, dist);
       }
 
-      // Prefer top positions, penalize if label goes out of bounds
       const boundsPenalty = (labelX < 5 || labelX > 95 || labelY < 5 || labelY > 95) ? -20 : 0;
       const score = (minDist === Infinity ? 50 : minDist) + boundsPenalty;
 
@@ -236,7 +262,6 @@ export function RiskImpactMatrixSection({
           Dimensões (círculos) e Red Flags (triângulos) posicionados por risco e impacto potencial.
         </p>
 
-        {/* Quadrant labels */}
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
           <div className="text-right pr-4"><Badge variant="destructive" className="text-xs">Agir Imediatamente</Badge></div>
           <div><Badge className="text-xs bg-primary/80">Quick Win</Badge></div>
@@ -247,22 +272,10 @@ export function RiskImpactMatrixSection({
         <div className="h-[350px] sm:h-[400px] overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 20 }}>
-              <XAxis
-                type="number"
-                dataKey="risk"
-                domain={[0, 100]}
-                tick={{ fontSize: 10 }}
-                name="Risco"
-              >
+              <XAxis type="number" dataKey="risk" domain={[0, 100]} tick={{ fontSize: 10 }} name="Risco">
                 <Label value="Risco →" offset={-10} position="insideBottom" style={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               </XAxis>
-              <YAxis
-                type="number"
-                dataKey="impact"
-                domain={[0, 100]}
-                tick={{ fontSize: 10 }}
-                name="Impacto"
-              >
+              <YAxis type="number" dataKey="impact" domain={[0, 100]} tick={{ fontSize: 10 }} name="Impacto">
                 <Label value="Impacto →" angle={-90} position="insideLeft" style={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
               </YAxis>
               <ReferenceLine x={50} stroke="hsl(var(--border))" strokeDasharray="4 4" />
@@ -305,7 +318,6 @@ export function RiskImpactMatrixSection({
           </ResponsiveContainer>
         </div>
 
-        {/* Legend */}
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
           {points.map((p) => (
             <span key={p.id} className="flex items-center gap-1">
