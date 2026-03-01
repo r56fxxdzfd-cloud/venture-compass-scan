@@ -336,29 +336,29 @@ export function RiskImpactMatrixSection({
                 if (!cx || !cy) return null;
                 const isRf = payload.type === 'red_flag';
                 const color = isRf ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
-                const shortLabel = payload.label.length > 14 ? payload.label.slice(0, 12) + '…' : payload.label;
-                const offset = labelOffsets[payload.id] || { dx: 0, dy: -14, anchor: 'middle' };
+                const idx = points.findIndex(p => p.id === payload.id);
+                const num = idx + 1;
                 return (
                   <g>
                     {isRf ? (
                       <polygon
-                        points={`${cx},${cy - 8} ${cx - 7},${cy + 5} ${cx + 7},${cy + 5}`}
+                        points={`${cx},${cy - 10} ${cx - 9},${cy + 6} ${cx + 9},${cy + 6}`}
                         fill={color}
                         opacity={0.85}
                       />
                     ) : (
-                      <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.8} />
+                      <circle cx={cx} cy={cy} r={9} fill={color} opacity={0.8} />
                     )}
                     <text
-                      x={cx + offset.dx}
-                      y={cy + offset.dy}
-                      textAnchor={offset.anchor}
-                      fill="hsl(var(--foreground))"
+                      x={cx}
+                      y={cy + (isRf ? -1 : 1)}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="white"
                       fontSize={9}
-                      fontWeight={500}
-                      opacity={0.9}
+                      fontWeight={700}
                     >
-                      {shortLabel}
+                      {num}
                     </text>
                   </g>
                 );
@@ -368,19 +368,18 @@ export function RiskImpactMatrixSection({
           </ResponsiveContainer>
         </div>
 
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground justify-center pt-2 pb-1" style={{ whiteSpace: 'normal' }}>
-          {points.map((p) => {
-            const displayLabel = shortDimensionLabel(p.id, p.label, 22);
-            return (
-              <span key={p.id} className="flex items-center gap-1" title={p.label}>
-                <span
-                  className="inline-block h-2.5 w-2.5 rounded-full shrink-0"
-                  style={{ background: p.type === 'red_flag' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))' }}
-                />
-                <span style={{ fontSize: '11px' }}>{displayLabel}</span>
+        <div className="grid gap-1 text-xs text-muted-foreground pt-2 pb-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+          {points.map((p, i) => (
+            <span key={p.id} className="flex items-center gap-1.5">
+              <span
+                className="inline-flex items-center justify-center h-4 w-4 rounded-full shrink-0 text-[9px] font-bold text-white"
+                style={{ background: p.type === 'red_flag' ? 'hsl(var(--destructive))' : 'hsl(var(--primary))' }}
+              >
+                {i + 1}
               </span>
-            );
-          })}
+              <span>{p.label}</span>
+            </span>
+          ))}
         </div>
       </CardContent>
     </Card>
