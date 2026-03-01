@@ -45,6 +45,23 @@ export interface ConfigJSON {
   deep_dive_prompts?: Record<string, string[]>;
   red_flags?: ConfigRedFlag[];
   glossary?: Record<string, string>;
+  action_library?: Record<string, ConfigParetoAction[]>;
+}
+
+export interface ConfigParetoAction {
+  id: string;
+  title: string;
+  description: string;
+  first_step: string;
+  done_definition: string;
+  effort: 'S' | 'M' | 'L';
+  time_to_impact_days: number;
+  impact_weight: number;
+  stage_tags: string[];
+  business_model_tags: string[];
+  addresses_red_flags?: string[];
+  kpi_hint?: string;
+  dimension_id: string;
 }
 
 export interface ConfigDimension {

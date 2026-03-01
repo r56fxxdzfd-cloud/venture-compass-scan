@@ -1,22 +1,8 @@
-import type { ConfigJSON, AssessmentResult, EvaluatedRedFlag, DimensionScore } from '@/types/darwin';
+import type { ConfigJSON, AssessmentResult, EvaluatedRedFlag, DimensionScore, ConfigParetoAction } from '@/types/darwin';
 import { computeGaps, scoreTo100, DEFAULT_BLOCKS, type PrioritizedGap } from '@/utils/report-helpers';
 
-// ---- Action types ----
-export interface ParetoAction {
-  id: string;
-  title: string;
-  description: string;
-  first_step: string;
-  done_definition: string;
-  effort: 'S' | 'M' | 'L';
-  time_to_impact_days: number;
-  impact_weight: number;
-  stage_tags: string[];
-  business_model_tags: string[];
-  addresses_red_flags?: string[];
-  kpi_hint?: string;
-  dimension_id: string;
-}
+// ---- Action types (extend from config type) ----
+export type ParetoAction = ConfigParetoAction;
 
 export interface ScoredAction extends ParetoAction {
   pareto_score: number;
@@ -68,8 +54,7 @@ const DEFAULT_ACTION_LIBRARY: Record<string, ParetoAction[]> = {
 
 // ---- Get action library (from config or defaults) ----
 function getActionLibrary(config: ConfigJSON): Record<string, ParetoAction[]> {
-  const lib = (config as any).action_library;
-  if (lib && typeof lib === 'object' && Object.keys(lib).length > 0) return lib;
+  if (config.action_library && Object.keys(config.action_library).length > 0) return config.action_library;
   return DEFAULT_ACTION_LIBRARY;
 }
 
