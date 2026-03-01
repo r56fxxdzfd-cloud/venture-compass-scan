@@ -244,7 +244,7 @@ export function RiskImpactMatrixSection({
           <div><Badge variant="outline" className="text-xs">Baixa Prioridade</Badge></div>
         </div>
 
-        <div className="h-[350px] sm:h-[400px]">
+        <div className="h-[350px] sm:h-[400px] overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 10, right: 20, bottom: 30, left: 20 }}>
               <XAxis

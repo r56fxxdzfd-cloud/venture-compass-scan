@@ -138,7 +138,7 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
     <Card>
       <CardContent className="pt-6 space-y-6">
         <h3 className="text-base font-semibold">Scores por Dimensão</h3>
-        <div className="h-[280px] sm:h-[300px] -ml-2">
+        <div className="h-[280px] sm:h-[300px] -ml-2 overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 10 }}>
               <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
@@ -228,7 +228,7 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
         </div>
 
         {/* Impact chart */}
-        <div className="h-[200px] -ml-2">
+        <div className="h-[200px] -ml-2 overflow-x-auto">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={impactData} layout="vertical" margin={{ left: 0, right: 10 }}>
               <XAxis type="number" tick={{ fontSize: 10 }} />
@@ -348,8 +348,8 @@ export function DeepDiveSection({ result, config }: { result: AssessmentResult; 
   }
 
   return (
-    <div className="lg:relative lg:left-[calc(-50vw+50%)] lg:w-screen lg:px-4">
-      <Card className="lg:max-w-7xl lg:mx-auto">
+    <div>
+      <Card>
         <CardContent className="pt-6 space-y-4">
           <h3 className="text-base font-semibold flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-accent" /> Deep Dive — Questões para Aprofundamento
