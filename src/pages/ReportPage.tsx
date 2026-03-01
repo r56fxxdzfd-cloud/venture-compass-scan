@@ -211,12 +211,12 @@ export default function ReportPage() {
       </div>
 
       {/* Anchor index bar - screen only */}
-      <div className="flex flex-wrap gap-2 border-b pb-3 print:hidden" data-html2canvas-ignore="true">
+      <div className="flex gap-2 border-b pb-3 print:hidden overflow-x-auto scrollbar-none -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap" data-html2canvas-ignore="true">
         {anchorLinks.map((link, i) => (
           <button
             key={link.id}
             onClick={() => scrollTo(link.id)}
-            className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            className="text-xs text-muted-foreground hover:text-primary transition-colors whitespace-nowrap shrink-0"
           >
             {link.label}
             {i < anchorLinks.length - 1 && <span className="ml-2 text-border">|</span>}
