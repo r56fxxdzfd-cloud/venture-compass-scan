@@ -267,11 +267,13 @@ export function compute2x2Matrix(
   stage: string
 ): MatrixPoint[] {
   const gaps = computeGaps(result.dimension_scores, config, stage);
+  const gapMap = new Map(gaps.map((g) => [g.dimension_id, g]));
   const weights = config.weights_by_stage?.[stage] || {};
   const points: MatrixPoint[] = [];
 
-  // Max values for normalization
-  const maxPriority = Math.max(...gaps.map((g) => g.priority_score), 1);
+  // Max weight for normalization
+  const allWeights = Object.values(weights).map((w: any) => w?.weight || 1);
+  const maxWeight = Math.max(...allWeights, 1);
 
   // High-risk dimension IDs (structural)
   const structuralDims = new Set(['FS', 'GR', 'PT']);
@@ -287,20 +289,28 @@ export function compute2x2Matrix(
     });
   });
 
-  // Dimension points
-  gaps.forEach((gap) => {
-    const impact = Math.min(100, Math.round((gap.priority_score / maxPriority) * 100));
-    const ds = result.dimension_scores.find((d) => d.dimension_id === gap.dimension_id);
-    const lowScore = ds ? Math.max(0, 60 - scoreTo100(ds.score)) : 0;
-    const structuralBonus = structuralDims.has(gap.dimension_id) ? 15 : 0;
-    const rfRisk = (rfByDim[gap.dimension_id] || 0) * 10;
+  // ALL dimension points (not just gaps)
+  result.dimension_scores.forEach((ds) => {
+    const gap = gapMap.get(ds.dimension_id);
+    const dimWeight = (weights as any)[ds.dimension_id]?.weight || 1;
+    const score100 = scoreTo100(ds.score);
+
+    // Impact = weight-based importance + gap magnitude
+    const weightImpact = (dimWeight / maxWeight) * 60;
+    const gapImpact = gap ? Math.min(40, gap.gap_potential * 2) : 0;
+    const impact = Math.min(100, Math.round(weightImpact + gapImpact));
+
+    // Risk = how far below 60 + structural bonus + red flag association
+    const lowScore = Math.max(0, 60 - score100);
+    const structuralBonus = structuralDims.has(ds.dimension_id) ? 15 : 0;
+    const rfRisk = (rfByDim[ds.dimension_id] || 0) * 10;
     const risk = Math.min(100, lowScore + structuralBonus + rfRisk);
 
     const quadrant = impact >= 50
       ? (risk >= 50 ? 'high_risk_high_impact' : 'low_risk_high_impact')
       : (risk >= 50 ? 'high_risk_low_impact' : 'low_risk_low_impact');
 
-    points.push({ id: gap.dimension_id, label: gap.label, impact, risk, type: 'dimension', quadrant });
+    points.push({ id: ds.dimension_id, label: ds.label, impact, risk, type: 'dimension', quadrant });
   });
 
   // Red flag points
