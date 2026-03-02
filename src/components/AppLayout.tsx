@@ -134,11 +134,6 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-3">
-          <div className="flex items-center justify-center gap-4 opacity-40">
-            <img src={logoCmj} alt="CMJ" className="h-5 object-contain" />
-            <span className="text-[8px] text-sidebar-muted">×</span>
-            <img src={logoDarwin} alt="Darwin" className="h-5 object-contain" />
-          </div>
           <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — CMJ/Darwin</p>
           <TooltipProvider>
             <div className="flex items-center justify-between">
@@ -206,7 +201,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         {/* Content */}
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
-          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pt-8 pb-2 select-none">Engine Developed by Victor Levy</p>
+          <div className="flex items-center justify-center gap-3 pt-8 pb-1 select-none opacity-25">
+            <img src={logoCmj} alt="CMJ" className="h-4 object-contain" />
+            <span className="text-[8px] text-muted-foreground">×</span>
+            <img src={logoDarwin} alt="Darwin" className="h-4 object-contain" />
+          </div>
+          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pb-2 select-none">Engine Developed by Victor Levy</p>
         </main>
       </div>
     </div>);
