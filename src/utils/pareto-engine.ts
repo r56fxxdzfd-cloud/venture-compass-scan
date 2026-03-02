@@ -63,6 +63,26 @@ function getActionLibrary(config: ConfigJSON): Record<string, ParetoAction[]> {
   return DEFAULT_ACTION_LIBRARY;
 }
 
+// ---- Helpers to extract numeric value from config entries ----
+function toNumericTarget(v: unknown, fallback: number): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'object' && v !== null) {
+    const obj = v as Record<string, unknown>;
+    if (typeof obj.benchmark === 'number') return obj.benchmark;
+    if (typeof obj.target === 'number') return obj.target;
+  }
+  return fallback;
+}
+
+function toNumericWeight(v: unknown, fallback: number): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'object' && v !== null) {
+    const obj = v as Record<string, unknown>;
+    if (typeof obj.weight === 'number') return obj.weight;
+  }
+  return fallback;
+}
+
 // ---- Compute Pareto scores (Step 5 formula) ----
 const EFFORT_FACTOR: Record<string, number> = { S: 1, M: 2, L: 3 };
 
@@ -85,8 +105,8 @@ export function computeParetoActions(
   for (const [dimId, actions] of Object.entries(library)) {
     const ds = dimScoreMap.get(dimId);
     const dimLabel = ds?.label || dimId;
-    const dimensionWeight = (weights[dimId] as number) ?? 0.1;
-    const targetScore = (targets[dimId] as number) ?? 3;
+    const dimensionWeight = toNumericWeight(weights[dimId], 0.1);
+    const targetScore = toNumericTarget(targets[dimId], 3);
     const currentScore = ds?.score ?? 1;
     const gapPotential = Math.max(0, targetScore - currentScore);
     const priorityScoreDim = gapPotential * dimensionWeight;
@@ -359,7 +379,7 @@ export function compute2x2Matrix(
   const weights = config.weights_by_stage?.[stage] || {};
   const points: MatrixPoint[] = [];
 
-  const allWeights = Object.values(weights).map((w: any) => w?.weight || w || 1);
+  const allWeights = Object.values(weights).map((w: any) => toNumericWeight(w, 1));
   const maxWeight = Math.max(...allWeights, 1);
 
   const structuralDims = new Set(['FS', 'GR', 'PT']);
@@ -376,7 +396,7 @@ export function compute2x2Matrix(
 
   result.dimension_scores.forEach(ds => {
     const gap = gapMap.get(ds.dimension_id);
-    const dimWeight = (weights as any)[ds.dimension_id]?.weight || (weights as any)[ds.dimension_id] || 1;
+    const dimWeight = toNumericWeight((weights as any)[ds.dimension_id], 1);
     const score100 = scoreTo100(ds.score);
 
     const weightImpact = (dimWeight / maxWeight) * 60;
