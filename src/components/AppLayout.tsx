@@ -7,6 +7,8 @@ import {
   LayoutDashboard, Building2, SlidersHorizontal, BookOpen,
   Settings, Users, LogOut, Menu, Moon, Sun } from
 'lucide-react';
+import logoCmj from '@/assets/logo-cmj.png';
+import logoDarwin from '@/assets/logo-darwin.png';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -132,6 +134,11 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-3">
+          <div className="flex items-center justify-center gap-4 opacity-40">
+            <img src={logoCmj} alt="CMJ" className="h-5 object-contain" />
+            <span className="text-[8px] text-sidebar-muted">×</span>
+            <img src={logoDarwin} alt="Darwin" className="h-5 object-contain" />
+          </div>
           <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — CMJ/Darwin</p>
           <TooltipProvider>
             <div className="flex items-center justify-between">
