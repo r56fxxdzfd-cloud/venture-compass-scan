@@ -27,7 +27,7 @@ export default function DashboardQuickActions({ isAdmin }: Props) {
             to={action.href}
             className="flex items-center gap-3 p-2.5 rounded-lg transition-colors hover:bg-muted group"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-foreground group-hover:bg-foreground group-hover:text-background transition-colors shrink-0">
               <action.icon className="h-4 w-4" />
             </div>
             <div className="min-w-0">

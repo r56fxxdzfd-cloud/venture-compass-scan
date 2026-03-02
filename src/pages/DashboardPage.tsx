@@ -189,7 +189,7 @@ export default function DashboardPage() {
           {configVersion && (
             <Link to="/app/admin/config">
               <Badge variant="outline" className="text-[10px] gap-1.5 px-2.5 py-1 cursor-pointer hover:bg-muted transition-colors font-normal">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
                 {configVersion.name}
               </Badge>
             </Link>
