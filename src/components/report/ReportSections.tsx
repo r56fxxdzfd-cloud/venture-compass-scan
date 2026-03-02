@@ -97,15 +97,13 @@ export function BlocksSection({ result, config, stage }: { result: AssessmentRes
           transition={{ delay: i * 0.1, duration: 0.4, ease: 'easeOut' }}
         >
           <Card>
-            <CardContent className="pt-6 text-center">
+            <CardContent className="pt-6 text-center flex flex-col items-center">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{block.label}</p>
               <p className={`text-3xl font-bold font-mono ${block.level.color}`}>{block.score100}</p>
               <Badge variant="outline" className="mt-2 text-xs">{block.level.label}</Badge>
-              {block.lowestDim && block.score100 < 75 && (
-                <p className="text-xs text-muted-foreground mt-3">
-                  Foco em <strong>{block.lowestDim}</strong> elevará o conjunto.
-                </p>
-              )}
+              <p className={`text-xs text-muted-foreground mt-3 ${block.lowestDim && block.score100 < 75 ? '' : 'invisible'}`}>
+                Foco em <strong>{block.lowestDim || '—'}</strong> elevará o conjunto.
+              </p>
             </CardContent>
           </Card>
         </motion.div>
