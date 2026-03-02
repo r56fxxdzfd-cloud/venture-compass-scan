@@ -199,7 +199,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         {/* Content */}
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
-          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pt-8 pb-2 select-none">CMJ/Darwin · Internal</p>
+          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pt-8 pb-2 select-none">Engine Developed by Victor Levy</p>
         </main>
       </div>
     </div>);
