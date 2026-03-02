@@ -21,7 +21,7 @@ export default function DashboardAttention({ items, loading }: { items: Attentio
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
             Requer atenção
           </CardTitle>
         </CardHeader>
@@ -56,9 +56,9 @@ export default function DashboardAttention({ items, loading }: { items: Attentio
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-warning" />
-          Requer atenção
-          <Badge variant="secondary" className="text-[10px] ml-1">{items.length}</Badge>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+            Requer atenção
+            <Badge variant="secondary" className="text-[10px] ml-1">{items.length}</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -70,9 +70,7 @@ export default function DashboardAttention({ items, loading }: { items: Attentio
               className="flex items-center justify-between p-3 rounded-lg border transition-colors hover:bg-muted/50 group"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className={`flex h-7 w-7 items-center justify-center rounded shrink-0 ${
-                  item.type === 'high_red_flag' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'
-                }`}>
+                <div className="flex h-7 w-7 items-center justify-center rounded shrink-0 bg-muted text-muted-foreground">
                   {item.type === 'high_red_flag' ? <AlertTriangle className="h-3.5 w-3.5" /> : <ClipboardList className="h-3.5 w-3.5" />}
                 </div>
                 <div className="min-w-0 flex-1">

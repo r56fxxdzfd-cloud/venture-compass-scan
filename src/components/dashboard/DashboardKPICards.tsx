@@ -32,28 +32,28 @@ const cards = [
     label: 'Startups ativas',
     icon: Building2,
     href: '/app/startups',
-    iconClass: 'text-primary bg-primary/10',
+    iconClass: 'text-foreground bg-muted',
   },
   {
     key: 'inProgress',
     label: 'Em andamento',
     icon: ClipboardList,
     href: '/app/startups',
-    iconClass: 'text-accent bg-accent/10',
+    iconClass: 'text-foreground bg-muted',
   },
   {
     key: 'completed',
     label: 'Concluídos',
     icon: CheckCircle2,
     href: '/app/startups',
-    iconClass: 'text-success bg-success/10',
+    iconClass: 'text-foreground bg-muted',
   },
   {
     key: 'highRedFlagCompanies',
     label: 'Red flags (high)',
     icon: AlertTriangle,
     href: '/app/startups',
-    iconClass: 'text-destructive bg-destructive/10',
+    iconClass: 'text-foreground bg-muted',
   },
 ] as const;
 

@@ -22,11 +22,8 @@ export interface AssessmentRow {
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const statusLabels: Record<string, string> = { in_progress: 'Em andamento', completed: 'Concluído' };
 
-function getScoreBadge(score: number) {
-  if (score < 35) return 'bg-destructive/10 text-destructive border-destructive/20';
-  if (score < 55) return 'bg-warning/10 text-warning border-warning/20';
-  if (score < 75) return 'bg-primary/10 text-primary border-primary/20';
-  return 'bg-success/10 text-success border-success/20';
+function getScoreBadge(_score: number) {
+  return 'bg-muted text-foreground border-border';
 }
 
 export default function DashboardTable({ rows, loading }: { rows: AssessmentRow[]; loading: boolean }) {
@@ -132,7 +129,7 @@ export default function DashboardTable({ rows, loading }: { rows: AssessmentRow[
                       <TableCell className="py-3">
                         <Badge
                           variant="secondary"
-                          className={`text-[10px] ${isCompleted ? 'bg-success/10 text-success' : 'bg-accent/10 text-accent'}`}
+                          className="text-[10px]"
                         >
                           {statusLabels[row.status || ''] || row.status}
                         </Badge>
