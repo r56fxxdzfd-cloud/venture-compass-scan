@@ -55,7 +55,7 @@ export default function ReportPage() {
       const { data: answerRows } = await supabase.from('answers').select('*').eq('assessment_id', id);
       const loadedAnswers = (answerRows || []) as Answer[];
       setAnswers(loadedAnswers);
-      const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {});
+      const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model });
       setResult(res);
     };
     load();

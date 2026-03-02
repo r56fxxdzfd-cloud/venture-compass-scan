@@ -1,4 +1,4 @@
-import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer } from '@/types/darwin';
+import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer, RedFlagTrigger } from '@/types/darwin';
 
 export function calculateDimensionScores(
   configJson: ConfigJSON,
@@ -54,25 +54,76 @@ export function evaluateRedFlags(
   configJson: ConfigJSON,
   dimensionScores: DimensionScore[],
   answers: Answer[],
-  contextNumeric: Record<string, number>
+  contextNumeric: Record<string, number>,
+  stage?: string,
+  assessmentContext?: { revenue_model?: string; customer_type?: string; business_model?: string }
 ): EvaluatedRedFlag[] {
   if (!configJson.red_flags) return [];
 
+  const checkRequires = (requires: RedFlagTrigger['requires']): boolean => {
+    if (!requires || requires.length === 0) return true;
+    return requires.every(req => {
+      const val = (assessmentContext as any)?.[req.field] ?? contextNumeric[req.field];
+      if (val === undefined || val === null) return false;
+      if (req.op === 'in' && Array.isArray(req.value)) return (req.value as unknown[]).includes(val);
+      if (req.op === '=' || req.op === 'eq') return val === req.value;
+      return true;
+    });
+  };
+
+  const getThreshold = (trigger: RedFlagTrigger, stg?: string): number | undefined => {
+    if (trigger.value_by_stage && stg && trigger.value_by_stage[stg] !== undefined) {
+      return trigger.value_by_stage[stg];
+    }
+    if (trigger.value !== undefined) return trigger.value;
+    return trigger.threshold;
+  };
+
   return configJson.red_flags.filter((rf) => {
     return rf.triggers.some((trigger) => {
+      // Check requires conditions first
+      if (!checkRequires(trigger.requires)) return false;
+
       switch (trigger.type) {
         case 'score_threshold':
+        case 'question_score_below': {
+          // Support question_id-based triggers (check individual answer)
+          if (trigger.question_id) {
+            const answer = answers.find(a => a.question_id === trigger.question_id);
+            const threshold = getThreshold(trigger, stage);
+            if (!answer || answer.value === null || answer.is_na) return false;
+            const op = trigger.op || '<=';
+            if (op === '<') return answer.value < (threshold ?? 2);
+            return answer.value <= (threshold ?? 2);
+          }
+          // Fallback: dimension-based
+          const ds = dimensionScores.find((d) => d.dimension_id === trigger.dimension_id);
+          const threshold = getThreshold(trigger, stage);
+          return ds && ds.score < (threshold ?? 2);
+        }
         case 'dimension_score_below': {
           const ds = dimensionScores.find((d) => d.dimension_id === trigger.dimension_id);
-          return ds && ds.score < (trigger.threshold || 2);
+          const threshold = getThreshold(trigger, stage);
+          return ds && ds.score < (threshold ?? 2);
         }
         case 'numeric_threshold':
         case 'context_field_below': {
-          const val = contextNumeric[trigger.field || ''];
-          return val !== undefined && val < (trigger.threshold || 0);
+          const field = trigger.field || '';
+          const val = contextNumeric[field];
+          const threshold = getThreshold(trigger, stage);
+          if (val === undefined || threshold === undefined) return false;
+          const op = trigger.op || '<';
+          if (op === '>') return val > threshold;
+          if (op === '>=') return val >= threshold;
+          if (op === '<=') return val <= threshold;
+          return val < threshold;
         }
         case 'numeric_missing':
         case 'context_field_missing': {
+          // Support fields_any: trigger if ANY of the listed fields is missing
+          if (trigger.fields_any && trigger.fields_any.length > 0) {
+            return trigger.fields_any.some(f => contextNumeric[f] === undefined || contextNumeric[f] === null);
+          }
           return contextNumeric[trigger.field || ''] === undefined;
         }
         default:
@@ -91,11 +142,12 @@ export function calculateAssessmentResult(
   configJson: ConfigJSON,
   answers: Answer[],
   stage: string,
-  contextNumeric: Record<string, number>
+  contextNumeric: Record<string, number>,
+  assessmentContext?: { revenue_model?: string; customer_type?: string; business_model?: string }
 ): AssessmentResult {
   const dimensionScores = calculateDimensionScores(configJson, answers, stage);
   const overall = calculateOverallScore(dimensionScores, configJson, stage);
-  const redFlags = evaluateRedFlags(configJson, dimensionScores, answers, contextNumeric);
+  const redFlags = evaluateRedFlags(configJson, dimensionScores, answers, contextNumeric, stage, assessmentContext);
 
   const deepDiveDimensions = dimensionScores
     .filter((ds) => ds.score > 0 && ds.score < 3.0)

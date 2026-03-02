@@ -73,7 +73,7 @@ export default function SimulatorPage() {
         syntheticAnswers.push({ id: `sim-${q.id}`, assessment_id: 'simulation', question_id: q.id, value: val, is_na: false, notes: null, created_at: new Date().toISOString() });
       });
     });
-    const res = calculateAssessmentResult(config, syntheticAnswers, stage, numericContext);
+    const res = calculateAssessmentResult(config, syntheticAnswers, stage, numericContext, { revenue_model: revenueModel, customer_type: customerType });
     setResult(res);
   }, [config, sliders, stage, numericContext]);
 
