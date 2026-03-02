@@ -202,9 +202,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
           <div className="flex items-center justify-center gap-3 pt-8 pb-1 select-none opacity-25">
-            <img src={logoCmj} alt="CMJ" className="h-4 object-contain" />
+            <img src={logoCmj} alt="CMJ" className="h-4 object-contain dark:brightness-100 brightness-0" />
             <span className="text-[8px] text-muted-foreground">×</span>
-            <img src={logoDarwin} alt="Darwin" className="h-4 object-contain" />
+            <img src={logoDarwin} alt="Darwin" className="h-4 object-contain dark:brightness-100 brightness-0" />
           </div>
           <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pb-2 select-none">Engine Developed by Victor Levy</p>
         </main>
