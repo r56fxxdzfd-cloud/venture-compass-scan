@@ -71,16 +71,9 @@ export default function StartupsPage() {
         {canWrite && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" /> Nova Startup
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Cadastrar uma nova startup no sistema</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" /> Nova Startup
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
