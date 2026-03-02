@@ -22,6 +22,7 @@ export interface AssessmentRow {
   answeredCount: number;
   score: number | null;
   updatedAt: string;
+  hasHighRedFlags?: boolean;
 }
 
 interface AssessmentsTableProps {
@@ -37,6 +38,13 @@ const statusLabels: Record<string, string> = {
 };
 
 const TOTAL_QUESTIONS = 45;
+
+function scoreLabel(score: number): string {
+  if (score < 35) return 'Inicial';
+  if (score < 55) return 'Em evolução';
+  if (score < 75) return 'Estruturado';
+  return 'Avançado';
+}
 
 type SortField = 'updatedAt' | 'score' | 'progress';
 
@@ -79,16 +87,26 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
   };
 
   const getScoreBadge = (score: number) => {
-    if (score < 35) return 'bg-destructive text-destructive-foreground';
-    if (score < 55) return 'bg-accent text-accent-foreground';
-    if (score < 75) return 'bg-primary text-primary-foreground';
-    return 'bg-success text-success-foreground';
+    if (score < 35) return 'bg-destructive/15 text-destructive border-destructive/20';
+    if (score < 55) return 'bg-accent/15 text-accent-foreground border-accent/20';
+    if (score < 75) return 'bg-primary/15 text-primary border-primary/20';
+    return 'bg-success/15 text-success border-success/20';
   };
+
+  function getNextAction(row: AssessmentRow): { label: string; href: string } {
+    if (row.status === 'completed' && row.hasHighRedFlags) {
+      return { label: 'Ver alertas', href: `/app/assessments/${row.id}/report` };
+    }
+    if (row.status === 'completed') {
+      return { label: 'Relatório', href: `/app/assessments/${row.id}/report` };
+    }
+    return { label: 'Continuar', href: `/app/assessments/${row.id}/questionnaire` };
+  }
 
   return (
     <Card className="flex flex-col h-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-semibold">Diagnósticos</CardTitle>
+      <CardHeader className="pb-2 pt-4 px-4">
+        <CardTitle className="text-xs font-semibold">Diagnósticos</CardTitle>
         <div className="flex flex-wrap gap-2 mt-2">
           <div className="relative flex-1 min-w-[160px]">
             <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -96,30 +114,50 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
               placeholder="Buscar startup..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm"
+              className="pl-8 h-8 text-xs"
             />
           </div>
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-[120px] h-9 text-xs">
-              <SelectValue placeholder="Estágio" />
+            <SelectTrigger className="w-[130px] h-8 text-[11px]">
+              <SelectValue placeholder="Estágio: Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Estágio: Todos</SelectItem>
               <SelectItem value="pre_seed">Pre-Seed</SelectItem>
               <SelectItem value="seed">Seed</SelectItem>
               <SelectItem value="series_a">Series A</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] h-9 text-xs">
-              <SelectValue placeholder="Status" />
+            <SelectTrigger className="w-[140px] h-8 text-[11px]">
+              <SelectValue placeholder="Status: Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Status: Todos</SelectItem>
               <SelectItem value="in_progress">Em andamento</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        {/* Sort presets */}
+        <div className="flex gap-1 mt-1.5">
+          {([
+            { field: 'progress' as SortField, label: 'Menor progresso', asc: true },
+            { field: 'score' as SortField, label: 'Menor score', asc: true },
+            { field: 'updatedAt' as SortField, label: 'Atualizados', asc: false },
+          ]).map(preset => (
+            <button
+              key={preset.label}
+              onClick={() => { setSortField(preset.field); setSortAsc(preset.asc); }}
+              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
+                sortField === preset.field
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'text-muted-foreground border-transparent hover:border-border'
+              }`}
+            >
+              {preset.label}
+            </button>
+          ))}
         </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-auto p-0">
@@ -135,18 +173,18 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <Inbox className="mx-auto h-8 w-8 text-muted-foreground/30 mb-2" />
-            <p className="text-sm text-muted-foreground">Nenhum diagnóstico encontrado.</p>
+          <div className="text-center py-10 px-4">
+            <Inbox className="mx-auto h-7 w-7 text-muted-foreground/30 mb-2" />
+            <p className="text-xs text-muted-foreground">Nenhum diagnóstico encontrado.</p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-xs">Startup</TableHead>
-                <TableHead className="text-xs hidden md:table-cell">Estágio</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs">
+                <TableHead className="text-[11px]">Startup</TableHead>
+                <TableHead className="text-[11px] hidden md:table-cell">Estágio</TableHead>
+                <TableHead className="text-[11px]">Status</TableHead>
+                <TableHead className="text-[11px]">
                   <button
                     onClick={() => toggleSort('progress')}
                     className="inline-flex items-center gap-1 hover:text-foreground"
@@ -154,7 +192,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
                     Progresso <ArrowUpDown className="h-3 w-3" />
                   </button>
                 </TableHead>
-                <TableHead className="text-xs hidden sm:table-cell">
+                <TableHead className="text-[11px] hidden sm:table-cell">
                   <button
                     onClick={() => toggleSort('score')}
                     className="inline-flex items-center gap-1 hover:text-foreground"
@@ -162,7 +200,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
                     Score <ArrowUpDown className="h-3 w-3" />
                   </button>
                 </TableHead>
-                <TableHead className="text-xs hidden lg:table-cell">
+                <TableHead className="text-[11px] hidden lg:table-cell">
                   <button
                     onClick={() => toggleSort('updatedAt')}
                     className="inline-flex items-center gap-1 hover:text-foreground"
@@ -170,70 +208,67 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
                     Atualizado <ArrowUpDown className="h-3 w-3" />
                   </button>
                 </TableHead>
-                <TableHead className="text-xs w-[100px]">Ação</TableHead>
+                <TableHead className="text-[11px] w-[100px]">Próxima ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((row) => {
-                const isCompleted = row.status === 'completed';
                 const progressPct = Math.min(Math.round((row.answeredCount / TOTAL_QUESTIONS) * 100), 100);
-                const href = isCompleted
-                  ? `/app/assessments/${row.id}/report`
-                  : `/app/assessments/${row.id}/questionnaire`;
+                const action = getNextAction(row);
 
                 return (
                   <TableRow key={row.id} className="group">
-                    <TableCell className="text-sm font-medium py-3">{row.companyName}</TableCell>
-                    <TableCell className="hidden md:table-cell py-3">
+                    <TableCell className="text-xs font-medium py-2.5">{row.companyName}</TableCell>
+                    <TableCell className="hidden md:table-cell py-2.5">
                       {row.stage ? (
                         <Badge variant="outline" className="text-[10px] font-normal">
                           {stageLabels[row.stage] || row.stage}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-[10px] text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-2.5">
                       <Badge
-                        variant={isCompleted ? 'default' : 'secondary'}
+                        variant={row.status === 'completed' ? 'default' : 'secondary'}
                         className="text-[10px]"
                       >
                         {statusLabels[row.status || ''] || row.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3">
-                      <div className="flex items-center gap-2 min-w-[100px]">
+                    <TableCell className="py-2.5">
+                      <div className="flex items-center gap-2 min-w-[90px]">
                         <Progress value={progressPct} className="h-1.5 flex-1" />
                         <span className="text-[10px] text-muted-foreground w-8 text-right font-mono">
                           {row.answeredCount}/{TOTAL_QUESTIONS}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell py-3">
-                      {isCompleted && row.score != null ? (
-                        <Badge className={`text-xs font-bold ${getScoreBadge(row.score)}`}>
-                          {row.score}/100
+                    <TableCell className="hidden sm:table-cell py-2.5">
+                      {row.status === 'completed' && row.score != null ? (
+                        <Badge variant="outline" className={`text-[10px] font-medium ${getScoreBadge(row.score)}`}>
+                          {row.score}/100 · {scoreLabel(row.score)}
                         </Badge>
                       ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
+                        <span className="text-[10px] text-muted-foreground">—</span>
                       )}
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell py-3">
-                      <span className="text-xs text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell py-2.5">
+                      <span className="text-[10px] text-muted-foreground">
                         {new Date(row.updatedAt).toLocaleDateString('pt-BR', {
                           day: '2-digit', month: 'short',
                         })}
                       </span>
                     </TableCell>
-                    <TableCell className="py-3">
+                    <TableCell className="py-2.5">
                       <Button
                         asChild
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs gap-1 group-hover:text-primary"
+                        className="h-6 text-[11px] gap-1 group-hover:text-primary px-2"
                       >
-                        <Link to={href}>
-                          {isCompleted ? 'Relatório' : 'Continuar'}
+                        <Link to={action.href}>
+                          {action.label}
                           <ArrowRight className="h-3 w-3" />
                         </Link>
                       </Button>
