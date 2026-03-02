@@ -93,17 +93,24 @@ export interface ConfigQuestion {
   sort_order: number;
 }
 
+export interface RedFlagTrigger {
+  type: 'score_threshold' | 'numeric_threshold' | 'numeric_missing' | 'requires' | 'dimension_score_below' | 'context_field_below' | 'context_field_missing' | 'question_score_below' | 'red_flag_triggered';
+  dimension_id?: string;
+  question_id?: string;
+  threshold?: number;
+  value?: number;
+  value_by_stage?: Record<string, number>;
+  field?: string;
+  fields_any?: string[];
+  op?: string;
+  requires?: { field: string; op: string; value: unknown }[];
+}
+
 export interface ConfigRedFlag {
   code: string;
   label: string;
   severity: string;
-  triggers: {
-    type: 'score_threshold' | 'numeric_threshold' | 'numeric_missing' | 'requires' | 'dimension_score_below' | 'context_field_below' | 'context_field_missing' | 'question_score_below' | 'red_flag_triggered';
-    dimension_id?: string;
-    question_id?: string;
-    threshold?: number;
-    field?: string;
-  }[];
+  triggers: RedFlagTrigger[];
   actions: string[];
 }
 
