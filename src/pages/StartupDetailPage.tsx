@@ -12,13 +12,15 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users } from 'lucide-react';
+import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users, Shield } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { scoreTo100, getLevel } from '@/utils/report-helpers';
+import { getCurrentSemester, getFounderStageLabel } from '@/utils/founder-scoring';
 import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
+import type { Founder, FounderAssessment } from '@/types/founder';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
@@ -31,6 +33,8 @@ export default function StartupDetailPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
   const [lastResult, setLastResult] = useState<{ score100: number; level: string; levelColor: string; redFlagCount: number; assessmentId: string } | null>(null);
+  const [founders, setFounders] = useState<Founder[]>([]);
+  const [founderAssessments, setFounderAssessments] = useState<FounderAssessment[]>([]);
   const [loading, setLoading] = useState(true);
 
   const canWrite = isAdmin || isAnalyst;
@@ -53,6 +57,15 @@ export default function StartupDetailPage() {
     const load = async () => {
       const { data: companyData } = await supabase.from('companies').select('*').eq('id', id).single();
       if (companyData) setCompany(companyData as Company);
+
+      // Load founders & founder assessments
+      const currentSem = getCurrentSemester();
+      const [{ data: foundersData }, { data: faData }] = await Promise.all([
+        supabase.from('founders').select('*').eq('company_id', id).eq('active', true),
+        supabase.from('founder_assessments').select('*').eq('company_id', id).eq('semester', currentSem),
+      ]);
+      if (foundersData) setFounders(foundersData as Founder[]);
+      if (faData) setFounderAssessments(faData as FounderAssessment[]);
 
       const { data: assessData } = await supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false });
       if (assessData) {
@@ -257,23 +270,80 @@ export default function StartupDetailPage() {
         </Card>
       )}
 
-      {/* Founders Card */}
-      <Card className="border-amber-500/20 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/app/startups/${id}/founders`)}>
-        <CardContent className="pt-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
-                <Users className="h-5 w-5 text-amber-600" />
+      {/* Founders & Leadership Card */}
+      {(() => {
+        const currentSemester = getCurrentSemester();
+        const currentFaScores = founderAssessments
+          .map(a => a.score_used)
+          .filter((s): s is number => s != null);
+        const compositeScore = currentFaScores.length > 0
+          ? Math.round(currentFaScores.reduce((a, b) => a + b, 0) / currentFaScores.length * 10) / 10
+          : null;
+        const compositeStage = compositeScore != null ? getFounderStageLabel(compositeScore) : null;
+
+        return (
+          <Card className="border-amber-500/20 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/app/startups/${id}/founders`)}>
+            <CardContent className="pt-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                    <Users className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">Founders & Liderança</p>
+                    <p className="text-xs text-muted-foreground">{currentSemester} · {founders.length} founder(s)</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {compositeScore != null && (
+                    <div className="text-right">
+                      <p className="text-xl font-bold">{compositeScore}</p>
+                      <p className={`text-[10px] font-medium ${compositeStage?.color}`}>{compositeStage?.label}</p>
+                    </div>
+                  )}
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold">Founders & Liderança</p>
-                <p className="text-xs text-muted-foreground">Founder Score semestral</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </CardContent>
-      </Card>
+
+              {/* Individual founders table */}
+              {founders.length > 0 && (
+                <div className="space-y-1.5">
+                  {founders.map(f => {
+                    const fa = founderAssessments.find(a => a.founder_id === f.id);
+                    const stage = fa?.score_used != null ? getFounderStageLabel(fa.score_used) : null;
+                    return (
+                      <div key={f.id} className="flex items-center justify-between text-xs py-1 border-t first:border-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{f.name}</span>
+                          {f.role && <span className="text-muted-foreground">{f.role}</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {fa?.score_used != null ? (
+                            <>
+                              <span className="font-bold font-mono">{fa.score_used.toFixed(1)}</span>
+                              {stage && <Badge variant="outline" className={`text-[10px] ${stage.color}`}>{stage.label}</Badge>}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground italic">Sem avaliação</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Red flags */}
+              {compositeScore != null && compositeScore < 50 && (
+                <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 p-2 rounded">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  Risco estrutural de liderança no time fundador
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
