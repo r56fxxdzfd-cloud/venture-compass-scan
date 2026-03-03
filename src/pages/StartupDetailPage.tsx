@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users, Shield } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,6 +36,7 @@ export default function StartupDetailPage() {
   const [lastResult, setLastResult] = useState<{ score100: number; level: string; levelColor: string; redFlagCount: number; assessmentId: string } | null>(null);
   const [founders, setFounders] = useState<Founder[]>([]);
   const [founderAssessments, setFounderAssessments] = useState<FounderAssessment[]>([]);
+  const [allFounderAssessments, setAllFounderAssessments] = useState<FounderAssessment[]>([]);
   const [loading, setLoading] = useState(true);
 
   const canWrite = isAdmin || isAnalyst;
@@ -60,12 +62,14 @@ export default function StartupDetailPage() {
 
       // Load founders & founder assessments
       const currentSem = getCurrentSemester();
-      const [{ data: foundersData }, { data: faData }] = await Promise.all([
+      const [{ data: foundersData }, { data: faData }, { data: allFaData }] = await Promise.all([
         supabase.from('founders').select('*').eq('company_id', id).eq('active', true),
         supabase.from('founder_assessments').select('*').eq('company_id', id).eq('semester', currentSem),
+        supabase.from('founder_assessments').select('*').eq('company_id', id).order('semester', { ascending: true }),
       ]);
       if (foundersData) setFounders(foundersData as Founder[]);
       if (faData) setFounderAssessments(faData as FounderAssessment[]);
+      if (allFaData) setAllFounderAssessments(allFaData as FounderAssessment[]);
 
       const { data: assessData } = await supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false });
       if (assessData) {
@@ -281,6 +285,22 @@ export default function StartupDetailPage() {
           : null;
         const compositeStage = compositeScore != null ? getFounderStageLabel(compositeScore) : null;
 
+        // Build historical composite data by semester
+        const semesterMap: Record<string, number[]> = {};
+        allFounderAssessments.forEach(fa => {
+          if (fa.score_used != null) {
+            if (!semesterMap[fa.semester]) semesterMap[fa.semester] = [];
+            semesterMap[fa.semester].push(fa.score_used);
+          }
+        });
+        const historyData = Object.entries(semesterMap)
+          .map(([semester, scores]) => ({
+            semester,
+            score: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10,
+          }))
+          .sort((a, b) => a.semester.localeCompare(b.semester));
+        const showChart = historyData.length >= 2;
+
         return (
           <Card className="border-amber-500/20 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/app/startups/${id}/founders`)}>
             <CardContent className="pt-5 space-y-3">
@@ -330,6 +350,35 @@ export default function StartupDetailPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+
+              {/* Historical Composite Score Chart */}
+              {showChart && (
+                <div className="pt-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Evolução do Score Composto</p>
+                  <ResponsiveContainer width="100%" height={120}>
+                    <LineChart data={historyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="semester" tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} className="fill-muted-foreground" />
+                      <ReferenceLine y={50} stroke="hsl(var(--destructive))" strokeDasharray="4 4" strokeOpacity={0.5} />
+                      <RechartsTooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--popover))' }}
+                        labelStyle={{ fontWeight: 600 }}
+                        formatter={(value: number) => [`${value}`, 'Score Composto']}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ r: 4, fill: 'hsl(var(--primary))' }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               )}
 
