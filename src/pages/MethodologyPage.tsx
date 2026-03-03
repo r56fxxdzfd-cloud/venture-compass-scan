@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { BookOpen, Download, Loader2 } from 'lucide-react';
+import { BookOpen, Download, Loader2, Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { PILLARS, PILLAR_QUESTIONS, SCORE_ANCHORS, ACTION_RECOMMENDATIONS } from '@/utils/founder-scoring';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
@@ -545,6 +547,337 @@ export default function MethodologyPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* ═══════════════════════════════════════════════ */}
+        {/* FOUNDER'S SCORE — METODOLOGIA                   */}
+        {/* ═══════════════════════════════════════════════ */}
+
+        <Separator className="my-8" />
+
+        {/* FS.1 — Visão Geral */}
+        <Card id="section-founder-score">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-5 w-5" /> Founder's Score — Metodologia
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Em estágios iniciais, investidores frequentemente avaliam o time tanto quanto (ou mais do que) o modelo de negócio. O Founder's Score mede se os founders estão evoluindo sua capacidade de liderar uma empresa em crescimento acelerado. Responde às perguntas críticas: este founder tem o que é preciso para transformar seu projeto em realidade? Está ficando melhor a cada semestre? Evolui rápido o suficiente para justificar alocação de capital, tempo e reputação da JV?
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* FS.2 — Princípios */}
+        <Card id="section-fs-principles">
+          <CardHeader><CardTitle className="text-base">Princípios da Metodologia</CardTitle></CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Avaliação dual:</strong> perspectiva do founder (autoavaliação, registrada pelo JV) e perspectiva da JV — o delta entre as duas é informação estratégica</li>
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Cadência semestral:</strong> a curva de evolução importa mais do que o número absoluto de um ciclo isolado</li>
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Score composto:</strong> quando a startup tem múltiplos founders, o score da empresa é a média simples dos scores individuais ativos no semestre</li>
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Foco em comportamento observável,</strong> não em intenção declarada</li>
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Máximo de 2 pilares foco</strong> por semestre — concentração é a regra</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* FS.3 — Os 5 Pilares */}
+        <Card id="section-fs-pillars">
+          <CardHeader><CardTitle className="text-base">Os 5 Pilares</CardTitle></CardHeader>
+          <CardContent>
+            <Accordion type="multiple">
+              {PILLARS.map(pillar => {
+                const questions = PILLAR_QUESTIONS[pillar.number] || [];
+                return (
+                  <AccordionItem key={pillar.number} value={`pillar-${pillar.number}`}>
+                    <AccordionTrigger className="text-sm">
+                      <span className="flex items-center gap-2">
+                        Pilar {pillar.number} — {pillar.name}
+                        <Badge variant={pillar.weight === 0 ? 'secondary' : 'default'} className="text-[10px]">
+                          {pillar.weight === 0 ? 'Contexto' : `${(pillar.weight * 100).toFixed(0)}%`}
+                        </Badge>
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="space-y-3">
+                      <p className="text-sm text-muted-foreground">{pillar.description}</p>
+                      {pillar.number === 0 && (
+                        <p className="text-xs text-muted-foreground italic bg-secondary/50 p-2 rounded">
+                          Não entra no score, mas aparece no relatório como contexto. Ancora a leitura dos demais pilares — um founder sem cadência básica tem os outros pilares comprometidos estruturalmente.
+                        </p>
+                      )}
+                      {pillar.number === 1 && (
+                        <p className="text-xs text-muted-foreground italic bg-primary/5 p-2 rounded border border-primary/10">
+                          <strong>Pergunta-chave de conselho:</strong> "O time sobreviveria se o founder desaparecesse amanhã?"
+                        </p>
+                      )}
+                      {pillar.number === 3 && (
+                        <p className="text-xs text-muted-foreground italic bg-primary/5 p-2 rounded border border-primary/10">
+                          <strong>Pergunta-chave de conselho:</strong> "O founder influencia decisões ou apenas reage a elas?"
+                        </p>
+                      )}
+                      {pillar.number === 4 && (
+                        <p className="text-xs text-muted-foreground italic bg-primary/5 p-2 rounded border border-primary/10">
+                          Maior peso — maior fator de sobrevivência em estágio inicial.
+                        </p>
+                      )}
+                      {questions.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Perguntas de referência:</p>
+                          <ul className="space-y-1">
+                            {questions.map((q, i) => (
+                              <li key={i} className="text-sm text-muted-foreground pl-2 border-l-2 border-muted">
+                                {i + 1}. {q}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </CardContent>
+        </Card>
+
+        {/* FS.4 — Escala de Notas */}
+        <Card id="section-fs-scale">
+          <CardHeader><CardTitle className="text-base">Escala de Notas (Âncoras 1–5)</CardTitle></CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[80px]">Nota</TableHead>
+                  <TableHead>Descrição</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(SCORE_ANCHORS).map(([score, label]) => (
+                  <TableRow key={score}>
+                    <TableCell className="font-mono font-bold text-lg">{score}</TableCell>
+                    <TableCell className="text-sm">{label}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* FS.5 — Fórmula do Score */}
+        <Card id="section-fs-formula">
+          <CardHeader><CardTitle className="text-base">Fórmula do Score</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score por pilar usado</p>
+                <p className="text-sm font-mono">score_pilar = média(nota_auto, nota_jv)</p>
+                <p className="text-xs text-muted-foreground">Quando ambas disponíveis. Se apenas uma, usa a disponível.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Founder Score Individual (0–100)</p>
+                <p className="text-sm font-mono">score = Σ(peso_pilar × nota_usada) × 20</p>
+                <p className="text-xs text-muted-foreground">Apenas pilares 1 a 5 entram no cálculo (pilar 0 excluído).</p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score Composto da Startup</p>
+                <p className="text-sm font-mono">composto = média_simples(scores_individuais)</p>
+                <p className="text-xs text-muted-foreground">Média de todos os founders ativos com avaliação no semestre vigente.</p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/50 space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Delta</p>
+                <p className="text-sm font-mono">delta = nota_jv − nota_auto</p>
+                <p className="text-xs text-muted-foreground">
+                  Delta negativo (founder superestima): sinal de alerta. Delta positivo (founder subestima): oportunidade de coaching.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* FS.6 — Interpretação do Score */}
+        <Card id="section-fs-interpretation">
+          <CardHeader><CardTitle className="text-base">Interpretação do Score</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Score</TableHead>
+                  <TableHead>Interpretação</TableHead>
+                  <TableHead className="w-[100px]">Nível</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-mono font-bold">80–100</TableCell>
+                  <TableCell className="text-sm">Founder em forte evolução</TableCell>
+                  <TableCell><Badge className="bg-emerald-500/80 text-white text-[10px]">Verde</Badge></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono font-bold">65–79</TableCell>
+                  <TableCell className="text-sm">Evolução positiva, com alertas</TableCell>
+                  <TableCell><Badge className="bg-amber-500/80 text-white text-[10px]">Amarelo</Badge></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono font-bold">50–64</TableCell>
+                  <TableCell className="text-sm">Risco de estagnação</TableCell>
+                  <TableCell><Badge className="bg-orange-500/80 text-white text-[10px]">Laranja</Badge></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono font-bold">&lt; 50</TableCell>
+                  <TableCell className="text-sm">Risco estrutural de liderança</TableCell>
+                  <TableCell><Badge variant="destructive" className="text-[10px]">Vermelho</Badge></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+            <p className="text-xs text-muted-foreground italic">
+              O mais importante não é o número absoluto — é a curva de evolução ao longo dos semestres.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* FS.7 — Red Flags do Founder */}
+        <Card id="section-fs-redflags">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-destructive" /> Red Flags do Founder
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Gatilho</TableHead>
+                  <TableHead className="w-[100px]">Severidade</TableHead>
+                  <TableHead>Label</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="text-sm">Score composto &lt; 50</TableCell>
+                  <TableCell><Badge variant="destructive" className="text-[10px]">Alta</Badge></TableCell>
+                  <TableCell className="text-sm">Risco estrutural de liderança no time fundador</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">Qualquer founder individual com score &lt; 50</TableCell>
+                  <TableCell><Badge variant="destructive" className="text-[10px]">Alta</Badge></TableCell>
+                  <TableCell className="text-sm">Risco estrutural: [nome] com score [X]</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">Delta (JV − auto) &lt; −1.5 em qualquer pilar</TableCell>
+                  <TableCell><Badge variant="secondary" className="text-[10px]">Média</Badge></TableCell>
+                  <TableCell className="text-sm">Desalinhamento de percepção: founder superestima [pilar]</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">Score composto atual &lt; semestre anterior − 10 pontos</TableCell>
+                  <TableCell><Badge variant="destructive" className="text-[10px]">Alta</Badge></TableCell>
+                  <TableCell className="text-sm">Regressão no Founder Score composto</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="text-sm">Founder ativo sem avaliação no semestre vigente</TableCell>
+                  <TableCell><Badge variant="outline" className="text-[10px]">Baixa</Badge></TableCell>
+                  <TableCell className="text-sm">Founder Score desatualizado (último: [semestre])</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* FS.8 — Plano 30-60-90 */}
+        <Card id="section-fs-action-plan">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Target className="h-4 w-4" /> Plano 30-60-90
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>Lógica de geração automática:</p>
+              <ul className="space-y-1.5">
+                <li className="pl-2 border-l-2 border-muted">Calcula-se o <strong className="text-foreground font-mono">priority_score</strong> de cada pilar: <span className="font-mono">(5 − nota_usada) × peso</span></li>
+                <li className="pl-2 border-l-2 border-muted">Os <strong className="text-foreground">2 pilares</strong> com maior priority_score tornam-se os pilares foco do semestre</li>
+                <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Regra inegociável:</strong> máximo de 2 pilares foco por semestre</li>
+                <li className="pl-2 border-l-2 border-muted">Para cada pilar foco, a recomendação é determinada pelo <strong className="text-foreground">nível do founder</strong> naquele pilar (1, 2 ou 3)</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p className="font-semibold text-foreground">Cadência do plano:</p>
+              <ul className="space-y-1">
+                <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">30 dias:</strong> ação estrutural básica + KPI + comportamento-chave + anti-meta</li>
+                <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">60 dias:</strong> consolidar o ritual/hábito, medir KPI, reduzir variabilidade</li>
+                <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">90 dias:</strong> institucionalizar (playbook/checklist), reduzir dependência do founder, preparar o próximo foco</li>
+              </ul>
+            </div>
+
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4">Recomendações por Pilar e Nível</p>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[140px]">Pilar</TableHead>
+                    <TableHead className="min-w-[200px]">Nível 1 (nota ≤2)</TableHead>
+                    <TableHead className="min-w-[200px]">Nível 2 (nota 3)</TableHead>
+                    <TableHead className="min-w-[200px]">Nível 3 (nota ≥4)</TableHead>
+                    <TableHead className="min-w-[200px]">Entrega esperada</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {PILLARS.filter(p => p.number >= 1).map(pillar => {
+                    const recs = ACTION_RECOMMENDATIONS[pillar.number];
+                    return (
+                      <TableRow key={pillar.number}>
+                        <TableCell className="text-sm font-medium">{pillar.name}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{recs?.[1]?.actions || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{recs?.[2]?.actions || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{recs?.[3]?.actions || '—'}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{recs?.[1]?.delivery || '—'}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* FS.9 — Cadência e Governança */}
+        <Card id="section-fs-governance">
+          <CardHeader><CardTitle className="text-base">Cadência e Governança</CardTitle></CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Avaliação:</strong> semestral (mínimo 180 dias entre avaliações do mesmo founder)</li>
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Check-in:</strong> quinzenal dentro do semestre ativo (4 perguntas fixas: o que foi entregue? próximo passo? o que travou? pilar foco subindo ou estável?)</li>
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Quem preenche:</strong> exclusivamente a JV — o founder não acessa o sistema</li>
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Perspectiva "autoavaliação":</strong> registrada pelo JV com base no que o founder relatou em conversa/entrevista</li>
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">PDF do Founder Score:</strong> documento separado e confidencial, exportado independentemente do PDF da startup</li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* FS.10 — Glossário do Módulo */}
+        <Card id="section-fs-glossary">
+          <CardHeader><CardTitle className="text-base">Glossário — Founder's Score</CardTitle></CardHeader>
+          <CardContent>
+            <dl className="space-y-3">
+              {[
+                ['Founder Score', 'Score 0–100 que mede a evolução do founder como líder de empresa em crescimento acelerado'],
+                ['Score Composto', 'Média simples dos Founder Scores individuais de todos os founders ativos no semestre'],
+                ['Delta', 'Diferença entre nota JV e nota autoavaliação (positivo = founder subestima; negativo = founder superestima)'],
+                ['Pilar Foco', 'Um dos 2 pilares com maior priority_score no semestre — foco de desenvolvimento obrigatório'],
+                ['Priority Score', '(5 − nota usada) × peso do pilar — determina quais pilares têm maior gap ponderado'],
+                ['Nível do Pilar', 'Classificação 1/2/3 baseada na nota usada: ≤2 = Nível 1; 3 = Nível 2; ≥4 = Nível 3'],
+                ['Perspectiva JV', 'Avaliação independente feita pelo analista JV com base em evidências observáveis'],
+                ['Perspectiva Auto', 'Autoavaliação do founder, registrada pelo JV com base no relato do próprio founder'],
+              ].map(([term, def]) => (
+                <div key={term} className="glossary-term border-b border-border/50 pb-2.5 last:border-0">
+                  <dt className="text-sm font-semibold">{term}</dt>
+                  <dd className="text-sm text-muted-foreground mt-0.5">{def}</dd>
+                </div>
+              ))}
+            </dl>
+          </CardContent>
+        </Card>
       </div>
     </TooltipProvider>
   );
