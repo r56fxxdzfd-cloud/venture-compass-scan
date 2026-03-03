@@ -206,7 +206,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
             <span className="text-[8px] text-muted-foreground">×</span>
             <img src={logoDarwin} alt="Darwin" className="h-4 object-contain dark:brightness-100 brightness-0" />
           </div>
-          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pb-2 select-none">Engine Developed by Victor Levy</p>
+          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pb-2 select-none">Developed by Victor Levy</p>
         </main>
       </div>
     </div>);
