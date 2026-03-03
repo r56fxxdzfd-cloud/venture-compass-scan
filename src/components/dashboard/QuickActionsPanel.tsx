@@ -2,12 +2,13 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Plus, ClipboardList, SlidersHorizontal, BookOpen, Settings2, ChevronRight,
+  Plus, ClipboardList, SlidersHorizontal, BookOpen, Settings2, ChevronRight, UserCheck,
 } from 'lucide-react';
 
 const baseActions = [
   { label: 'Nova Startup', desc: 'Cadastrar empresa', icon: Plus, href: '/app/startups' },
   { label: 'Novo Diagnóstico', desc: 'Iniciar avaliação', icon: ClipboardList, href: '/app/startups' },
+  { label: 'Nova Avaliação de Founder', desc: 'Avaliar evolução semestral', icon: UserCheck, href: '/app/founder-assessments/new' },
   { label: 'Simulador', desc: 'Testar cenários', icon: SlidersHorizontal, href: '/app/simulator' },
   { label: 'Metodologia', desc: 'Framework Darwin', icon: BookOpen, href: '/app/methodology' },
 ];

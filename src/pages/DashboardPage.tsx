@@ -211,7 +211,86 @@ export default function DashboardPage() {
             }
           });
 
-        setAttentionItems(attention);
+        // ── Founder alerts ──
+        const founderAttention: AttentionItem[] = [];
+
+        const now = new Date();
+        const currentSemester = `${now.getFullYear()}-S${now.getMonth() < 6 ? 1 : 2}`;
+        const prevSemesterYear = now.getMonth() < 6 ? now.getFullYear() - 1 : now.getFullYear();
+        const prevSemesterNum = now.getMonth() < 6 ? 2 : 1;
+        const prevSemester = `${prevSemesterYear}-S${prevSemesterNum}`;
+
+        const [{ data: founders }, { data: founderAssessments }] = await Promise.all([
+          supabase.from('founders').select('id, name, company_id, active, company:companies(name)').eq('active', true),
+          supabase.from('founder_assessments').select('id, founder_id, company_id, semester, score_used, company:companies(name)'),
+        ]);
+
+        const foundersArr = (founders || []) as unknown as Array<{
+          id: string; name: string; company_id: string; active: boolean; company: { name: string } | null;
+        }>;
+        const assessmentsArr = (founderAssessments || []) as unknown as Array<{
+          id: string; founder_id: string; company_id: string; semester: string; score_used: number | null; company: { name: string } | null;
+        }>;
+
+        const cutoff180 = new Date(Date.now() - 180 * 86400000);
+
+        for (const f of foundersArr) {
+          const fAssessments = assessmentsArr.filter(a => a.founder_id === f.id);
+          const currentAss = fAssessments.find(a => a.semester === currentSemester);
+          const prevAss = fAssessments.find(a => a.semester === prevSemester);
+          const companyName = f.company?.name || 'Startup';
+
+          // Rule 1: score < 50
+          if (currentAss && currentAss.score_used != null && currentAss.score_used < 50) {
+            founderAttention.push({
+              id: `fr-${currentAss.id}`,
+              companyName: 'Risco estrutural de liderança',
+              type: 'founder_risk',
+              detail: `${f.name} · ${companyName}`,
+              href: `/app/founder-assessments/${currentAss.id}`,
+              ctaLabel: 'Ver avaliação',
+              reasonChips: ['Risco estrutural'],
+              nextStep: `Score ${currentAss.score_used} — avaliar plano de ação imediato.`,
+              category: 'founder',
+            });
+          }
+
+          // Rule 3: regression > 10 points
+          if (currentAss && prevAss && currentAss.score_used != null && prevAss.score_used != null) {
+            if (prevAss.score_used - currentAss.score_used > 10) {
+              founderAttention.push({
+                id: `freg-${currentAss.id}`,
+                companyName: 'Regressão no Founder Score',
+                type: 'founder_regression',
+                detail: `${f.name} · ${companyName} · ${prevAss.score_used} → ${currentAss.score_used}`,
+                href: `/app/founder-assessments/${currentAss.id}`,
+                ctaLabel: 'Ver avaliação',
+                reasonChips: ['Regressão'],
+                nextStep: `Queda de ${Math.round(prevAss.score_used - currentAss.score_used)} pontos vs semestre anterior.`,
+                category: 'founder',
+              });
+            }
+          }
+
+          // Rule 2: no assessment in last 180 days
+          if (!currentAss) {
+            const lastAss = fAssessments.sort((a, b) => b.semester.localeCompare(a.semester))[0];
+            const lastSemLabel = lastAss ? lastAss.semester : 'Nunca avaliado';
+            founderAttention.push({
+              id: `fout-${f.id}`,
+              companyName: 'Founder Score desatualizado',
+              type: 'founder_outdated',
+              detail: `${f.name} · ${companyName} · Última avaliação: ${lastSemLabel}`,
+              href: `/app/startups/${f.company_id}/founders`,
+              ctaLabel: 'Avaliar founder',
+              reasonChips: ['Desatualizado'],
+              nextStep: 'Registrar avaliação semestral do founder.',
+              category: 'founder',
+            });
+          }
+        }
+
+        setAttentionItems([...attention, ...founderAttention]);
       }
 
       setLoading(false);
