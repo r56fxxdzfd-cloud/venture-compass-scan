@@ -15,6 +15,10 @@ const routeLabels: Record<string, string> = {
   assessments: 'Diagnósticos',
   questionnaire: 'Questionário',
   report: 'Relatório',
+  founders: 'Founders',
+  'founder-assessments': 'Founder Score',
+  new: 'Nova Avaliação',
+  pdf: 'PDF',
 };
 
 export function AppBreadcrumbs() {

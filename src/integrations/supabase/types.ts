@@ -289,6 +289,243 @@ export type Database = {
           },
         ]
       }
+      founder_action_plans: {
+        Row: {
+          actions_30d: Json | null
+          founder_assessment_id: string
+          id: string
+          notes_60d: string | null
+          notes_90d: string | null
+          pillar_focus_1: number | null
+          pillar_focus_2: number | null
+        }
+        Insert: {
+          actions_30d?: Json | null
+          founder_assessment_id: string
+          id?: string
+          notes_60d?: string | null
+          notes_90d?: string | null
+          pillar_focus_1?: number | null
+          pillar_focus_2?: number | null
+        }
+        Update: {
+          actions_30d?: Json | null
+          founder_assessment_id?: string
+          id?: string
+          notes_60d?: string | null
+          notes_90d?: string | null
+          pillar_focus_1?: number | null
+          pillar_focus_2?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_action_plans_founder_assessment_id_fkey"
+            columns: ["founder_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "founder_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_assessments: {
+        Row: {
+          assessment_date: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          founder_id: string
+          id: string
+          notes: string | null
+          score_auto: number | null
+          score_jv: number | null
+          score_used: number | null
+          semester: string
+          stage_label: string | null
+        }
+        Insert: {
+          assessment_date?: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          founder_id: string
+          id?: string
+          notes?: string | null
+          score_auto?: number | null
+          score_jv?: number | null
+          score_used?: number | null
+          semester: string
+          stage_label?: string | null
+        }
+        Update: {
+          assessment_date?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          founder_id?: string
+          id?: string
+          notes?: string | null
+          score_auto?: number | null
+          score_jv?: number | null
+          score_used?: number | null
+          semester?: string
+          stage_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_assessments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_assessments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_assessments_founder_id_fkey"
+            columns: ["founder_id"]
+            isOneToOne: false
+            referencedRelation: "founders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_checkins: {
+        Row: {
+          blocked: string | null
+          checkin_date: string
+          decision_made: string | null
+          delivered_summary: string
+          evidence_link: string | null
+          founder_assessment_id: string
+          id: string
+          next_step: string
+          next_step_due: string | null
+          next_step_owner: string
+          quick_score: number | null
+        }
+        Insert: {
+          blocked?: string | null
+          checkin_date?: string
+          decision_made?: string | null
+          delivered_summary?: string
+          evidence_link?: string | null
+          founder_assessment_id: string
+          id?: string
+          next_step?: string
+          next_step_due?: string | null
+          next_step_owner?: string
+          quick_score?: number | null
+        }
+        Update: {
+          blocked?: string | null
+          checkin_date?: string
+          decision_made?: string | null
+          delivered_summary?: string
+          evidence_link?: string | null
+          founder_assessment_id?: string
+          id?: string
+          next_step?: string
+          next_step_due?: string | null
+          next_step_owner?: string
+          quick_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_checkins_founder_assessment_id_fkey"
+            columns: ["founder_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "founder_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_pillar_scores: {
+        Row: {
+          delta: number | null
+          evidence_auto: string | null
+          evidence_jv: string | null
+          founder_assessment_id: string
+          id: string
+          pillar_name: string
+          pillar_number: number
+          score_auto: number | null
+          score_jv: number | null
+          weight: number
+        }
+        Insert: {
+          delta?: number | null
+          evidence_auto?: string | null
+          evidence_jv?: string | null
+          founder_assessment_id: string
+          id?: string
+          pillar_name: string
+          pillar_number: number
+          score_auto?: number | null
+          score_jv?: number | null
+          weight?: number
+        }
+        Update: {
+          delta?: number | null
+          evidence_auto?: string | null
+          evidence_jv?: string | null
+          founder_assessment_id?: string
+          id?: string
+          pillar_name?: string
+          pillar_number?: number
+          score_auto?: number | null
+          score_jv?: number | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_pillar_scores_founder_assessment_id_fkey"
+            columns: ["founder_assessment_id"]
+            isOneToOne: false
+            referencedRelation: "founder_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founders: {
+        Row: {
+          active: boolean
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          role?: string
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       glossary_terms: {
         Row: {
           config_version_id: string

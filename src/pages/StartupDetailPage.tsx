@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox } from 'lucide-react';
+import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -256,6 +256,24 @@ export default function StartupDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Founders Card */}
+      <Card className="border-amber-500/20 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/app/startups/${id}/founders`)}>
+        <CardContent className="pt-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                <Users className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">Founders & Liderança</p>
+                <p className="text-xs text-muted-foreground">Founder Score semestral</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
