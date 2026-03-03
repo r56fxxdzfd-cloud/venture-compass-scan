@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Download, AlertTriangle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { DarwinRadarChart } from '@/components/DarwinRadarChart';
 import {
@@ -52,6 +52,60 @@ export default function FounderAssessmentPdfPage() {
     load();
   }, [id]);
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = async () => {
+    setExporting(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const { default: jsPDF } = await import('jspdf');
+
+      const element = printRef.current;
+      if (!element) throw new Error('Element not found');
+
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false, windowWidth: 900 });
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let heightLeft = imgHeight;
+      let position = 0;
+      const imgData = canvas.toDataURL('image/jpeg', 0.82);
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Watermark for structural risk
+      if (isRisk) {
+        const totalPages = pdf.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(50);
+          pdf.setTextColor(255, 0, 0);
+          pdf.saveGraphicsState();
+          pdf.setGState(new (pdf as any).GState({ opacity: 0.12 }));
+          pdf.text('RISCO ESTRUTURAL', imgWidth / 2, pageHeight / 2, { align: 'center', angle: 45 });
+          pdf.restoreGraphicsState();
+        }
+      }
+
+      const founderName = founder?.name?.replace(/\s+/g, '-') || 'founder';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      pdf.save(`FounderScore-${founderName}-${dateStr}.pdf`);
+    } catch (err) {
+      console.error('PDF export error:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handlePrint = () => window.print();
 
   if (loading) return <Skeleton className="h-64" />;
@@ -67,7 +121,12 @@ export default function FounderAssessmentPdfPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-lg font-bold flex-1">PDF — Founder Score</h1>
-        <Button onClick={handlePrint}><Download className="mr-1 h-4 w-4" /> Imprimir / PDF</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>Imprimir</Button>
+          <Button onClick={handleExportPdf} disabled={exporting}>
+            <Download className="mr-1 h-4 w-4" /> {exporting ? 'Gerando...' : 'Exportar PDF'}
+          </Button>
+        </div>
       </div>
 
       <div ref={printRef} className="space-y-6 print:space-y-4">

@@ -18,6 +18,7 @@ import {
   RoadmapSection, DeepDiveSection,
 } from '@/components/report/ReportSections';
 import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from '@/components/report/ParetoSections';
+import { FounderLeadershipSection } from '@/components/report/FounderLeadershipSection';
 
 const anchorLinks = [
   { label: 'Score Geral', id: 'section-overall' },
@@ -26,6 +27,7 @@ const anchorLinks = [
   { label: 'Gaps', id: 'section-gaps' },
   { label: 'Red Flags', id: 'section-redflags' },
   { label: 'Quick Wins', id: 'section-quickwins' },
+  { label: 'Liderança', id: 'section-leadership' },
   { label: 'Roadmap', id: 'section-roadmap' },
   { label: 'Deep Dive', id: 'section-deepdive' },
 ];
@@ -251,6 +253,10 @@ export default function ReportPage() {
       </div>
 
       <DimensionNarratives result={result} />
+
+      <div id="section-leadership">
+        <FounderLeadershipSection companyId={(assessment as any).company_id || (assessment as any).company?.id} />
+      </div>
 
       <div id="section-roadmap">
         <RoadmapSection result={result} config={config} stage={stage} />
