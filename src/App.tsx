@@ -22,6 +22,10 @@ import MethodologyPage from "./pages/MethodologyPage";
 import AdminConfigPage from "./pages/AdminConfigPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import WaitingApprovalPage from "./pages/WaitingApprovalPage";
+import FounderListPage from "./pages/FounderListPage";
+import FounderAssessmentFormPage from "./pages/FounderAssessmentFormPage";
+import FounderAssessmentDetailPage from "./pages/FounderAssessmentDetailPage";
+import FounderAssessmentPdfPage from "./pages/FounderAssessmentPdfPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +42,10 @@ function AnimatedRoutes() {
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/startups/:id/founders" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderListPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/founder-assessments/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/founder-assessments/:id/pdf" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentPdfPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/report" element={<ProtectedRoute><AppLayout><AnimatedPage><ReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/simulator" element={<ProtectedRoute><AppLayout><AnimatedPage><SimulatorPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
