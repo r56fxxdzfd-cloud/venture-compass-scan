@@ -8,9 +8,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { calculateAssessmentResult } from '@/utils/scoring';
+import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, Answer, Assessment, AssessmentResult } from '@/types/darwin';
+import type { Founder, FounderAssessment, FounderPillarScore } from '@/types/founder';
+import type { FounderRedFlag } from '@/components/report/ReportSections';
 import type { QuestionAnswer } from '@/utils/pareto-engine';
 import {
   ReportHeader, OverallScoreCard, BlocksSection, RadarSection,
@@ -41,6 +44,7 @@ export default function ReportPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [founderRedFlags, setFounderRedFlags] = useState<FounderRedFlag[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -59,6 +63,61 @@ export default function ReportPage() {
       setAnswers(loadedAnswers);
       const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model });
       setResult(res);
+
+      // Fetch founder red flags for this company
+      const companyId = a.company_id;
+      const semester = getCurrentSemester();
+      const [{ data: founders }, { data: fAssessments }] = await Promise.all([
+        supabase.from('founders').select('*').eq('company_id', companyId).eq('active', true),
+        supabase.from('founder_assessments').select('*').eq('company_id', companyId).eq('semester', semester),
+      ]);
+      const fList = (founders || []) as Founder[];
+      const faList = (fAssessments || []) as FounderAssessment[];
+      const flags: FounderRedFlag[] = [];
+
+      // Composite score red flag
+      const scores = faList.map(fa => fa.score_used).filter((s): s is number => s != null);
+      if (scores.length > 0) {
+        const composite = scores.reduce((a, b) => a + b, 0) / scores.length;
+        if (composite < 50) {
+          flags.push({ label: 'Risco estrutural de liderança no time fundador', severity: 'high' });
+        }
+      }
+
+      // Individual founder score red flags
+      for (const fa of faList) {
+        if (fa.score_used != null && fa.score_used < 50) {
+          const f = fList.find(fo => fo.id === fa.founder_id);
+          flags.push({ label: `Risco estrutural: ${f?.name || 'Founder'} com score ${fa.score_used.toFixed(1)}`, severity: 'high' });
+        }
+      }
+
+      // Delta red flags
+      if (faList.length > 0) {
+        const { data: pillarScores } = await supabase
+          .from('founder_pillar_scores')
+          .select('*')
+          .in('founder_assessment_id', faList.map(fa => fa.id));
+        for (const p of (pillarScores || []) as FounderPillarScore[]) {
+          if (p.score_auto != null && p.score_jv != null) {
+            const delta = p.score_jv - p.score_auto;
+            if (delta < -1.5) {
+              const fa = faList.find(a => a.id === p.founder_assessment_id);
+              const f = fList.find(fo => fo.id === fa?.founder_id);
+              flags.push({ label: `Desalinhamento de percepção: ${f?.name || 'Founder'} superestima ${p.pillar_name}`, severity: 'medium' });
+            }
+          }
+        }
+      }
+
+      // Founders without assessment
+      for (const f of fList) {
+        if (!faList.find(fa => fa.founder_id === f.id)) {
+          flags.push({ label: `Founder Score desatualizado: ${f.name}`, severity: 'low' });
+        }
+      }
+
+      setFounderRedFlags(flags);
     };
     load();
   }, [id]);
@@ -249,7 +308,7 @@ export default function ReportPage() {
       </div>
 
       <div id="section-redflags">
-        <RedFlagsSection result={result} config={config} />
+        <RedFlagsSection result={result} config={config} founderRedFlags={founderRedFlags} />
       </div>
 
       <DimensionNarratives result={result} />

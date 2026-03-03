@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import type { AssessmentResult, ConfigJSON, DimensionScore, EvaluatedRedFlag, Answer } from '@/types/darwin';
+import { Users } from 'lucide-react';
 import {
   scoreTo100, getLevel, getCompleteness, computeBlocks, getBlocks,
   computeGaps, getPenalty, computeCouncilRisk, getSeverityCategory,
@@ -211,8 +212,14 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
 }
 
 // ======== F. Red Flags Impact ========
-export function RedFlagsSection({ result, config }: { result: AssessmentResult; config: ConfigJSON }) {
-  if (result.red_flags.length === 0) return null;
+export interface FounderRedFlag {
+  label: string;
+  severity: 'high' | 'medium' | 'low';
+}
+
+export function RedFlagsSection({ result, config, founderRedFlags = [] }: { result: AssessmentResult; config: ConfigJSON; founderRedFlags?: FounderRedFlag[] }) {
+  const allEmpty = result.red_flags.length === 0 && founderRedFlags.length === 0;
+  if (allEmpty) return null;
 
   const councilRisk = computeCouncilRisk(result.red_flags, config);
   const impactData = result.red_flags.map((rf) => ({
@@ -221,23 +228,30 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
     severity: rf.severity,
   }));
 
+  const allSeverities = [
+    ...result.red_flags.map(rf => rf.severity),
+    ...founderRedFlags.map(f => f.severity),
+  ];
   const counts = {
-    critico: result.red_flags.filter((rf) => getSeverityCategory(rf.severity) === 'Crítico').length,
-    atencao: result.red_flags.filter((rf) => getSeverityCategory(rf.severity) === 'Atenção').length,
-    monitorar: result.red_flags.filter((rf) => getSeverityCategory(rf.severity) === 'Monitorar').length,
+    critico: allSeverities.filter(s => getSeverityCategory(s) === 'Crítico').length,
+    atencao: allSeverities.filter(s => getSeverityCategory(s) === 'Atenção').length,
+    monitorar: allSeverities.filter(s => getSeverityCategory(s) === 'Monitorar').length,
   };
+  const totalFlags = result.red_flags.length + founderRedFlags.length;
 
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-base font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive" /> Red Flags ({result.red_flags.length})
+            <AlertTriangle className="h-4 w-4 text-destructive" /> Red Flags ({totalFlags})
           </h3>
-          <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs sm:text-sm">Risk Score: <strong className={`font-mono ${councilRisk < 50 ? 'text-destructive' : councilRisk < 75 ? 'text-warning' : 'text-success'}`}>{councilRisk}</strong>/100</span>
-          </div>
+          {result.red_flags.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs sm:text-sm">Risk Score: <strong className={`font-mono ${councilRisk < 50 ? 'text-destructive' : councilRisk < 75 ? 'text-warning' : 'text-success'}`}>{councilRisk}</strong>/100</span>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3">
@@ -246,39 +260,62 @@ export function RedFlagsSection({ result, config }: { result: AssessmentResult; 
           {counts.monitorar > 0 && <Badge variant="outline">{counts.monitorar} Monitorar</Badge>}
         </div>
 
-        {/* Impact chart */}
-        <div className="h-[200px] overflow-x-auto">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={impactData} layout="vertical" margin={{ left: 10, right: 16 }}>
-              <XAxis type="number" tick={{ fontSize: 11 }} />
-              <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]} fill="hsl(var(--destructive) / 0.7)">
-                {impactData.map((entry, i) => (
-                  <Cell key={i} fill={['high', 'critical'].includes(entry.severity) ? 'hsl(var(--destructive))' : 'hsl(var(--destructive) / 0.45)'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Impact chart — diagnostic red flags only */}
+        {impactData.length > 0 && (
+          <div className="h-[200px] overflow-x-auto">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={impactData} layout="vertical" margin={{ left: 10, right: 16 }}>
+                <XAxis type="number" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={180} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="penalty" name="Penalidade" radius={[0, 4, 4, 0]} fill="hsl(var(--destructive) / 0.7)">
+                  {impactData.map((entry, i) => (
+                    <Cell key={i} fill={['high', 'critical'].includes(entry.severity) ? 'hsl(var(--destructive))' : 'hsl(var(--destructive) / 0.45)'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
-        {/* Individual cards */}
-        <div className="space-y-3">
-          {result.red_flags.map((rf) => (
-            <div key={rf.code} className="red-flag-badge">
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="destructive" className="text-xs">{getSeverityCategory(rf.severity)}</Badge>
-                <span className="text-xs font-mono text-muted-foreground">-{getPenalty(rf, config)}pts</span>
-                <span className="text-sm font-semibold">{rf.label}</span>
+        {/* Diagnostic red flag cards */}
+        {result.red_flags.length > 0 && (
+          <div className="space-y-3">
+            {result.red_flags.map((rf) => (
+              <div key={rf.code} className="red-flag-badge">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="destructive" className="text-xs">{getSeverityCategory(rf.severity)}</Badge>
+                  <span className="text-xs font-mono text-muted-foreground">-{getPenalty(rf, config)}pts</span>
+                  <span className="text-sm font-semibold">{rf.label}</span>
+                </div>
+                {rf.actions.length > 0 && (
+                  <ul className="text-xs text-muted-foreground space-y-1 mt-2">
+                    {rf.actions.map((a, i) => <li key={i}>• {a}</li>)}
+                  </ul>
+                )}
               </div>
-              {rf.actions.length > 0 && (
-                <ul className="text-xs text-muted-foreground space-y-1 mt-2">
-                  {rf.actions.map((a, i) => <li key={i}>• {a}</li>)}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* Founder red flags */}
+        {founderRedFlags.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" /> Red Flags de Liderança
+            </p>
+            {founderRedFlags.map((rf, i) => (
+              <div key={i} className="red-flag-badge">
+                <div className="flex items-center gap-2">
+                  <Badge variant={rf.severity === 'high' ? 'destructive' : 'secondary'} className="text-xs">
+                    {rf.severity === 'high' ? 'Crítico' : rf.severity === 'medium' ? 'Atenção' : 'Monitorar'}
+                  </Badge>
+                  <span className="text-sm font-semibold">{rf.label}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
