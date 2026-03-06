@@ -61,6 +61,21 @@ export default function AdminUsersPage() {
 
   useEffect(() => { fetchUsers(); }, []);
 
+  const handleResendConfirmation = async (userId: string) => {
+    setResendingFor(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke('resend-confirmation', {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      toast({ title: 'E-mail reenviado', description: 'O e-mail de confirmação foi reenviado com sucesso.' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao reenviar', description: err.message || 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setResendingFor(null);
+    }
+  };
+
   const pendingUsers = users.filter(u => u.status === 'pending');
   const activeUsers = users.filter(u => u.status === 'approved');
   const rejectedUsers = users.filter(u => u.status === 'rejected');
