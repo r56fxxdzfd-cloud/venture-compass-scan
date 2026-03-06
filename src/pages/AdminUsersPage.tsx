@@ -220,16 +220,28 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
                           {!u.email_confirmed && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
-                                    <MailWarning className="h-3 w-3" /> E-mail não confirmado
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>O usuário ainda não clicou no link de confirmação enviado por e-mail</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <>
+                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-xs gap-1"
+                                      disabled={resendingFor === u.id}
+                                      onClick={() => handleResendConfirmation(u.id)}
+                                    >
+                                      <RefreshCw className={`h-3 w-3 ${resendingFor === u.id ? 'animate-spin' : ''}`} />
+                                      Reenviar
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reenviar e-mail de confirmação</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
