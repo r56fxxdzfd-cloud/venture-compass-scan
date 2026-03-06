@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
@@ -27,6 +27,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [approveModal, setApproveModal] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' });
   const [selectedRole, setSelectedRole] = useState<AppRole>('jv_viewer');
+  const [resendingFor, setResendingFor] = useState<string | null>(null);
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
 
@@ -59,6 +60,21 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const handleResendConfirmation = async (userId: string) => {
+    setResendingFor(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke('resend-confirmation', {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      toast({ title: 'E-mail reenviado', description: 'O e-mail de confirmação foi reenviado com sucesso.' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao reenviar', description: err.message || 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setResendingFor(null);
+    }
+  };
 
   const pendingUsers = users.filter(u => u.status === 'pending');
   const activeUsers = users.filter(u => u.status === 'approved');
@@ -204,16 +220,28 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
                           {!u.email_confirmed && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
-                                    <MailWarning className="h-3 w-3" /> E-mail não confirmado
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>O usuário ainda não clicou no link de confirmação enviado por e-mail</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <>
+                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                              </Badge>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 px-2 text-xs gap-1"
+                                      disabled={resendingFor === u.id}
+                                      onClick={() => handleResendConfirmation(u.id)}
+                                    >
+                                      <RefreshCw className={`h-3 w-3 ${resendingFor === u.id ? 'animate-spin' : ''}`} />
+                                      Reenviar
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Reenviar e-mail de confirmação</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
@@ -265,9 +293,21 @@ export default function AdminUsersPage() {
                               </Badge>
                             )}
                             {!u.email_confirmed && (
-                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
-                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
-                              </Badge>
+                              <>
+                                <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                  <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs gap-1"
+                                  disabled={resendingFor === u.id}
+                                  onClick={() => handleResendConfirmation(u.id)}
+                                >
+                                  <RefreshCw className={`h-3 w-3 ${resendingFor === u.id ? 'animate-spin' : ''}`} />
+                                  Reenviar
+                                </Button>
+                              </>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
