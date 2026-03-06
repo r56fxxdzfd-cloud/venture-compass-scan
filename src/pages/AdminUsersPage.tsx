@@ -20,6 +20,7 @@ interface UserWithRole {
   requested_at: string | null;
   approved_at: string | null;
   role: AppRole | null;
+  email_confirmed: boolean;
 }
 
 export default function AdminUsersPage() {
