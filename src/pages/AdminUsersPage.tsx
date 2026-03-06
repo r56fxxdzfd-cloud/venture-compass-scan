@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, CheckCircle, XCircle, Clock, Shield } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
@@ -20,6 +20,7 @@ interface UserWithRole {
   requested_at: string | null;
   approved_at: string | null;
   role: AppRole | null;
+  email_confirmed: boolean;
 }
 
 export default function AdminUsersPage() {
@@ -30,13 +31,17 @@ export default function AdminUsersPage() {
   const { user: currentUser, isSuperAdmin } = useAuth();
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: roles } = await supabase.from('user_roles').select('*');
+    const [{ data: profiles }, { data: roles }, { data: unconfirmed }] = await Promise.all([
+      supabase.from('profiles').select('*'),
+      supabase.from('user_roles').select('*'),
+      supabase.rpc('get_unconfirmed_user_ids'),
+    ]);
+
+    const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
-        // Prioritize super_admin role if user has multiple roles
         const bestRole = userRoles.find((r: any) => r.role === 'super_admin') || userRoles[0];
         return {
           id: p.id,
@@ -46,6 +51,7 @@ export default function AdminUsersPage() {
           requested_at: p.requested_at,
           approved_at: p.approved_at,
           role: (bestRole?.role as AppRole) || null,
+          email_confirmed: !unconfirmedSet.has(p.id),
         };
       });
       setUsers(mapped);
@@ -195,7 +201,21 @@ export default function AdminUsersPage() {
                   {pendingUsers.map((u) => (
                     <div key={u.id} className="flex items-center justify-between p-4 rounded-lg border bg-secondary/20">
                       <div>
-                        <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
+                          {!u.email_confirmed && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                    <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>O usuário ainda não clicou no link de confirmação enviado por e-mail</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Solicitado em {u.requested_at ? new Date(u.requested_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                         </p>
@@ -242,6 +262,11 @@ export default function AdminUsersPage() {
                             {u.role === 'super_admin' && (
                               <Badge variant="outline" className="text-xs gap-1 border-primary/30">
                                 <Shield className="h-3 w-3" /> Super Admin
+                              </Badge>
+                            )}
+                            {!u.email_confirmed && (
+                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
                               </Badge>
                             )}
                           </div>
