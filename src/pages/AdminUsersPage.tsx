@@ -31,13 +31,17 @@ export default function AdminUsersPage() {
   const { user: currentUser, isSuperAdmin } = useAuth();
 
   const fetchUsers = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    const { data: roles } = await supabase.from('user_roles').select('*');
+    const [{ data: profiles }, { data: roles }, { data: unconfirmed }] = await Promise.all([
+      supabase.from('profiles').select('*'),
+      supabase.from('user_roles').select('*'),
+      supabase.rpc('get_unconfirmed_user_ids'),
+    ]);
+
+    const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
-        // Prioritize super_admin role if user has multiple roles
         const bestRole = userRoles.find((r: any) => r.role === 'super_admin') || userRoles[0];
         return {
           id: p.id,
@@ -47,6 +51,7 @@ export default function AdminUsersPage() {
           requested_at: p.requested_at,
           approved_at: p.approved_at,
           role: (bestRole?.role as AppRole) || null,
+          email_confirmed: !unconfirmedSet.has(p.id),
         };
       });
       setUsers(mapped);
