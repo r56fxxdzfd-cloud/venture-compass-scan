@@ -201,7 +201,21 @@ export default function AdminUsersPage() {
                   {pendingUsers.map((u) => (
                     <div key={u.id} className="flex items-center justify-between p-4 rounded-lg border bg-secondary/20">
                       <div>
-                        <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
+                          {!u.email_confirmed && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                    <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>O usuário ainda não clicou no link de confirmação enviado por e-mail</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Solicitado em {u.requested_at ? new Date(u.requested_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                         </p>
