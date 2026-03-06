@@ -264,6 +264,11 @@ export default function AdminUsersPage() {
                                 <Shield className="h-3 w-3" /> Super Admin
                               </Badge>
                             )}
+                            {!u.email_confirmed && (
+                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {u.approved_at ? `Aprovado em ${new Date(u.approved_at).toLocaleDateString('pt-BR')}` : new Date(u.created_at).toLocaleDateString('pt-BR')}
