@@ -27,6 +27,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [approveModal, setApproveModal] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' });
   const [selectedRole, setSelectedRole] = useState<AppRole>('jv_viewer');
+  const [resendingFor, setResendingFor] = useState<string | null>(null);
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
 
