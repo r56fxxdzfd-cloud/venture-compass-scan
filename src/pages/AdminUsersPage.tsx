@@ -293,9 +293,21 @@ export default function AdminUsersPage() {
                               </Badge>
                             )}
                             {!u.email_confirmed && (
-                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
-                                <MailWarning className="h-3 w-3" /> E-mail não confirmado
-                              </Badge>
+                              <>
+                                <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                  <MailWarning className="h-3 w-3" /> E-mail não confirmado
+                                </Badge>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 px-2 text-xs gap-1"
+                                  disabled={resendingFor === u.id}
+                                  onClick={() => handleResendConfirmation(u.id)}
+                                >
+                                  <RefreshCw className={`h-3 w-3 ${resendingFor === u.id ? 'animate-spin' : ''}`} />
+                                  Reenviar
+                                </Button>
+                              </>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
