@@ -7,7 +7,6 @@ import {
   LayoutDashboard, Building2, SlidersHorizontal, BookOpen,
   Settings, Users, LogOut, Menu, Moon, Sun } from
 'lucide-react';
-import logoCmj from '@/assets/logo-cmj.png';
 import logoDarwin from '@/assets/logo-darwin.png';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -77,7 +76,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
             </span>
           </div>
           <div>
-            <p className="text-sm font-bold tracking-tight">CMJ/ Darwin</p>
+            <p className="text-sm font-bold tracking-tight">Darwin</p>
             <p className="text-[10px] text-sidebar-muted">Startup Readiness</p>
           </div>
         </div>
@@ -134,7 +133,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-3">
-          <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — CMJ/Darwin</p>
+          <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — Darwin</p>
           <TooltipProvider>
             <div className="flex items-center justify-between">
               <Tooltip>
@@ -201,12 +200,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         {/* Content */}
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
-          <div className="flex items-center justify-center gap-3 pt-6 pb-4 select-none opacity-25">
-            <img src={logoCmj} alt="CMJ" className="h-4 object-contain dark:brightness-100 brightness-0" />
-            <span className="text-[8px] text-muted-foreground">×</span>
-            <img src={logoDarwin} alt="Darwin" className="h-4 object-contain dark:brightness-100 brightness-0" />
+          <div className="flex flex-col items-center gap-3 pt-8 pb-4 select-none">
+            <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />
+            <p className="text-[9px] text-muted-foreground/30 tracking-[0.15em] text-center pb-1 font-medium uppercase">
+              Developed and owned by Victor Levy. All rights reserved.
+            </p>
           </div>
-          <p className="text-[9px] text-muted-foreground/25 tracking-wider text-center pb-2 select-none">Developed by Victor Levy</p>
         </main>
       </div>
     </div>);

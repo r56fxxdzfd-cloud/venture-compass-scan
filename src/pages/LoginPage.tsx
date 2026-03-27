@@ -86,7 +86,7 @@ export default function LoginPage() {
               <span className="text-lg font-black text-accent-foreground">ST</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">CMJ/ Darwin</h1>
+              <h1 className="text-2xl font-bold text-primary-foreground">Darwin</h1>
               <p className="text-sm text-primary-foreground/60">Startup Readiness</p>
             </div>
           </div>
@@ -128,7 +128,7 @@ export default function LoginPage() {
               <span className="text-sm font-black text-primary-foreground">ST</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold">CMJ/ Darwin</h1>
+              <h1 className="text-xl font-bold">Darwin</h1>
               <p className="text-xs text-muted-foreground">Startup Readiness</p>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            CMJ/Darwin — Acesso restrito à equipe JV
+            Darwin — Acesso restrito à equipe JV
           </p>
         </motion.div>
       </div>

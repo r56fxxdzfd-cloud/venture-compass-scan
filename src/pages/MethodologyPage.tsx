@@ -56,7 +56,7 @@ export default function MethodologyPage() {
       const originalTitle = document.title;
       const versionSlug = version.version_name.replace(/\s+/g, '_').toLowerCase();
       const today = new Date().toISOString().slice(0, 10);
-      document.title = `metodologia_cmj_darwin_${versionSlug}_${today}`;
+      document.title = `metodologia_darwin_${versionSlug}_${today}`;
 
       // 4. Trigger print
       window.print();
@@ -265,7 +265,7 @@ export default function MethodologyPage() {
         {/* Cover page — only visible in print */}
         <div id="pdf-cover">
           <h1>Metodologia</h1>
-          <h2>CMJ / Darwin Startup Readiness</h2>
+          <h2>Darwin Startup Readiness</h2>
           <p>Versão: {version.version_name}</p>
           <p>Publicada em: {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
