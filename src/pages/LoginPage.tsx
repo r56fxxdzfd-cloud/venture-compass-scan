@@ -205,7 +205,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Darwin — Acesso restrito à equipe JV
+            Acesso restrito à equipe JV
           </p>
         </motion.div>
       </div>
