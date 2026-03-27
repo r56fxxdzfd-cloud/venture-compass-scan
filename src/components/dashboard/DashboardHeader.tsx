@@ -46,7 +46,7 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-0.5">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          CMJ/Darwin Startup Readiness
+          Darwin Startup Readiness
         </h1>
         <p className="text-sm text-muted-foreground">
           Visão geral do programa

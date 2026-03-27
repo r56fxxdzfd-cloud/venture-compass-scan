@@ -211,7 +211,7 @@ export default function FounderAssessmentPdfPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground pt-4">
-          Documento confidencial — uso interno JV / CMJ / Darwin
+          Documento confidencial — uso interno JV / Darwin
         </p>
       </div>
     </div>
