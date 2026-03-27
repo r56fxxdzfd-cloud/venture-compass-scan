@@ -200,7 +200,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         {/* Content */}
         <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
-          <div className="flex flex-col items-center gap-1.5 pt-4 pb-3 select-none">
+          <div className="flex flex-col items-center gap-3 pt-4 pb-3 select-none">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />
             <p className="text-[9px] text-muted-foreground/30 tracking-[0.15em] text-center font-medium uppercase">
               Developed and owned by Victor Levy. All rights reserved.
