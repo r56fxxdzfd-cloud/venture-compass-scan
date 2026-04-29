@@ -162,7 +162,8 @@ export default function SimulatorPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div>
+      <div className="executive-surface rounded-xl p-5 sm:p-6">
+        <p className="executive-header">Ferramenta Executiva</p>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <SlidersHorizontal className="h-6 w-6" /> Simulador
         </h1>
@@ -171,7 +172,7 @@ export default function SimulatorPage() {
 
       <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
         <div className="space-y-4">
-          <Card>
+          <Card className="executive-surface">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-sm">Configurações</CardTitle>
               <TooltipProvider>
@@ -248,7 +249,7 @@ export default function SimulatorPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="executive-surface">
             <CardHeader><CardTitle className="text-sm">Contexto Numérico</CardTitle></CardHeader>
              <CardContent className="space-y-3">
               {numericFields.map((f, idx) => (
@@ -266,7 +267,7 @@ export default function SimulatorPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="executive-surface">
             <CardHeader><CardTitle className="text-sm">Dimensões</CardTitle></CardHeader>
             <CardContent className="space-y-5">
           {config.dimensions.map((dim) => (

@@ -142,8 +142,8 @@
 
 @layer utilities {
   .executive-surface {
-    @apply border border-border/70 bg-card/95 shadow-sm backdrop-blur-sm;
-    box-shadow: 0 10px 30px hsl(var(--foreground) / 0.04);
+    @apply border border-border/70 bg-card/95 shadow-sm;
+    box-shadow: 0 8px 24px hsl(var(--foreground) / 0.05);
   }
 
   .executive-header {
@@ -153,6 +153,11 @@
   .executive-kpi {
     background: linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.05) 100%);
     @apply border border-border/70 shadow-sm;
+  }
+  .print-safe {
+    @apply bg-card text-card-foreground shadow-none;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .font-mono {
@@ -190,27 +195,27 @@
   }
 
   .badge-critical {
-    background: hsl(0 85% 97%);
-    color: hsl(0 72% 42%);
-    border: 1px solid hsl(0 80% 90%);
+    background: hsl(var(--destructive) / 0.12);
+    color: hsl(var(--destructive));
+    border: 1px solid hsl(var(--destructive) / 0.25);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
   }
   .badge-warning {
-    background: hsl(38 100% 96%);
-    color: hsl(32 90% 38%);
-    border: 1px solid hsl(38 90% 85%);
+    background: hsl(var(--warning) / 0.12);
+    color: hsl(var(--warning));
+    border: 1px solid hsl(var(--warning) / 0.3);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 600;
   }
   .badge-success {
-    background: hsl(152 60% 96%);
-    color: hsl(152 55% 30%);
-    border: 1px solid hsl(152 55% 85%);
+    background: hsl(var(--success) / 0.12);
+    color: hsl(var(--success));
+    border: 1px solid hsl(var(--success) / 0.25);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;

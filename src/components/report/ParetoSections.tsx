@@ -42,7 +42,7 @@ export function QuickWinsSection({
   if (top5.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-primary" />
@@ -164,7 +164,7 @@ export function MeetingAgendaSection({
   if (agenda.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />

@@ -63,10 +63,11 @@ export default function StartupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="executive-surface rounded-xl p-5 sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Startups</h1>
-          <p className="text-muted-foreground text-sm">{companies.length} cadastradas</p>
+          <p className="executive-header">Portfolio</p>
+          <h1 className="text-2xl font-bold tracking-tight">Central de Startups</h1>
+          <p className="text-muted-foreground text-sm">{companies.length} organizações cadastradas</p>
         </div>
         {canWrite && (
           <Dialog open={open} onOpenChange={setOpen}>
@@ -165,7 +166,7 @@ export default function StartupsPage() {
       )}
 
       {companies.length === 0 ? (
-        <div className="text-center py-16">
+        <div className="executive-surface rounded-xl text-center py-16">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
           <p className="text-muted-foreground mb-4">Nenhuma startup cadastrada ainda</p>
           {canWrite && (
@@ -185,7 +186,7 @@ export default function StartupsPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Link to={`/app/startups/${company.id}`}>
-                  <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                  <Card className="executive-kpi hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

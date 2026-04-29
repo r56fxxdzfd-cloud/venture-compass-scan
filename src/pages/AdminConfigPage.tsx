@@ -226,13 +226,14 @@ export default function AdminConfigPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="executive-surface rounded-xl p-5 sm:p-6">
+        <p className="executive-header">Governança Metodológica</p>
         <h1 className="text-2xl font-bold">Configuração</h1>
         <p className="text-sm text-muted-foreground">Gerenciar versões de config (dimensões, perguntas, pesos, etc.)</p>
       </div>
 
-      <Card>
+      <Card className="executive-surface">
         <CardHeader>
           <CardTitle className="text-base">Importar Config</CardTitle>
         </CardHeader>
