@@ -19,6 +19,7 @@ export default function AgendaPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [meetings, setMeetings] = useState<CouncilMeeting[]>([]);
   const [actions, setActions] = useState<CouncilAction[]>([]);
+  const [progressCountByMeeting, setProgressCountByMeeting] = useState<Record<string, number>>({});
   const [companyId, setCompanyId] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [actionStatus, setActionStatus] = useState<string>('all');
@@ -28,17 +29,26 @@ export default function AgendaPage() {
 
   const load = async () => {
     setLoading(true);
-    const [c, m, a] = await Promise.all([
+    const [c, m, a, p] = await Promise.all([
       supabase.from('companies').select('id,name').order('name'),
       supabase.from('council_meetings').select('*').order('meeting_date', { ascending: false }),
       supabase.from('council_actions').select('*'),
+      supabase.from('council_dimension_progress').select('meeting_id'),
     ]);
     if (c.error) toast({ title: 'Erro ao carregar empresas', description: c.error.message, variant: 'destructive' });
     if (m.error) toast({ title: 'Erro ao carregar encontros', description: m.error.message, variant: 'destructive' });
     if (a.error) toast({ title: 'Erro ao carregar ações', description: a.error.message, variant: 'destructive' });
+    if (p.error) toast({ title: 'Erro ao carregar evolução por dimensão', description: p.error.message, variant: 'destructive' });
     if (c.data) setCompanies(c.data as Company[]);
     if (m.data) setMeetings(m.data as CouncilMeeting[]);
     if (a.data) setActions(a.data as CouncilAction[]);
+    if (p.data) {
+      const counts = (p.data as { meeting_id: string }[]).reduce((acc, row) => {
+        acc[row.meeting_id] = (acc[row.meeting_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      setProgressCountByMeeting(counts);
+    }
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -80,6 +90,7 @@ export default function AgendaPage() {
           <div className='flex flex-wrap gap-2'><Badge variant='outline'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary'>{comp}</Badge>{(m.related_dimensions || []).map(d => <Badge key={d} variant='outline'>{d}</Badge>)}</div>
           <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {am.filter(a => a.status !== 'completed').length} abertas / {am.filter(a => a.status === 'completed').length} concluídas</p>
           <p><strong>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
+          <p><strong>Dimensões avaliadas:</strong> {progressCountByMeeting[m.id] || 0}</p>
           <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Ver detalhes</Link>
         </CardContent></Card>;
       })}</div>}

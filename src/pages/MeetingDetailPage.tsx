@@ -7,13 +7,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { CouncilAction, CouncilMeeting } from '@/types/council';
+import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, DimensionTrend } from '@/types/council';
+
+type DimensionOption = { id: string; label: string };
+type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
+
+const trendLabel: Record<DimensionTrend, string> = {
+  improving: 'Melhorando',
+  stable: 'Estável',
+  worsening: 'Piorando',
+  insufficient_evidence: 'Sem evidência suficiente',
+};
+
+const trendVariant: Record<DimensionTrend, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  improving: 'default',
+  stable: 'secondary',
+  worsening: 'destructive',
+  insufficient_evidence: 'outline',
+};
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
   const [meeting, setMeeting] = useState<CouncilMeeting | null>(null);
   const [actions, setActions] = useState<CouncilAction[]>([]);
+  const [dimensions, setDimensions] = useState<DimensionOption[]>([]);
+  const [progressRows, setProgressRows] = useState<CouncilDimensionProgress[]>([]);
+  const [formByDimension, setFormByDimension] = useState<Record<string, DimensionForm>>({});
   const { toast } = useToast();
   const [newAction, setNewAction] = useState<any>({ priority: 'medium', status: 'not_started' });
   const [companyName, setCompanyName] = useState<string>('');
@@ -29,19 +50,57 @@ export default function MeetingDetailPage() {
       return;
     }
 
-    const [{ data: a, error: actionError }, { data: company, error: companyError }] = await Promise.all([
+    const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }] = await Promise.all([
       supabase.from('council_actions').select('*').eq('meeting_id', id),
       supabase.from('companies').select('name').eq('id', m.company_id).single(),
+      supabase.from('config_versions').select('id').eq('status', 'published').single(),
+      supabase.from('council_dimension_progress').select('*').eq('meeting_id', id),
     ]);
 
     if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
     if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
+    if (progressError) toast({ title: 'Erro ao carregar evolução por dimensão', description: progressError.message, variant: 'destructive' });
+
+    let dimensionData: DimensionOption[] = [];
+    if (publishedConfig?.id) {
+      const { data: dims, error: dimError } = await supabase.from('dimensions').select('id,label').eq('config_version_id', publishedConfig.id).order('sort_order', { ascending: true });
+      if (dimError) toast({ title: 'Erro ao carregar dimensões', description: dimError.message, variant: 'destructive' });
+      dimensionData = (dims || []) as DimensionOption[];
+    }
+
+    const rows = (progress || []) as CouncilDimensionProgress[];
+    const formState: Record<string, DimensionForm> = {};
+
+    for (const dim of dimensionData) {
+      const existing = rows.find(r => r.dimension_id === dim.id);
+      formState[dim.id] = existing ? {
+        dimension_id: existing.dimension_id,
+        dimension_label: existing.dimension_label,
+        initial_score: existing.initial_score,
+        current_perceived_score: existing.current_perceived_score,
+        trend: existing.trend,
+        evidence_note: existing.evidence_note,
+        counselor_comment: existing.counselor_comment,
+      } : {
+        dimension_id: dim.id,
+        dimension_label: dim.label,
+        initial_score: null,
+        current_perceived_score: null,
+        trend: 'stable',
+        evidence_note: null,
+        counselor_comment: null,
+      };
+    }
 
     setMeeting(m as CouncilMeeting);
     setActions((a || []) as CouncilAction[]);
     setCompanyName(company?.name || '');
+    setDimensions(dimensionData);
+    setProgressRows(rows);
+    setFormByDimension(formState);
     setLoading(false);
   };
+
   useEffect(() => { load(); }, [id]);
 
   const addAction = async () => {
@@ -52,6 +111,23 @@ export default function MeetingDetailPage() {
     const { error } = await supabase.from('council_actions').insert({ ...newAction, meeting_id: meeting.id, company_id: meeting.company_id });
     if (error) return toast({ title: 'Erro ao criar ação', description: error.message, variant: 'destructive' });
     setNewAction({ priority: 'medium', status: 'not_started' });
+    load();
+  };
+
+  const saveDimensionProgress = async (dimensionId: string) => {
+    if (!meeting) return;
+    const current = formByDimension[dimensionId];
+    if (!current) return;
+    const payload = {
+      meeting_id: meeting.id,
+      company_id: meeting.company_id,
+      ...current,
+      evidence_note: current.evidence_note || null,
+      counselor_comment: current.counselor_comment || null,
+    };
+    const { error } = await supabase.from('council_dimension_progress').upsert(payload, { onConflict: 'meeting_id,dimension_id' });
+    if (error) return toast({ title: 'Erro ao salvar evolução', description: error.message, variant: 'destructive' });
+    toast({ title: 'Evolução por dimensão atualizada' });
     load();
   };
 
@@ -72,6 +148,36 @@ export default function MeetingDetailPage() {
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
       <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
       <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+    </CardContent></Card>
+
+    <Card className='executive-surface'><CardHeader><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
+      {dimensions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma dimensão ativa encontrada na metodologia publicada.</p> : <>
+        <p className='text-sm text-muted-foreground'>Registre apenas as dimensões discutidas neste encontro.</p>
+        <div className='space-y-4'>{dimensions.map((d) => {
+          const row = formByDimension[d.id];
+          if (!row) return null;
+          const existing = progressRows.find(p => p.dimension_id === d.id);
+          return <div key={d.id} className='border rounded-lg p-3 space-y-3'>
+            <div className='flex items-center justify-between'>
+              <p className='font-medium'>{d.label}</p>
+              <Badge variant={trendVariant[row.trend]}>{trendLabel[row.trend]}</Badge>
+            </div>
+            <div className='grid md:grid-cols-3 gap-2'>
+              <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
+              <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
+              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência suficiente</SelectItem></SelectContent></Select></div>
+            </div>
+            <div className='grid md:grid-cols-2 gap-2'>
+              <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } }))} /></div>
+              <div><Label>Comentário do conselheiro</Label><Textarea value={row.counselor_comment ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], counselor_comment: e.target.value || null } }))} /></div>
+            </div>
+            <div className='flex items-center justify-between'>
+              <p className='text-xs text-muted-foreground'>{existing ? 'Registro existente: atualização incremental.' : 'Sem registro ainda para esta dimensão.'}</p>
+              <Button size='sm' onClick={() => saveDimensionProgress(d.id)}>{existing ? 'Atualizar dimensão' : 'Salvar dimensão'}</Button>
+            </div>
+          </div>;
+        })}</div>
+      </>}
     </CardContent></Card>
 
     <Card className='executive-surface'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>

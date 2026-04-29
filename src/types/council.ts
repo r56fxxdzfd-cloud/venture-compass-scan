@@ -1,6 +1,7 @@
 export type MeetingType = 'collective' | 'individual' | 'extraordinary';
 export type ActionPriority = 'low' | 'medium' | 'high';
 export type ActionStatus = 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
+export type DimensionTrend = 'improving' | 'stable' | 'worsening' | 'insufficient_evidence';
 
 export interface CouncilMeeting {
   id: string;
@@ -41,4 +42,19 @@ export interface CouncilAction {
   expected_evidence: string | null;
   counselor_notes: string | null;
   completed_at: string | null;
+}
+
+export interface CouncilDimensionProgress {
+  id: string;
+  meeting_id: string;
+  company_id: string;
+  dimension_id: string;
+  dimension_label: string;
+  initial_score: number | null;
+  current_perceived_score: number | null;
+  trend: DimensionTrend;
+  evidence_note: string | null;
+  counselor_comment: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }

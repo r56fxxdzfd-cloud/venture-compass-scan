@@ -303,6 +303,66 @@ export type Database = {
           },
         ]
       }
+      council_dimension_progress: {
+        Row: {
+          company_id: string
+          counselor_comment: string | null
+          created_at: string
+          current_perceived_score: number | null
+          dimension_id: string
+          dimension_label: string
+          evidence_note: string | null
+          id: string
+          initial_score: number | null
+          meeting_id: string
+          trend: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          counselor_comment?: string | null
+          created_at?: string
+          current_perceived_score?: number | null
+          dimension_id: string
+          dimension_label: string
+          evidence_note?: string | null
+          id?: string
+          initial_score?: number | null
+          meeting_id: string
+          trend?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          counselor_comment?: string | null
+          created_at?: string
+          current_perceived_score?: number | null
+          dimension_id?: string
+          dimension_label?: string
+          evidence_note?: string | null
+          id?: string
+          initial_score?: number | null
+          meeting_id?: string
+          trend?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "council_dimension_progress_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "council_dimension_progress_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "council_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       council_meetings: {
         Row: {
           attendees_counselors: string[] | null
