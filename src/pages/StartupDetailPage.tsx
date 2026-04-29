@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users, Shield } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +39,7 @@ export default function StartupDetailPage() {
   const [founderAssessments, setFounderAssessments] = useState<FounderAssessment[]>([]);
   const [allFounderAssessments, setAllFounderAssessments] = useState<FounderAssessment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [councilStats, setCouncilStats] = useState({ open: 0, completed: 0, lastMeeting: '-', nextAgenda: '-', meetings: 0 });
 
   const canWrite = isAdmin || isAnalyst;
 
@@ -70,6 +72,15 @@ export default function StartupDetailPage() {
       if (foundersData) setFounders(foundersData as Founder[]);
       if (faData) setFounderAssessments(faData as FounderAssessment[]);
       if (allFaData) setAllFounderAssessments(allFaData as FounderAssessment[]);
+
+      const { data: meetingData } = await supabase.from('council_meetings').select('id,meeting_date,next_agenda').eq('company_id', id).order('meeting_date', { ascending: false });
+      if (meetingData) {
+        const ids = meetingData.map((m:any) => m.id);
+        const { data: actionData } = ids.length ? await supabase.from('council_actions').select('status').in('meeting_id', ids) : { data: [] as any[] };
+        const open = (actionData || []).filter((a:any) => a.status !== 'completed').length;
+        const completed = (actionData || []).filter((a:any) => a.status === 'completed').length;
+        setCouncilStats({ open, completed, lastMeeting: meetingData[0]?.meeting_date || '-', nextAgenda: meetingData[0]?.next_agenda || '-', meetings: meetingData.length });
+      }
 
       const { data: assessData } = await supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false });
       if (assessData) {
@@ -244,6 +255,18 @@ export default function StartupDetailPage() {
           </div>
         </div>
       </div>
+
+
+      <Card className='executive-surface'>
+        <CardHeader><CardTitle>Histórico de Conselho</CardTitle></CardHeader>
+        <CardContent className='grid md:grid-cols-5 gap-3 text-sm'>
+          <div><p className='text-muted-foreground'>Ações abertas</p><p className='text-xl font-semibold'>{councilStats.open}</p></div>
+          <div><p className='text-muted-foreground'>Ações concluídas</p><p className='text-xl font-semibold'>{councilStats.completed}</p></div>
+          <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{councilStats.lastMeeting !== '-' ? new Date(councilStats.lastMeeting).toLocaleDateString('pt-BR') : '-'}</p></div>
+          <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
+          <div className='flex items-end'><Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button></div>
+        </CardContent>
+      </Card>
 
       {/* Last completed assessment summary */}
       {lastResult && (

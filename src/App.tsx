@@ -26,6 +26,8 @@ import FounderListPage from "./pages/FounderListPage";
 import FounderAssessmentFormPage from "./pages/FounderAssessmentFormPage";
 import FounderAssessmentDetailPage from "./pages/FounderAssessmentDetailPage";
 import FounderAssessmentPdfPage from "./pages/FounderAssessmentPdfPage";
+import AgendaPage from "./pages/AgendaPage";
+import MeetingDetailPage from "./pages/MeetingDetailPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +50,8 @@ function AnimatedRoutes() {
         <Route path="/app/founder-assessments/:id/pdf" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentPdfPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/report" element={<ProtectedRoute><AppLayout><AnimatedPage><ReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/agenda" element={<ProtectedRoute><AppLayout><AnimatedPage><AgendaPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/agenda/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><MeetingDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/simulator" element={<ProtectedRoute><AppLayout><AnimatedPage><SimulatorPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/methodology" element={<ProtectedRoute><AppLayout><AnimatedPage><MethodologyPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/admin/config" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AnimatedPage><AdminConfigPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
