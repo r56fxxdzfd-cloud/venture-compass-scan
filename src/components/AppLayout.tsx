@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  LayoutDashboard, Building2, SlidersHorizontal, BookOpen,
+  LayoutDashboard, Building2, SlidersHorizontal, BookOpen, CalendarRange,
   Settings, Users, LogOut, Menu, Moon, Sun } from
 'lucide-react';
 import logoDarwin from '@/assets/logo-darwin.png';
@@ -16,6 +16,7 @@ import { AppBreadcrumbs } from '@/components/AppBreadcrumbs';
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
 { label: 'Startups', icon: Building2, href: '/app/startups' },
+{ label: 'Agenda de Evolução', icon: CalendarRange, href: '/app/agenda' },
 { label: 'Simulador', icon: SlidersHorizontal, href: '/app/simulator' },
 { label: 'Metodologia', icon: BookOpen, href: '/app/methodology' }];
 

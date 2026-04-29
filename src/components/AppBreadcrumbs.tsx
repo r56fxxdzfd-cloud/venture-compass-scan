@@ -8,6 +8,7 @@ const routeLabels: Record<string, string> = {
   dashboard: 'Dashboard',
   startups: 'Startups',
   simulator: 'Simulador',
+  agenda: 'Agenda de Evolução',
   methodology: 'Metodologia',
   admin: 'Admin',
   config: 'Configuração',
