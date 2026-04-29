@@ -190,7 +190,44 @@ export type Database = {
         }
         Relationships: []
       }
-
+      config_versions: {
+        Row: {
+          config_json: Json
+          created_at: string | null
+          created_by: string | null
+          id: string
+          published_at: string | null
+          status: string | null
+          version_name: string
+        }
+        Insert: {
+          config_json: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          status?: string | null
+          version_name: string
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          status?: string | null
+          version_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       council_actions: {
         Row: {
           company_id: string
@@ -249,7 +286,22 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "council_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "council_actions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "council_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       council_meetings: {
         Row: {
@@ -318,39 +370,16 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
-      }
-      config_versions: {
-        Row: {
-          config_json: Json
-          created_at: string | null
-          created_by: string | null
-          id: string
-          published_at: string | null
-          status: string | null
-          version_name: string
-        }
-        Insert: {
-          config_json: Json
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          published_at?: string | null
-          status?: string | null
-          version_name: string
-        }
-        Update: {
-          config_json?: Json
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          published_at?: string | null
-          status?: string | null
-          version_name?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "config_versions_created_by_fkey"
+            foreignKeyName: "council_meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "council_meetings_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
