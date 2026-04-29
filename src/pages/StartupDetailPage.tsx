@@ -40,6 +40,7 @@ export default function StartupDetailPage() {
   const [allFounderAssessments, setAllFounderAssessments] = useState<FounderAssessment[]>([]);
   const [loading, setLoading] = useState(true);
   const [councilStats, setCouncilStats] = useState({ open: 0, completed: 0, lastMeeting: '-', nextAgenda: '-', meetings: 0 });
+  const [lastMeetingProgressSummary, setLastMeetingProgressSummary] = useState({ total: 0, improving: 0, stable: 0, worsening: 0, insufficient_evidence: 0, meetingId: '' });
 
   const canWrite = isAdmin || isAnalyst;
 
@@ -80,6 +81,15 @@ export default function StartupDetailPage() {
         const open = (actionData || []).filter((a:any) => a.status !== 'completed').length;
         const completed = (actionData || []).filter((a:any) => a.status === 'completed').length;
         setCouncilStats({ open, completed, lastMeeting: meetingData[0]?.meeting_date || '-', nextAgenda: meetingData[0]?.next_agenda || '-', meetings: meetingData.length });
+        const lastMeetingId = meetingData[0]?.id;
+        if (lastMeetingId) {
+          const { data: progressData } = await supabase.from('council_dimension_progress').select('trend').eq('meeting_id', lastMeetingId);
+          const summary = { total: progressData?.length || 0, improving: 0, stable: 0, worsening: 0, insufficient_evidence: 0, meetingId: lastMeetingId };
+          (progressData || []).forEach((row: any) => {
+            if (row.trend in summary) (summary as any)[row.trend] += 1;
+          });
+          setLastMeetingProgressSummary(summary);
+        }
       }
 
       const { data: assessData } = await supabase.from('assessments').select('*').eq('company_id', id).order('created_at', { ascending: false });
@@ -265,6 +275,12 @@ export default function StartupDetailPage() {
           <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{councilStats.lastMeeting !== '-' ? new Date(councilStats.lastMeeting).toLocaleDateString('pt-BR') : '-'}</p></div>
           <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
           <div className='flex items-end'><Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button></div>
+        </CardContent>
+        <CardContent className='pt-0 text-sm space-y-1'>
+          <p className='text-muted-foreground'>Resumo do último encontro</p>
+          <p>Dimensões avaliadas: <strong>{lastMeetingProgressSummary.total}</strong></p>
+          <p>Melhorando: <strong>{lastMeetingProgressSummary.improving}</strong> • Estáveis: <strong>{lastMeetingProgressSummary.stable}</strong> • Piorando: <strong>{lastMeetingProgressSummary.worsening}</strong> • Sem evidência: <strong>{lastMeetingProgressSummary.insufficient_evidence}</strong></p>
+          {lastMeetingProgressSummary.meetingId && <Link className='text-primary underline' to={`/app/agenda/${lastMeetingProgressSummary.meetingId}`}>Ver detalhe da última reunião</Link>}
         </CardContent>
       </Card>
 
