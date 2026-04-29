@@ -57,7 +57,7 @@ export default function AgendaTemplatesPage() {
       is_active: editing.is_active ?? true,
       sort_order: editing.sort_order ?? 0,
     };
-    const query = editing.id ? supabase.from('council_agenda_templates').update(payload).eq('id', editing.id) : supabase.from('council_agenda_templates').insert(payload);
+    const query = editing.id ? supabase.from('council_agenda_templates').update(payload as any).eq('id', editing.id) : supabase.from('council_agenda_templates').insert([payload as any]);
     const { error } = await query;
     if (error) return toast({ title: 'Erro ao salvar template', description: error.message, variant: 'destructive' });
     setEditing(null);
