@@ -228,6 +228,165 @@ export type Database = {
           },
         ]
       }
+      council_actions: {
+        Row: {
+          company_id: string
+          completed_at: string | null
+          counselor_notes: string | null
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          effort: string | null
+          expected_evidence: string | null
+          id: string
+          impact: string | null
+          meeting_id: string
+          owner_name: string | null
+          priority: string | null
+          related_dimension: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          completed_at?: string | null
+          counselor_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          effort?: string | null
+          expected_evidence?: string | null
+          id?: string
+          impact?: string | null
+          meeting_id: string
+          owner_name?: string | null
+          priority?: string | null
+          related_dimension?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          completed_at?: string | null
+          counselor_notes?: string | null
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          effort?: string | null
+          expected_evidence?: string | null
+          id?: string
+          impact?: string | null
+          meeting_id?: string
+          owner_name?: string | null
+          priority?: string | null
+          related_dimension?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "council_actions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "council_actions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "council_meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      council_meetings: {
+        Row: {
+          attendees_counselors: string[] | null
+          attendees_founders: string[] | null
+          company_id: string
+          counselor_confidence_score: number | null
+          created_at: string | null
+          created_by: string | null
+          decisions: string | null
+          executive_summary: string | null
+          id: string
+          key_blockers: string | null
+          key_progress: string | null
+          main_topic: string | null
+          meeting_date: string
+          meeting_type: string
+          next_agenda: string | null
+          perceived_progress_score: number | null
+          recommendations: string | null
+          related_dimensions: string[] | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attendees_counselors?: string[] | null
+          attendees_founders?: string[] | null
+          company_id: string
+          counselor_confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          decisions?: string | null
+          executive_summary?: string | null
+          id?: string
+          key_blockers?: string | null
+          key_progress?: string | null
+          main_topic?: string | null
+          meeting_date: string
+          meeting_type: string
+          next_agenda?: string | null
+          perceived_progress_score?: number | null
+          recommendations?: string | null
+          related_dimensions?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attendees_counselors?: string[] | null
+          attendees_founders?: string[] | null
+          company_id?: string
+          counselor_confidence_score?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          decisions?: string | null
+          executive_summary?: string | null
+          id?: string
+          key_blockers?: string | null
+          key_progress?: string | null
+          main_topic?: string | null
+          meeting_date?: string
+          meeting_type?: string
+          next_agenda?: string | null
+          perceived_progress_score?: number | null
+          recommendations?: string | null
+          related_dimensions?: string[] | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "council_meetings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "council_meetings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deep_dive_prompts: {
         Row: {
           config_version_id: string
