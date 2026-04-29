@@ -26,7 +26,7 @@ export function ReportHeader({
   const confidenceColors = { high: 'default', medium: 'secondary', low: 'destructive' } as const;
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -68,7 +68,7 @@ export function OverallScoreCard({ result, config, stage, answers }: { result: A
 
   return (
     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-      <Card>
+      <Card className="executive-surface print-safe">
         <CardContent className="pt-6">
           <div className="text-center mb-4">
             <p className="text-sm text-muted-foreground mb-2">Score Geral</p>
@@ -97,7 +97,7 @@ export function BlocksSection({ result, config, stage }: { result: AssessmentRes
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1, duration: 0.4, ease: 'easeOut' }}
         >
-          <Card>
+          <Card className="executive-kpi print-safe">
             <CardContent className="pt-6 text-center flex flex-col items-center">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{block.label}</p>
               <p className={`text-3xl font-bold font-mono ${block.level.color}`}>{block.score100}</p>
@@ -135,7 +135,7 @@ export function RadarSection({ result, config, stage }: { result: AssessmentResu
   }, [config, stage, result]);
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6">
         <h3 className="text-base font-semibold mb-4">Radar — Atual vs Benchmark vs Potencial</h3>
         <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark showPotential potentialScores={potentialScores} />
@@ -155,7 +155,7 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
   }));
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6 space-y-6">
         <h3 className="text-base font-semibold">Scores por Dimensão</h3>
         <div className="h-[280px] sm:h-[320px] overflow-x-auto">
@@ -240,7 +240,7 @@ export function RedFlagsSection({ result, config, founderRedFlags = [] }: { resu
   const totalFlags = result.red_flags.length + founderRedFlags.length;
 
   return (
-    <Card>
+    <Card className="executive-surface print-safe">
       <CardContent className="pt-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-base font-semibold flex items-center gap-2">

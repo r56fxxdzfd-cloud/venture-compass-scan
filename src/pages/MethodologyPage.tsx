@@ -271,7 +271,7 @@ export default function MethodologyPage() {
           <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
         </div>
 
-        <div id="section-header" className="flex items-start justify-between gap-4">
+        <div id="section-header" className="executive-surface rounded-xl p-5 sm:p-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <BookOpen className="h-6 w-6" /> Metodologia
@@ -290,7 +290,7 @@ export default function MethodologyPage() {
         </div>
 
         {/* Seção 1 — Sobre o Diagnóstico */}
-        <Card id="section-about">
+        <Card id="section-about" className="executive-surface print-safe">
           <CardHeader><CardTitle className="text-base">Sobre o Diagnóstico</CardTitle></CardHeader>
           <CardContent>
             <div className="prose prose-sm max-w-none text-sm text-foreground space-y-4">
@@ -311,7 +311,7 @@ export default function MethodologyPage() {
         </Card>
 
         {/* Seção 2 — Dimensões e Perguntas */}
-        <Card id="section-dimensions">
+        <Card id="section-dimensions" className="executive-surface print-safe">
           <CardHeader><CardTitle className="text-base">Dimensões e Perguntas</CardTitle></CardHeader>
           <CardContent>
             <Accordion type="multiple" value={expandedDimensions} onValueChange={setExpandedDimensions}>
@@ -358,7 +358,7 @@ export default function MethodologyPage() {
         </Card>
 
         {/* Seção 3 — Pesos e Targets por Estágio */}
-        <Card id="section-weights">
+        <Card id="section-weights" className="executive-surface print-safe">
           <CardHeader><CardTitle className="text-base">Pesos e Targets por Estágio</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <Table>
@@ -412,7 +412,7 @@ export default function MethodologyPage() {
 
         {/* Seção 4 — Red Flags */}
         {config.red_flags && config.red_flags.length > 0 && (
-          <Card id="section-redflags">
+          <Card id="section-redflags" className="executive-surface print-safe">
             <CardHeader><CardTitle className="text-base">Red Flags</CardTitle></CardHeader>
             <CardContent>
               <Table>
@@ -462,7 +462,7 @@ export default function MethodologyPage() {
 
         {/* Seção 5 — Glossário */}
         {glossaryEntries.length > 0 && (
-          <Card id="section-glossary">
+          <Card id="section-glossary" className="executive-surface print-safe">
             <CardHeader><CardTitle className="text-base">Glossário</CardTitle></CardHeader>
             <CardContent>
               {useLetterDividers ? (

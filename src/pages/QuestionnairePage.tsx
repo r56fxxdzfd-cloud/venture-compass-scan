@@ -159,7 +159,7 @@ export default function QuestionnairePage() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3">
+      <div className="executive-surface rounded-xl p-4 sm:p-5 flex items-center gap-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
