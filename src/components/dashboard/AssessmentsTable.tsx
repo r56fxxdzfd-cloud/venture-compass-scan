@@ -104,7 +104,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
   }
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="executive-surface flex flex-col h-full">
       <CardHeader className="pb-2 pt-4 px-4">
         <CardTitle className="text-xs font-semibold">Diagnósticos</CardTitle>
         <div className="flex flex-wrap gap-2 mt-2">
@@ -217,7 +217,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
                 const action = getNextAction(row);
 
                 return (
-                  <TableRow key={row.id} className="group">
+                  <TableRow key={row.id} className="group hover:bg-muted/30">
                     <TableCell className="text-xs font-medium py-2.5">{row.companyName}</TableCell>
                     <TableCell className="hidden md:table-cell py-2.5">
                       {row.stage ? (

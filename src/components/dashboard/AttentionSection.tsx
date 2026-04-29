@@ -40,7 +40,7 @@ export default function AttentionSection({ items, loading }: AttentionSectionPro
   const displayedFounder = displayed.filter(i => i.category === 'founder');
 
   const renderItem = (item: AttentionItem) => (
-    <div key={item.id} className="rounded-md border p-3 transition-all hover:border-primary/30">
+    <div key={item.id} className="rounded-lg border border-border/70 bg-background/80 p-3 transition-all hover:border-primary/30 hover:shadow-sm">
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <span className="text-sm font-medium truncate">{item.companyName}</span>
         <div className="flex gap-1 shrink-0">
@@ -72,7 +72,7 @@ export default function AttentionSection({ items, loading }: AttentionSectionPro
   );
 
   return (
-    <Card>
+    <Card className="executive-surface">
       <CardHeader className="pb-2 pt-4 px-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-destructive">

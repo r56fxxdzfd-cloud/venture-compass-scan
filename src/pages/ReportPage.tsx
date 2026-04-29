@@ -227,9 +227,9 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto overflow-x-hidden" id="report-root">
+    <div className="space-y-6 max-w-6xl mx-auto overflow-x-hidden" id="report-root">
       {/* Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="executive-surface rounded-xl p-4 sm:p-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <TooltipProvider>
             <Tooltip>
