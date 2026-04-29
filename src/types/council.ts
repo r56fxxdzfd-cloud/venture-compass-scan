@@ -58,3 +58,23 @@ export interface CouncilDimensionProgress {
   created_at: string | null;
   updated_at: string | null;
 }
+
+export type CouncilAgendaTemplatePriority = 'low' | 'medium' | 'high';
+
+export interface CouncilAgendaTemplate {
+  id: string;
+  dimension_id: string;
+  dimension_label: string;
+  title: string;
+  objective: string;
+  key_questions: string[];
+  expected_evidence: string[];
+  suggested_actions: string[];
+  associated_red_flags: string[];
+  when_to_use: string | null;
+  priority: CouncilAgendaTemplatePriority;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
