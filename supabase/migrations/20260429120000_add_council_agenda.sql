@@ -45,11 +45,33 @@ ALTER TABLE public.council_meetings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.council_actions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "JV read council_meetings" ON public.council_meetings FOR SELECT USING (public.is_jv_member(auth.uid()));
-CREATE POLICY "Admin/analyst write council_meetings" ON public.council_meetings FOR INSERT WITH CHECK (public.is_admin_or_analyst(auth.uid()));
-CREATE POLICY "Admin/analyst update council_meetings" ON public.council_meetings FOR UPDATE USING (public.is_admin_or_analyst(auth.uid()));
-CREATE POLICY "Admin/analyst delete council_meetings" ON public.council_meetings FOR DELETE USING (public.is_admin_or_analyst(auth.uid()));
+CREATE POLICY "Admin/analyst write council_meetings" ON public.council_meetings FOR INSERT WITH CHECK (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
+CREATE POLICY "Admin/analyst update council_meetings" ON public.council_meetings FOR UPDATE USING (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
+CREATE POLICY "Admin/analyst delete council_meetings" ON public.council_meetings FOR DELETE USING (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
 
 CREATE POLICY "JV read council_actions" ON public.council_actions FOR SELECT USING (public.is_jv_member(auth.uid()));
-CREATE POLICY "Admin/analyst write council_actions" ON public.council_actions FOR INSERT WITH CHECK (public.is_admin_or_analyst(auth.uid()));
-CREATE POLICY "Admin/analyst update council_actions" ON public.council_actions FOR UPDATE USING (public.is_admin_or_analyst(auth.uid()));
-CREATE POLICY "Admin/analyst delete council_actions" ON public.council_actions FOR DELETE USING (public.is_admin_or_analyst(auth.uid()));
+CREATE POLICY "Admin/analyst write council_actions" ON public.council_actions FOR INSERT WITH CHECK (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
+CREATE POLICY "Admin/analyst update council_actions" ON public.council_actions FOR UPDATE USING (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
+CREATE POLICY "Admin/analyst delete council_actions" ON public.council_actions FOR DELETE USING (public.is_admin_or_analyst(auth.uid()) AND public.is_approved_member(auth.uid()));
+
+CREATE OR REPLACE FUNCTION public.sync_council_action_completed_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.status = 'completed' THEN
+    NEW.completed_at := COALESCE(NEW.completed_at, now());
+  ELSE
+    NEW.completed_at := NULL;
+  END IF;
+
+  NEW.updated_at := now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_council_action_completed_at ON public.council_actions;
+CREATE TRIGGER trg_sync_council_action_completed_at
+BEFORE INSERT OR UPDATE OF status, completed_at ON public.council_actions
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_council_action_completed_at();

@@ -7,36 +7,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilMeeting } from '@/types/council';
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
   const [meeting, setMeeting] = useState<CouncilMeeting | null>(null);
   const [actions, setActions] = useState<CouncilAction[]>([]);
+  const { toast } = useToast();
   const [newAction, setNewAction] = useState<any>({ priority: 'medium', status: 'not_started' });
+  const [companyName, setCompanyName] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data: m } = await supabase.from('council_meetings').select('*').eq('id', id).single();
-    const { data: a } = await supabase.from('council_actions').select('*').eq('meeting_id', id);
-    if (m) setMeeting(m as CouncilMeeting); if (a) setActions(a as CouncilAction[]);
+    if (!id) return;
+    setLoading(true);
+    const { data: m, error: meetingError } = await supabase.from('council_meetings').select('*').eq('id', id).single();
+    if (meetingError) {
+      toast({ title: 'Erro ao carregar encontro', description: meetingError.message, variant: 'destructive' });
+      setLoading(false);
+      return;
+    }
+
+    const [{ data: a, error: actionError }, { data: company, error: companyError }] = await Promise.all([
+      supabase.from('council_actions').select('*').eq('meeting_id', id),
+      supabase.from('companies').select('name').eq('id', m.company_id).single(),
+    ]);
+
+    if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
+    if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
+
+    setMeeting(m as CouncilMeeting);
+    setActions((a || []) as CouncilAction[]);
+    setCompanyName(company?.name || '');
+    setLoading(false);
   };
   useEffect(() => { load(); }, [id]);
 
   const addAction = async () => {
-    if (!meeting || !newAction.title) return;
-    await supabase.from('council_actions').insert({ ...newAction, meeting_id: meeting.id, company_id: meeting.company_id });
-    setNewAction({ priority: 'medium', status: 'not_started' }); load();
-  };
-
-  const updateStatus = async (action: CouncilAction, status: string) => {
-    await supabase.from('council_actions').update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null }).eq('id', action.id);
+    if (!meeting || !newAction.title) {
+      toast({ title: 'Informe ao menos o título da ação', variant: 'destructive' });
+      return;
+    }
+    const { error } = await supabase.from('council_actions').insert({ ...newAction, meeting_id: meeting.id, company_id: meeting.company_id });
+    if (error) return toast({ title: 'Erro ao criar ação', description: error.message, variant: 'destructive' });
+    setNewAction({ priority: 'medium', status: 'not_started' });
     load();
   };
 
-  if (!meeting) return null;
+  const updateStatus = async (action: CouncilAction, status: string) => {
+    const { error } = await supabase.from('council_actions').update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null }).eq('id', action.id);
+    if (error) return toast({ title: 'Erro ao atualizar status', description: error.message, variant: 'destructive' });
+    load();
+  };
+
+  if (loading) return <div className='text-sm text-muted-foreground'>Carregando encontro...</div>;
+  if (!meeting) return <div className='text-sm text-muted-foreground'>Encontro não encontrado.</div>;
   return <div className='space-y-4'>
     <Card className='executive-surface'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <Badge>{meeting.meeting_type}</Badge>
+      <p><strong>Empresa:</strong> {companyName || '—'}</p>
       <p><strong>Resumo:</strong> {meeting.executive_summary || '—'}</p>
       <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>

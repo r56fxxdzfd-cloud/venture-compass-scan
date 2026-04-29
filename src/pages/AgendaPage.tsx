@@ -24,16 +24,22 @@ export default function AgendaPage() {
   const [actionStatus, setActionStatus] = useState<string>('all');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>({ meeting_type: 'collective' });
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
+    setLoading(true);
     const [c, m, a] = await Promise.all([
       supabase.from('companies').select('id,name').order('name'),
       supabase.from('council_meetings').select('*').order('meeting_date', { ascending: false }),
       supabase.from('council_actions').select('*'),
     ]);
+    if (c.error) toast({ title: 'Erro ao carregar empresas', description: c.error.message, variant: 'destructive' });
+    if (m.error) toast({ title: 'Erro ao carregar encontros', description: m.error.message, variant: 'destructive' });
+    if (a.error) toast({ title: 'Erro ao carregar ações', description: a.error.message, variant: 'destructive' });
     if (c.data) setCompanies(c.data as Company[]);
     if (m.data) setMeetings(m.data as CouncilMeeting[]);
     if (a.data) setActions(a.data as CouncilAction[]);
+    setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
@@ -67,7 +73,7 @@ export default function AgendaPage() {
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
       <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em progresso</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Bloqueada</SelectItem></SelectContent></Select>
     </CardContent></Card>
-    {filtered.length === 0 ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda.<div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar primeiro encontro</Button></div></CardContent></Card> :
+    {loading ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda.<div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar primeiro encontro</Button></div></CardContent></Card> :
       <div className='grid gap-3'>{filtered.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
         return <Card key={m.id} className='executive-surface'><CardHeader><CardTitle className='flex justify-between'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
