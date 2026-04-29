@@ -303,6 +303,60 @@ export type Database = {
           },
         ]
       }
+      council_agenda_templates: {
+        Row: {
+          associated_red_flags: string[]
+          created_at: string
+          dimension_id: string
+          dimension_label: string
+          expected_evidence: string[]
+          id: string
+          is_active: boolean
+          key_questions: string[]
+          objective: string
+          priority: string
+          sort_order: number
+          suggested_actions: string[]
+          title: string
+          updated_at: string
+          when_to_use: string | null
+        }
+        Insert: {
+          associated_red_flags?: string[]
+          created_at?: string
+          dimension_id: string
+          dimension_label: string
+          expected_evidence?: string[]
+          id?: string
+          is_active?: boolean
+          key_questions?: string[]
+          objective: string
+          priority?: string
+          sort_order?: number
+          suggested_actions?: string[]
+          title: string
+          updated_at?: string
+          when_to_use?: string | null
+        }
+        Update: {
+          associated_red_flags?: string[]
+          created_at?: string
+          dimension_id?: string
+          dimension_label?: string
+          expected_evidence?: string[]
+          id?: string
+          is_active?: boolean
+          key_questions?: string[]
+          objective?: string
+          priority?: string
+          sort_order?: number
+          suggested_actions?: string[]
+          title?: string
+          updated_at?: string
+          when_to_use?: string | null
+        }
+        Relationships: []
+      }
       council_dimension_progress: {
         Row: {
           company_id: string

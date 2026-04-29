@@ -77,7 +77,7 @@ export default function AgendaPage() {
   };
 
   return <div className='space-y-6'>
-    <div className='executive-header flex items-center justify-between'><h1 className='text-2xl font-bold'>Agenda de Evolução</h1><Button onClick={() => setOpen(true)}>Novo encontro</Button></div>
+    <div className='executive-header flex items-center justify-between'><div><h1 className='text-2xl font-bold'>Agenda de Evolução</h1><Link className='text-sm text-primary underline' to='/app/agenda/templates'>Templates de Pauta</Link></div><Button onClick={() => setOpen(true)}>Novo encontro</Button></div>
     <Card className='executive-surface'><CardContent className='pt-6 grid md:grid-cols-3 gap-3'>
       <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, DimensionTrend } from '@/types/council';
+import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, DimensionTrend } from '@/types/council';
 
 type DimensionOption = { id: string; label: string };
 type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
@@ -34,6 +34,7 @@ export default function MeetingDetailPage() {
   const [actions, setActions] = useState<CouncilAction[]>([]);
   const [dimensions, setDimensions] = useState<DimensionOption[]>([]);
   const [progressRows, setProgressRows] = useState<CouncilDimensionProgress[]>([]);
+  const [agendaTemplates, setAgendaTemplates] = useState<CouncilAgendaTemplate[]>([]);
   const [formByDimension, setFormByDimension] = useState<Record<string, DimensionForm>>({});
   const { toast } = useToast();
   const [newAction, setNewAction] = useState<any>({ priority: 'medium', status: 'not_started' });
@@ -50,16 +51,18 @@ export default function MeetingDetailPage() {
       return;
     }
 
-    const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }] = await Promise.all([
+    const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }, { data: templates, error: templatesError }] = await Promise.all([
       supabase.from('council_actions').select('*').eq('meeting_id', id),
       supabase.from('companies').select('name').eq('id', m.company_id).single(),
       supabase.from('config_versions').select('id').eq('status', 'published').single(),
       supabase.from('council_dimension_progress').select('*').eq('meeting_id', id),
+      supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order'),
     ]);
 
     if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
     if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
     if (progressError) toast({ title: 'Erro ao carregar evolução por dimensão', description: progressError.message, variant: 'destructive' });
+    if (templatesError) toast({ title: 'Erro ao carregar templates de pauta', description: templatesError.message, variant: 'destructive' });
 
     let dimensionData: DimensionOption[] = [];
     if (publishedConfig?.id) {
@@ -97,6 +100,7 @@ export default function MeetingDetailPage() {
     setCompanyName(company?.name || '');
     setDimensions(dimensionData);
     setProgressRows(rows);
+    setAgendaTemplates((templates || []) as CouncilAgendaTemplate[]);
     setFormByDimension(formState);
     setLoading(false);
   };
@@ -139,6 +143,16 @@ export default function MeetingDetailPage() {
 
   if (loading) return <div className='text-sm text-muted-foreground'>Carregando encontro...</div>;
   if (!meeting) return <div className='text-sm text-muted-foreground'>Encontro não encontrado.</div>;
+
+  const discussedDimensionIds = new Set([
+    ...(meeting.related_dimensions || []),
+    ...progressRows.map(p => p.dimension_id),
+  ]);
+  const suggestedTemplates = agendaTemplates.filter(t =>
+    discussedDimensionIds.has(t.dimension_id) ||
+    Array.from(discussedDimensionIds).some(id => id.toLowerCase() === t.dimension_label.toLowerCase())
+  );
+
   return <div className='space-y-4'>
     <Card className='executive-surface'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <Badge>{meeting.meeting_type}</Badge>
@@ -148,6 +162,16 @@ export default function MeetingDetailPage() {
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
       <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
       <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+    </CardContent></Card>
+
+
+    <Card className='executive-surface'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
+      {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Sem templates vinculados às dimensões já selecionadas neste encontro.</p> :
+      suggestedTemplates.map(t => <div key={t.id} className='border rounded-lg p-3 space-y-2'>
+        <p className='font-medium'>{t.dimension_label} • {t.title}</p>
+        <p className='text-sm'><strong>Objetivo:</strong> {t.objective}</p>
+        <ul className='list-disc pl-5 text-sm'>{t.key_questions.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
+      </div>)}
     </CardContent></Card>
 
     <Card className='executive-surface'><CardHeader><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
