@@ -65,12 +65,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
       <aside
         data-print-hide="true"
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-72 border-r border-sidebar-border/70 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}>
 
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border">
+        <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border/80 bg-sidebar-accent/30">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
             <span className="text-sm font-bold text-sidebar-primary-foreground">ST
             </span>
@@ -87,9 +87,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
             key={item.href}
             to={item.href}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
               location.pathname.startsWith(item.href) ?
-              'bg-sidebar-accent text-sidebar-primary' :
+              'bg-sidebar-primary/15 text-sidebar-primary shadow-sm ring-1 ring-sidebar-primary/30' :
               'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
             )}
             onClick={() => setSidebarOpen(false)}>
@@ -113,7 +113,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors relative',
                 location.pathname.startsWith(item.href) ?
-                'bg-sidebar-accent text-sidebar-primary' :
+                'bg-sidebar-primary/15 text-sidebar-primary shadow-sm ring-1 ring-sidebar-primary/30' :
                 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
               )}
               onClick={() => setSidebarOpen(false)}>
@@ -179,7 +179,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
       {/* Main */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header data-print-hide="true" className="flex h-14 items-center gap-4 border-b px-4 lg:px-6">
+        <header data-print-hide="true" className="flex h-14 items-center gap-4 border-b bg-background/90 px-4 backdrop-blur-sm lg:px-6">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -198,7 +198,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         </header>
 
         {/* Content */}
-        <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto p-4 lg:p-6 flex flex-col min-h-0">
+        <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0">
           <div className="flex-1">{children}</div>
           <div className="flex flex-col items-center gap-3 pt-4 pb-3 select-none">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />

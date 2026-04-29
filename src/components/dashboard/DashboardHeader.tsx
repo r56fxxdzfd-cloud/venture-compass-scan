@@ -43,14 +43,11 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
   }, [configVersion?.id]);
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-0.5">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-          Darwin Startup Readiness
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Visão geral do programa
-        </p>
+    <div className="executive-surface rounded-xl p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-1">
+        <p className="executive-header">Painel Executivo</p>
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Darwin Startup Readiness</h1>
+        <p className="text-sm text-muted-foreground">Visão consolidada de governança, método e execução do ciclo.</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {configVersion && (

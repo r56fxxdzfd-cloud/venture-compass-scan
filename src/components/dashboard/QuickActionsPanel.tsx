@@ -21,14 +21,14 @@ export default function QuickActionsPanel() {
     : baseActions;
 
   return (
-    <Card className="h-full">
+    <Card className="executive-surface h-full">
       <CardHeader className="pb-2 pt-4 px-4">
         <CardTitle className="text-xs font-semibold">Ações Rápidas</CardTitle>
       </CardHeader>
       <CardContent className="px-3 pb-3 space-y-0.5">
         {actions.map((action) => (
           <Link key={action.label} to={action.href}>
-            <div className="flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-muted group cursor-pointer">
+            <div className="flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors hover:bg-primary/5 group cursor-pointer">
               <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/[0.08] text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                 <action.icon className="h-3.5 w-3.5" />
               </div>

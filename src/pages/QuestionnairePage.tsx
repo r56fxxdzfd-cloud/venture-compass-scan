@@ -124,8 +124,8 @@ export default function QuestionnairePage() {
   };
 
   if (!config) return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-3">
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="executive-surface rounded-xl p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Skeleton className="h-9 w-9 rounded-md" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-6 w-40" />
@@ -204,8 +204,8 @@ export default function QuestionnairePage() {
         </div>
       </div>
 
-      <Tabs value={activeDim} onValueChange={setActiveDim}>
-        <TabsList className="flex flex-wrap h-auto gap-1">
+      <Tabs value={activeDim} onValueChange={setActiveDim} className="executive-surface rounded-xl p-3 sm:p-4">
+        <TabsList className="flex w-full flex-wrap h-auto gap-1 justify-start bg-muted/60">
           {config.dimensions.map((dim) => {
             const dimQuestions = config.questions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
             const dimAnswered = dimQuestions.filter((q) => answers[q.id] && (answers[q.id].value !== null || answers[q.id].is_na)).length;

@@ -141,6 +141,20 @@
 }
 
 @layer utilities {
+  .executive-surface {
+    @apply border border-border/70 bg-card/95 shadow-sm backdrop-blur-sm;
+    box-shadow: 0 10px 30px hsl(var(--foreground) / 0.04);
+  }
+
+  .executive-header {
+    @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground;
+  }
+
+  .executive-kpi {
+    background: linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.05) 100%);
+    @apply border border-border/70 shadow-sm;
+  }
+
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }

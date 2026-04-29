@@ -79,7 +79,7 @@ function AnimatedCounter({ value }: { value: number }) {
 export default function KpiCards({ data, loading }: KpiCardsProps) {
   if (loading) {
     return (
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {[1, 2, 3, 4].map(i => (
           <Card key={i}>
             <CardContent className="flex items-center gap-3 pt-4 pb-3 px-4">
@@ -96,7 +96,7 @@ export default function KpiCards({ data, loading }: KpiCardsProps) {
   }
 
   return (
-    <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => {
         const value = data[card.key] as number;
         const delta = card.deltaKey && data.delta7d
@@ -105,14 +105,14 @@ export default function KpiCards({ data, loading }: KpiCardsProps) {
 
         return (
           <Link key={card.key} to={card.href}>
-            <Card className="transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer group">
+            <Card className="executive-kpi transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer group">
               <CardContent className="flex items-center gap-3 pt-4 pb-3 px-4">
                 <div className={`flex h-9 w-9 items-center justify-center rounded-lg shrink-0 ${card.iconClass}`}>
                   <card.icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <AnimatedCounter value={value} />
-                  <p className="text-[11px] text-muted-foreground leading-tight truncate">{card.label}</p>
+                  <p className="text-[11px] font-medium text-muted-foreground leading-tight truncate">{card.label}</p>
                   <p className="text-[9px] text-muted-foreground/70 leading-tight truncate">{card.sublabel}</p>
                 </div>
                 {delta != null && delta > 0 && (
