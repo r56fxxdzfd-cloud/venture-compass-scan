@@ -171,7 +171,7 @@ export function MeetingAgendaSection({
           <h3 className="text-base font-semibold">Pauta — Próximo Conselho Coletivo</h3>
         </div>
         <p className="text-xs text-muted-foreground">
-          Agenda auto-gerada para reunião quinzenal. 3 itens priorizados por gaps e red flags.
+          Temas prioritários para discussão e decisão no próximo encontro.
         </p>
         <div className="space-y-4">
           {agenda.map((item, i) => (

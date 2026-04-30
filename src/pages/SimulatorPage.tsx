@@ -320,8 +320,17 @@ export default function SimulatorPage() {
             <DimensionScoresSection result={result} config={config} stage={stage} />
             <RedFlagsSection result={result} config={config} />
             <DimensionNarratives result={result} />
-            <RoadmapSection result={result} config={config} stage={stage} />
-            <DeepDiveSection result={result} config={config} />
+            <div className="space-y-4">
+              <div className="executive-panel rounded-xl border p-4 sm:p-5">
+                <h3 className="text-base font-semibold">Do diagnóstico à execução</h3>
+                <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+                  Esta seção traduz o diagnóstico em condução prática do conselho: primeiro define os temas prioritários da próxima reunião, depois sugere perguntas para aprofundamento e, por fim, organiza as ações em um roadmap preliminar de 6 meses.
+                </p>
+              </div>
+              <MeetingAgendaSection config={config} result={result} stage={stage} />
+              <DeepDiveSection result={result} config={config} />
+              <RoadmapSection result={result} config={config} stage={stage} />
+            </div>
             <div className="text-center py-4 text-xs text-muted-foreground italic">
               ⚠ SIMULAÇÃO — Dados fictícios para análise exploratória.
             </div>
