@@ -148,17 +148,19 @@ export interface RoadmapAction {
   source: 'Red flag' | 'Gap de dimensão' | 'Ação sugerida' | 'Pauta do conselho';
 }
 
-function getRoadmapTitle(g: PrioritizedGap, wave: number): string {
+const WAVE_LIMITS: Record<1 | 2 | 3, number> = { 1: 2, 2: 3, 3: 3 };
+const WAVE_LABELS: Record<1 | 2 | 3, string> = { 1: '0-30 dias', 2: '31-90 dias', 3: '91-180 dias' };
+
+function getRoadmapTitle(g: PrioritizedGap, wave: 1 | 2 | 3): string {
   if (wave === 1) {
-    if (g.score100 < 25) return `Estruturar ${g.label} do zero — práticas mínimas críticas`;
-    if (g.score100 < 45) return `Formalizar processos de ${g.label} — sair do improviso`;
-    return `Tornar ${g.label} mais consistente e repetível`;
+    if (g.score100 < 30) return `Diagnosticar lacunas críticas em ${g.label} e definir plano de contenção`;
+    return `Priorizar quick wins de ${g.label} e estabelecer responsáveis`;
   }
   if (wave === 2) {
-    if (g.score100 < 40) return `Construir rotinas e métricas de ${g.label}`;
-    return `Otimizar e instrumentar ${g.label}`;
+    if (g.score100 < 45) return `Implementar controles e rotinas estruturantes em ${g.label}`;
+    return `Executar plano de evolução de ${g.label} com ritos recorrentes`;
   }
-  return `Consolidar melhoria contínua em ${g.label}`;
+  return `Consolidar ${g.label} com melhoria contínua e otimização`;
 }
 
 function getRoadmapRationale(g: PrioritizedGap, result: AssessmentResult): string {
@@ -176,73 +178,110 @@ function getRoadmapRationale(g: PrioritizedGap, result: AssessmentResult): strin
   return parts.join(' · ');
 }
 
+function inferWaveFromActionText(text: string): 1 | 2 | 3 | null {
+  const normalized = text.toLowerCase();
+  const wave1Hints = ['mapear', 'diagnost', 'priorizar', 'definir', 'criar plano', 'levantar', 'conter', 'validar', 'revisar acesso'];
+  const wave2Hints = ['implementar', 'implantar', 'formalizar', 'executar', 'documentar', 'estruturar', 'criar rotina', 'pipeline', 'treinar', 'padronizar', 'acompanhar'];
+  const wave3Hints = ['consolidar', 'otimizar', 'escalar', 'automatizar', 'revisar ciclo', 'melhoria contínua', 'expandir', 'institucionalizar'];
+
+  if (wave3Hints.some((hint) => normalized.includes(hint))) return 3;
+  if (wave2Hints.some((hint) => normalized.includes(hint))) return 2;
+  if (wave1Hints.some((hint) => normalized.includes(hint))) return 1;
+  return null;
+}
+
+function getGapBaseWave(g: PrioritizedGap): 1 | 2 | 3 {
+  if (g.score100 < 30 || g.gap_potential >= 30) return 1;
+  if (g.score100 < 55 || g.gap_potential >= 15) return 2;
+  return 3;
+}
+
 export function generateRoadmap(
   gaps: PrioritizedGap[],
   redFlags: EvaluatedRedFlag[],
   config: ConfigJSON,
   result?: AssessmentResult
 ): RoadmapAction[] {
-  const actions: RoadmapAction[] = [];
-  const usedDimensionIds = new Set<string>();
+  void config;
 
-  const classifyGapWave = (g: PrioritizedGap): 1 | 2 | 3 => {
-    const criticalDims = new Set(['FS', 'LG', 'PS']);
-    const structuringDims = new Set(['OP', 'GM', 'CS']);
-    if (g.score100 < 35 || g.gap_potential >= 25 || criticalDims.has(g.dimension_id)) return 1;
-    if (g.score100 < 55 || g.gap_potential >= 14 || structuringDims.has(g.dimension_id)) return 2;
-    return 3;
+  type Candidate = { action: RoadmapAction; score: number; key: string };
+  const candidates: Candidate[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (action: RoadmapAction, score: number, key: string) => {
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ action, score, key });
   };
 
-  // From high severity red flags first
-  const highRf = redFlags.filter((rf) => ['high', 'critical', 'medium_high'].includes(rf.severity));
-  highRf.slice(0, 3).forEach((rf) => {
-    actions.push({
-      title: rf.actions[0] || rf.label,
-      rationale: `Red Flag "${rf.label}" — ${['high', 'critical'].includes(rf.severity) ? 'Risco existencial' : 'Atenção necessária'}`,
+  redFlags.forEach((rf, index) => {
+    const primaryAction = rf.actions[0] || rf.label;
+    const inferredWave = inferWaveFromActionText(primaryAction);
+    const severityBoost = rf.severity === 'critical' ? 12 : rf.severity === 'high' ? 9 : rf.severity === 'medium_high' ? 6 : 3;
+    const priorityBase = Math.max(1, redFlags.length - index);
+
+    const wave1Title = `Mapear e priorizar contenção para ${rf.label}`;
+    pushCandidate({
+      title: wave1Title,
+      rationale: `Red Flag "${rf.label}" — contenção inicial e definição de responsáveis`,
       wave: 1,
-      waveLabel: '0-30 dias',
+      waveLabel: WAVE_LABELS[1],
       source: 'Red flag',
-    });
-  });
+    }, 90 + severityBoost + priorityBase, `rf:${rf.code}:w1`);
 
-  const sortedGaps = [...gaps]
-    .filter((g) => !usedDimensionIds.has(g.dimension_id))
-    .sort((a, b) => b.priority_score - a.priority_score);
-
-  sortedGaps.forEach((g) => {
-    if (actions.length >= 9 || usedDimensionIds.has(g.dimension_id)) return;
-    const wave = classifyGapWave(g);
-    usedDimensionIds.add(g.dimension_id);
-    actions.push({
-      title: getRoadmapTitle(g, wave),
-      rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts (prioridade ${Math.round(g.priority_score)})`,
-      wave,
-      waveLabel: wave === 1 ? '0-30 dias' : wave === 2 ? '31-90 dias' : '91-180 dias',
-      source: 'Gap de dimensão',
-    });
-  });
-
-  // Backfill up to 2 itens por wave, sem inventar dados
-  ([1, 2, 3] as const).forEach((wave) => {
-    const candidates = sortedGaps.filter((g) => classifyGapWave(g) !== wave);
-    let i = 0;
-    while (actions.filter((a) => a.wave === wave).length < 2 && i < candidates.length) {
-      const g = candidates[i++];
-      if (actions.some((a) => a.title.includes(g.label))) continue;
-      actions.push({
-        title: getRoadmapTitle(g, wave),
-        rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts`,
-        wave,
-        waveLabel: wave === 1 ? '0-30 dias' : wave === 2 ? '31-90 dias' : '91-180 dias',
-        source: 'Ação sugerida',
-      });
+    if (inferredWave && inferredWave > 1) {
+      pushCandidate({
+        title: primaryAction,
+        rationale: `Desdobramento da Red Flag "${rf.label}" para execução estruturante`,
+        wave: inferredWave,
+        waveLabel: WAVE_LABELS[inferredWave],
+        source: 'Red flag',
+      }, 70 + severityBoost, `rf:${rf.code}:action`);
     }
   });
 
-  // Keep predictable ordering for rendering
-  return actions
-    .sort((a, b) => a.wave - b.wave)
-    .slice(0, 9);
+  gaps.forEach((g) => {
+    const baseWave = getGapBaseWave(g);
+    const baseScore = Math.round(g.priority_score);
+
+    pushCandidate({
+      title: getRoadmapTitle(g, baseWave),
+      rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts (prioridade ${baseScore})`,
+      wave: baseWave,
+      waveLabel: WAVE_LABELS[baseWave],
+      source: 'Gap de dimensão',
+    }, baseScore + (baseWave === 1 ? 5 : 0), `gap:${g.dimension_id}:base`);
+
+    if (baseWave === 1) {
+      pushCandidate({
+        title: `Implementar plano estruturante de ${g.label}`,
+        rationale: `Sequência da priorização inicial em ${g.label}`,
+        wave: 2,
+        waveLabel: WAVE_LABELS[2],
+        source: 'Ação sugerida',
+      }, Math.max(1, baseScore - 2), `gap:${g.dimension_id}:w2`);
+    }
+
+    pushCandidate({
+      title: `Consolidar ganhos de ${g.label} com revisão de maturidade`,
+      rationale: `Evolução e estabilidade de longo ciclo para ${g.label}`,
+      wave: 3,
+      waveLabel: WAVE_LABELS[3],
+      source: 'Ação sugerida',
+    }, Math.max(1, baseScore - 4), `gap:${g.dimension_id}:w3`);
+  });
+
+  const selected: RoadmapAction[] = [];
+  ([1, 2, 3] as const).forEach((wave) => {
+    const waveCandidates = candidates
+      .filter((c) => c.action.wave === wave)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, WAVE_LIMITS[wave])
+      .map((c) => c.action);
+    selected.push(...waveCandidates);
+  });
+
+  return selected.sort((a, b) => a.wave - b.wave);
 }
 
 // ---- Narrative generation ----
