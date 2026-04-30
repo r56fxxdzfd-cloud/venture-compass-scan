@@ -12,9 +12,9 @@ import { Building2, CalendarRange, Users, FileText, FileStack } from 'lucide-rea
 const executiveShortcuts = [
   { label: 'Organizações', description: 'Acompanhar portfólio e diagnósticos', href: '/app/startups', icon: Building2 },
   { label: 'Agenda de Evolução', description: 'Planejar ritos de acompanhamento', href: '/app/agenda', icon: CalendarRange },
-  { label: 'Central do Conselheiro', description: 'Acessar materiais e registros de apoio', href: '/app/methodology', icon: Users },
+  { label: 'Central do Conselheiro', description: 'Acessar materiais e registros de apoio', href: '/app/startups', icon: Users },
   { label: 'Relatório de Progresso', description: 'Ler evolução e próximos focos', href: '/app/startups', icon: FileText },
-  { label: 'Templates de Pauta', description: 'Estruturar encontros executivos', href: '/app/methodology', icon: FileStack },
+  { label: 'Templates de Pauta', description: 'Estruturar encontros executivos', href: '/app/agenda/templates', icon: FileStack },
 ];
 
 export default function DashboardPage() {

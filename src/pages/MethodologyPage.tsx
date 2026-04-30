@@ -531,7 +531,7 @@ export default function MethodologyPage() {
                             <div key={dimId} className="flex justify-between text-xs">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <span className="text-muted-foreground font-mono cursor-help" title={fullName}>{abbrev}</span>
+                                  <span className="text-muted-foreground font-mono cursor-help">{abbrev}</span>
                                 </TooltipTrigger>
                                 <TooltipContent side="left"><p className="text-xs">{fullName}</p></TooltipContent>
                               </Tooltip>
