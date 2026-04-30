@@ -88,7 +88,7 @@ export default function ReportPage() {
       for (const fa of faList) {
         if (fa.score_used != null && fa.score_used < 50) {
           const f = fList.find(fo => fo.id === fa.founder_id);
-          flags.push({ label: `Risco estrutural: ${f?.name || 'Founder'} com score ${fa.score_used.toFixed(1)}`, severity: 'high' });
+          flags.push({ label: `Risco estrutural: ${f?.name || 'Liderança'} com score ${fa.score_used.toFixed(1)}`, severity: 'high' });
         }
       }
 
@@ -104,7 +104,7 @@ export default function ReportPage() {
             if (delta < -1.5) {
               const fa = faList.find(a => a.id === p.founder_assessment_id);
               const f = fList.find(fo => fo.id === fa?.founder_id);
-              flags.push({ label: `Desalinhamento de percepção: ${f?.name || 'Founder'} superestima ${p.pillar_name}`, severity: 'medium' });
+              flags.push({ label: `Desalinhamento de percepção: ${f?.name || 'Liderança'} superestima ${p.pillar_name}`, severity: 'medium' });
             }
           }
         }
@@ -113,7 +113,7 @@ export default function ReportPage() {
       // Founders without assessment
       for (const f of fList) {
         if (!faList.find(fa => fa.founder_id === f.id)) {
-          flags.push({ label: `Founder Score desatualizado: ${f.name}`, severity: 'low' });
+          flags.push({ label: `Diagnóstico de liderança desatualizado: ${f.name}`, severity: 'low' });
         }
       }
 
