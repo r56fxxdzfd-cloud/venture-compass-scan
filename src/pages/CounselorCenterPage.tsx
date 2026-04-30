@@ -71,18 +71,18 @@ export default function CounselorCenterPage() {
   const suggestedTemplates = templates.filter(t => relatedDimensionIds.has(t.dimension_id));
   const recentMeetings = meetings.slice(0, 3);
 
-  if (loading) return <Card className='executive-surface'><CardContent className='py-10 text-center'>Carregando Central do Conselheiro...</CardContent></Card>;
-  if (!company) return <Card className='executive-surface'><CardContent className='py-10 text-center'>Empresa não encontrada.</CardContent></Card>;
+  if (loading) return <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando Central do Conselheiro...</CardContent></Card>;
+  if (!company) return <Card className='executive-panel'><CardContent className='py-10 text-center'>Empresa não encontrada.</CardContent></Card>;
 
   return <div className='space-y-6'>
     <div className='executive-header flex flex-wrap items-center justify-between gap-3'>
       <div>
-        <h1 className='text-2xl font-bold'>Central do Conselheiro</h1>
+        <h1 className='executive-section-title text-2xl font-bold'>Central do Conselheiro</h1>
         <p className='text-muted-foreground'>{company.name}</p>
       </div>
       <div className='flex gap-2'>
-        <Badge variant='outline'>Encontros: {meetings.length}</Badge>
-        <Badge variant='secondary'>Abertas: {openActions.length}</Badge>
+        <Badge variant='outline' className='executive-pill'>Encontros: {meetings.length}</Badge>
+        <Badge variant='secondary' className='executive-pill'>Abertas: {openActions.length}</Badge>
         <Badge variant={overdueActions.length ? 'destructive' : 'outline'}>Atrasadas: {overdueActions.length}</Badge>
       </div>
     </div>
@@ -106,11 +106,11 @@ export default function CounselorCenterPage() {
         </CardContent>
       </Card>
 
-      <Card className='executive-surface'>
+      <Card className='executive-panel'>
         <CardHeader><CardTitle>Pauta sugerida</CardTitle></CardHeader>
         <CardContent className='space-y-3'>
           {suggestedTemplates.length === 0 ? <p className='text-sm'>Nenhum template relacionado às dimensões atuais. Isso reduz a qualidade da preparação do encontro. <Link to='/app/agenda/templates' className='text-primary underline'>Consultar templates de pauta</Link>.</p> : suggestedTemplates.map(t => <div key={t.id} className='rounded-md border p-3 space-y-1 text-sm'>
-            <div className='flex flex-wrap items-center gap-2'><Badge variant='outline'>{t.dimension_label}</Badge><p className='font-medium'>{t.title}</p></div>
+            <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill'>{t.dimension_label}</Badge><p className='font-medium'>{t.title}</p></div>
             <p><strong>Objetivo:</strong> {t.objective}</p>
             <p><strong>Perguntas-chave:</strong> {t.key_questions.join(' • ') || '—'}</p>
             <p><strong>Evidências esperadas:</strong> {t.expected_evidence.join(' • ') || '—'}</p>
@@ -119,7 +119,7 @@ export default function CounselorCenterPage() {
         </CardContent>
       </Card>
 
-      <Card className='executive-surface'>
+      <Card className='executive-panel'>
         <CardHeader><CardTitle>Ações pendentes</CardTitle></CardHeader>
         <CardContent className='space-y-3'>
           {openActions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação de conselho em aberto. Mantenha o registro atualizado para sustentar a execução entre encontros.</p> : openActions.map(a => {
@@ -130,7 +130,7 @@ export default function CounselorCenterPage() {
                 <p className='font-medium'>{a.title}</p>
                 {overdue && <Badge variant='destructive'>Atrasada</Badge>}
                 {a.status === 'blocked' && <Badge variant='destructive'>Travada</Badge>}
-                {quickWin && <Badge variant='secondary'>Alto impacto / baixo esforço</Badge>}
+                {quickWin && <Badge variant='secondary' className='executive-pill'>Alto impacto / baixo esforço</Badge>}
               </div>
               <p>Dimensão: {a.related_dimension || '—'} • Responsável: {a.owner_name || '—'} • Prazo: {a.due_date ? new Date(a.due_date).toLocaleDateString('pt-BR') : '—'}</p>
               <p>Status: {statusLabel[a.status] || a.status} • Prioridade: {priorityLabel[a.priority] || a.priority} • Impacto: {a.impact || '—'} • Esforço: {a.effort || '—'}</p>
@@ -140,11 +140,11 @@ export default function CounselorCenterPage() {
         </CardContent>
       </Card>
 
-      <Card className='executive-surface'>
+      <Card className='executive-panel'>
         <CardHeader><CardTitle>Evolução recente por dimensão</CardTitle></CardHeader>
         <CardContent className='space-y-3 text-sm'>
           {latestProgressByDimension.length === 0 ? <p className='text-muted-foreground'>Ainda não há leitura de evolução por dimensão. Registre a evolução das dimensões discutidas no encontro para orientar decisões.</p> : latestProgressByDimension.map(d => <div key={d.id} className='rounded-md border p-3'>
-            <div className='flex flex-wrap gap-2 items-center'><Badge variant='outline'>{d.dimension_label}</Badge><Badge>{trendLabel[d.trend] || d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
+            <div className='flex flex-wrap gap-2 items-center'><Badge variant='outline' className='executive-pill'>{d.dimension_label}</Badge><Badge className='executive-pill'>{trendLabel[d.trend] || d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
             <p>Evidência: {d.evidence_note || '—'}</p>
             <p>Comentário: {d.counselor_comment || '—'}</p>
             <p className='text-muted-foreground'>Última atualização: {d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR') : '—'}</p>
@@ -153,7 +153,7 @@ export default function CounselorCenterPage() {
       </Card>
     </>}
 
-    <Card className='executive-surface'>
+    <Card className='executive-panel'>
       <CardHeader><CardTitle>Ações rápidas</CardTitle></CardHeader>
       <CardContent className='flex flex-wrap gap-2'>
         <Button asChild><Link to='/app/agenda'>Registrar novo encontro</Link></Button>

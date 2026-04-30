@@ -229,7 +229,7 @@ export default function ReportPage() {
   return (
     <div className="space-y-6 max-w-6xl mx-auto overflow-x-hidden" id="report-root">
       {/* Navigation */}
-      <div className="executive-surface rounded-xl p-4 sm:p-5 flex items-center justify-between">
+      <div className="executive-panel rounded-xl p-4 sm:p-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <TooltipProvider>
             <Tooltip>
@@ -276,7 +276,7 @@ export default function ReportPage() {
       </div>
 
       {/* Anchor index bar - screen only */}
-      <div className="flex gap-2 border-b pb-3 print:hidden overflow-x-auto scrollbar-none -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap" data-html2canvas-ignore="true">
+      <div className="executive-panel rounded-xl p-3 sm:p-4 flex gap-2 border-b pb-3 print:hidden overflow-x-auto scrollbar-none -mx-2 px-2 sm:mx-0 sm:px-0 sm:flex-wrap" data-html2canvas-ignore="true">
         {anchorLinks.map((link, i) => (
           <button
             key={link.id}

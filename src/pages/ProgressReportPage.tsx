@@ -113,7 +113,7 @@ export default function ProgressReportPage() {
     <div className='executive-surface rounded-xl p-5 print-safe'>
       <p className='executive-header'>Relatório de Progresso</p>
       <div className='flex items-center justify-between gap-3 mt-2'>
-        <h1 className='text-2xl font-bold'>{company.name}</h1>
+        <h1 className='executive-section-title text-2xl font-bold'>{company.name}</h1>
         <Button variant='outline' className='print:hidden' onClick={() => window.print()}>Imprimir / Exportar PDF</Button>
       </div>
       <div className='grid md:grid-cols-3 gap-2 text-sm mt-3'>
@@ -136,8 +136,8 @@ export default function ProgressReportPage() {
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent>
       {dimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada. Abra o detalhe do encontro para registrar evidências e tendência por dimensão.</p> :
-      <div className='space-y-3'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='border rounded-lg p-3 text-sm space-y-1'>
-        <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p><Badge>{trendLabel[progress!.trend]}</Badge></div>
+      <div className='space-y-3'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-3 text-sm space-y-1'>
+        <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p><Badge className='executive-pill'>{trendLabel[progress!.trend]}</Badge></div>
         <p><strong>Score inicial:</strong> {progress?.initial_score ?? '—'} | <strong>Score percebido atual:</strong> {progress?.current_perceived_score ?? '—'}</p>
         <p><strong>Evidência:</strong> {progress?.evidence_note || '—'}</p>
         <p><strong>Comentário do conselheiro:</strong> {progress?.counselor_comment || '—'}</p>
@@ -149,7 +149,7 @@ export default function ProgressReportPage() {
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
       <div className='space-y-4'>{statusOrder.map((status) => <div key={status} className='space-y-2'>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
-        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='border rounded-lg p-3 text-sm'>
+        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-3 text-sm'>
           <p className='font-medium'>{action.title}</p>
           <p className='text-muted-foreground'>{action.related_dimension || 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Prioridade: {action.priority} | Impacto: {action.impact || '—'} | Esforço: {action.effort || '—'} | Status: {actionStatusLabel[action.status]}</p>
@@ -159,7 +159,7 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='space-y-3'>
-      {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='border rounded-lg p-3 text-sm'>
+      {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-3 text-sm'>
         <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {new Date(meeting.meeting_date).toLocaleDateString('pt-BR')}</p>
         <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
         <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>

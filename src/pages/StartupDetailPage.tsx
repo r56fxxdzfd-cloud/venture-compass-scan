@@ -267,7 +267,7 @@ export default function StartupDetailPage() {
       </div>
 
 
-      <Card className='executive-surface'>
+      <Card className='executive-panel'>
         <CardHeader><CardTitle>Histórico de Conselho</CardTitle></CardHeader>
         <CardContent className='grid md:grid-cols-5 gap-3 text-sm'>
           <div><p className='text-muted-foreground'>Ações abertas</p><p className='text-xl font-semibold'>{councilStats.open}</p></div>
