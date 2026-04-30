@@ -66,18 +66,18 @@ export default function AgendaTemplatesPage() {
 
   return <div className='space-y-6'>
     <div className='executive-header flex items-center justify-between'>
-      <h1 className='text-2xl font-bold'>Templates de Pauta</h1>
+      <h1 className='executive-section-title text-2xl font-bold'>Templates de Pauta</h1>
       {canWrite && <div className='flex gap-2'><Button variant='outline' asChild><a href='/app/agenda'>Abrir Agenda de Evolução</a></Button><Button onClick={() => setEditing({ priority: 'medium', is_active: true, sort_order: 0, key_questions: [], expected_evidence: [], suggested_actions: [], associated_red_flags: [] })}>Adicionar template</Button></div>}
     </div>
 
-    <Card className='executive-surface'><CardContent className='pt-6 grid md:grid-cols-2 gap-3'>
+    <Card className='executive-panel'><CardContent className='pt-6 grid md:grid-cols-2 gap-3'>
       <div><Label>Dimensão</Label><Select value={dimensionFilter} onValueChange={setDimensionFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{dimensions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent></Select></div>
       <div><Label>Prioridade</Label><Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem><SelectItem value='low'>Baixa</SelectItem><SelectItem value='medium'>Média</SelectItem><SelectItem value='high'>Alta</SelectItem></SelectContent></Select></div>
     </CardContent></Card>
 
-    <div className='space-y-4'>{Object.entries(grouped).map(([dimension, templates]) => <Card key={dimension} className='executive-surface'>
+    <div className='space-y-4'>{Object.entries(grouped).map(([dimension, templates]) => <Card key={dimension} className='executive-panel'>
       <CardHeader><CardTitle>{dimension}</CardTitle></CardHeader>
-      <CardContent className='space-y-3'>{templates.map(t => <div key={t.id} className='border rounded-lg p-3 space-y-2'>
+      <CardContent className='space-y-3'>{templates.map(t => <div key={t.id} className='executive-card rounded-lg p-3 space-y-2'>
         <div className='flex items-center justify-between gap-2'><p className='font-semibold'>{t.title}</p><p className='text-xs text-muted-foreground'>Prioridade: {priorityLabel[t.priority]}</p></div>
         <p><strong>Objetivo:</strong> {t.objective}</p>
         <p><strong>Quando usar:</strong> {t.when_to_use || '—'}</p>
@@ -88,7 +88,7 @@ export default function AgendaTemplatesPage() {
       </div>)}</CardContent>
     </Card>)}</div>
 
-    {editing && canWrite && <Card className='executive-surface'><CardHeader><CardTitle>{editing.id ? 'Editar template' : 'Novo template'}</CardTitle></CardHeader><CardContent className='space-y-3'>
+    {editing && canWrite && <Card className='executive-panel'><CardHeader><CardTitle>{editing.id ? 'Editar template' : 'Novo template'}</CardTitle></CardHeader><CardContent className='space-y-3'>
       <div className='grid md:grid-cols-2 gap-2'>
         <div><Label>ID da dimensão</Label><Input value={editing.dimension_id || ''} onChange={e => setEditing({ ...editing, dimension_id: e.target.value })} /></div>
         <div><Label>Nome da dimensão</Label><Input value={editing.dimension_label || ''} onChange={e => setEditing({ ...editing, dimension_label: e.target.value })} /></div>

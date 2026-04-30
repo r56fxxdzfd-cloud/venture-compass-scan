@@ -154,8 +154,8 @@ export default function MeetingDetailPage() {
   );
 
   return <div className='space-y-4'>
-    <Card className='executive-surface'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
-      <Badge>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
+    <Card className='executive-panel'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
+      <Badge className='executive-pill'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
       <p><strong>Empresa:</strong> {companyName || '—'}</p>
       <p><strong>Resumo:</strong> {meeting.executive_summary || '—'}</p>
       <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
@@ -165,23 +165,23 @@ export default function MeetingDetailPage() {
     <div className='pt-1'><Link to='/app/agenda/templates' className='text-sm text-primary underline'>Consultar Templates de Pauta</Link></div></CardContent></Card>
 
 
-    <Card className='executive-surface'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className='executive-panel'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
       {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhum template relacionado às dimensões deste encontro. Consulte a biblioteca de templates para qualificar a pauta.</p> :
-      suggestedTemplates.map(t => <div key={t.id} className='border rounded-lg p-3 space-y-2'>
+      suggestedTemplates.map(t => <div key={t.id} className='executive-card rounded-lg p-3 space-y-2'>
         <p className='font-medium'>{t.dimension_label} • {t.title}</p>
         <p className='text-sm'><strong>Objetivo:</strong> {t.objective}</p>
         <ul className='list-disc pl-5 text-sm'>{t.key_questions.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
       </div>)}
     </CardContent></Card>
 
-    <Card className='executive-surface'><CardHeader><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className='executive-panel'><CardHeader><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
       {dimensions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma dimensão ativa encontrada na metodologia publicada.</p> : <>
         <p className='text-sm text-muted-foreground'>Registre apenas as dimensões discutidas neste encontro.</p>
         <div className='space-y-4'>{dimensions.map((d) => {
           const row = formByDimension[d.id];
           if (!row) return null;
           const existing = progressRows.find(p => p.dimension_id === d.id);
-          return <div key={d.id} className='border rounded-lg p-3 space-y-3'>
+          return <div key={d.id} className='executive-card rounded-lg p-3 space-y-3'>
             <div className='flex items-center justify-between'>
               <p className='font-medium'>{d.label}</p>
               <Badge variant={trendVariant[row.trend]}>{trendLabel[row.trend]}</Badge>
@@ -204,14 +204,14 @@ export default function MeetingDetailPage() {
       </>}
     </CardContent></Card>
 
-    <Card className='executive-surface'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className='executive-panel'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>
       <div className='grid md:grid-cols-5 gap-2'>
         <div className='md:col-span-2'><Label>Ação</Label><Input value={newAction.title || ''} onChange={e => setNewAction({ ...newAction, title: e.target.value })} /></div>
         <div><Label>Responsável</Label><Input value={newAction.owner_name || ''} onChange={e => setNewAction({ ...newAction, owner_name: e.target.value })} /></div>
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
         <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
       </div><Button onClick={addAction}>Adicionar ação de conselho</Button>
-      <div className='space-y-2'>{actions.map(a => <div key={a.id} className='border rounded p-3 flex items-center justify-between gap-2'>
+      <div className='space-y-2'>{actions.map(a => <div key={a.id} className='executive-card rounded p-3 flex items-center justify-between gap-2'>
         <div><p className='font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>{a.impact === 'high' && a.effort === 'low' && <Badge className='mt-1'>Prioridade imediata</Badge>}</div>
         <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-40'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
       </div>)}</div>
