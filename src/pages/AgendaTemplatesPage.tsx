@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,9 +67,17 @@ export default function AgendaTemplatesPage() {
   };
 
   return <div className='space-y-6'>
-    <div className='executive-header flex items-center justify-between'>
-      <h1 className='executive-section-title text-2xl font-bold'>Templates de Pauta</h1>
-      {canWrite && <div className='flex gap-2'><Button variant='outline' asChild><a href='/app/agenda'>Abrir Agenda de Evolução</a></Button><Button onClick={() => setEditing({ priority: 'medium', is_active: true, sort_order: 0, key_questions: [], expected_evidence: [], suggested_actions: [], associated_red_flags: [] })}>Adicionar template</Button></div>}
+    <div className='executive-header flex flex-wrap items-center justify-between gap-3'>
+      <div className='space-y-1'>
+        <Button variant='ghost' asChild className='px-0 text-muted-foreground hover:text-foreground'>
+          <Link to='/app/agenda'>
+            <ArrowLeft className='h-4 w-4' />
+            Voltar para Agenda
+          </Link>
+        </Button>
+        <h1 className='executive-section-title text-2xl font-bold'>Templates de Pauta</h1>
+      </div>
+      {canWrite && <div className='flex gap-2'><Button variant='outline' asChild><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button><Button onClick={() => setEditing({ priority: 'medium', is_active: true, sort_order: 0, key_questions: [], expected_evidence: [], suggested_actions: [], associated_red_flags: [] })}>Adicionar template</Button></div>}
     </div>
 
     <Card className='executive-panel'><CardContent className='pt-6 grid md:grid-cols-2 gap-3'>
