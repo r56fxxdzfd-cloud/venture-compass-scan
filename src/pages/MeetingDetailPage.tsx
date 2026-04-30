@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +18,7 @@ const trendLabel: Record<DimensionTrend, string> = {
   improving: 'Melhorando',
   stable: 'Estável',
   worsening: 'Piorando',
-  insufficient_evidence: 'Sem evidência suficiente',
+  insufficient_evidence: 'Sem evidência',
 };
 
 const trendVariant: Record<DimensionTrend, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -155,18 +155,18 @@ export default function MeetingDetailPage() {
 
   return <div className='space-y-4'>
     <Card className='executive-surface'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
-      <Badge>{meeting.meeting_type}</Badge>
+      <Badge>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
       <p><strong>Empresa:</strong> {companyName || '—'}</p>
       <p><strong>Resumo:</strong> {meeting.executive_summary || '—'}</p>
       <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
       <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
       <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
-    </CardContent></Card>
+    <div className='pt-1'><Link to='/app/agenda/templates' className='text-sm text-primary underline'>Consultar Templates de Pauta</Link></div></CardContent></Card>
 
 
     <Card className='executive-surface'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
-      {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Sem templates vinculados às dimensões já selecionadas neste encontro.</p> :
+      {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhum template relacionado às dimensões deste encontro. Consulte a biblioteca de templates para qualificar a pauta.</p> :
       suggestedTemplates.map(t => <div key={t.id} className='border rounded-lg p-3 space-y-2'>
         <p className='font-medium'>{t.dimension_label} • {t.title}</p>
         <p className='text-sm'><strong>Objetivo:</strong> {t.objective}</p>
@@ -189,7 +189,7 @@ export default function MeetingDetailPage() {
             <div className='grid md:grid-cols-3 gap-2'>
               <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
               <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
-              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência suficiente</SelectItem></SelectContent></Select></div>
+              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência</SelectItem></SelectContent></Select></div>
             </div>
             <div className='grid md:grid-cols-2 gap-2'>
               <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } }))} /></div>
@@ -209,11 +209,11 @@ export default function MeetingDetailPage() {
         <div className='md:col-span-2'><Label>Ação</Label><Input value={newAction.title || ''} onChange={e => setNewAction({ ...newAction, title: e.target.value })} /></div>
         <div><Label>Responsável</Label><Input value={newAction.owner_name || ''} onChange={e => setNewAction({ ...newAction, owner_name: e.target.value })} /></div>
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
-        <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em progresso</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Bloqueada</SelectItem></SelectContent></Select></div>
-      </div><Button onClick={addAction}>Adicionar ação</Button>
+        <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
+      </div><Button onClick={addAction}>Adicionar ação de conselho</Button>
       <div className='space-y-2'>{actions.map(a => <div key={a.id} className='border rounded p-3 flex items-center justify-between gap-2'>
         <div><p className='font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>{a.impact === 'high' && a.effort === 'low' && <Badge className='mt-1'>Prioridade imediata</Badge>}</div>
-        <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-40'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em progresso</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Bloqueada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
+        <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-40'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
       </div>)}</div>
     </CardContent></Card>
   </div>;
