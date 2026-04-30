@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CouncilAction, CouncilAgendaTemplate, CouncilDimensionProgress, CouncilMeeting } from '@/types/council';
@@ -110,7 +111,7 @@ export default function CounselorCenterPage() {
         <CardHeader><CardTitle>Pauta sugerida</CardTitle></CardHeader>
         <CardContent className='space-y-3'>
           {suggestedTemplates.length === 0 ? <p className='text-sm'>Nenhum template relacionado às dimensões atuais. Isso reduz a qualidade da preparação do encontro. <Link to='/app/agenda/templates' className='text-primary underline'>Consultar templates de pauta</Link>.</p> : suggestedTemplates.map(t => <div key={t.id} className='rounded-md border p-3 space-y-1 text-sm'>
-            <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill'>{t.dimension_label}</Badge><p className='font-medium'>{t.title}</p></div>
+            <div className='flex flex-wrap items-center gap-2'><DimensionBadge code={t.dimension_id} label={t.dimension_label} /><p className='font-medium'>{t.title}</p></div>
             <p><strong>Objetivo:</strong> {t.objective}</p>
             <p><strong>Perguntas-chave:</strong> {t.key_questions.join(' • ') || '—'}</p>
             <p><strong>Evidências esperadas:</strong> {t.expected_evidence.join(' • ') || '—'}</p>
@@ -132,7 +133,7 @@ export default function CounselorCenterPage() {
                 {a.status === 'blocked' && <Badge variant='destructive'>Travada</Badge>}
                 {quickWin && <Badge variant='secondary' className='executive-pill'>Alto impacto / baixo esforço</Badge>}
               </div>
-              <p>Dimensão: {a.related_dimension || '—'} • Responsável: {a.owner_name || '—'} • Prazo: {a.due_date ? new Date(a.due_date).toLocaleDateString('pt-BR') : '—'}</p>
+              <p>Dimensão: {a.related_dimension ? <DimensionBadge code={a.related_dimension} /> : '—'} • Responsável: {a.owner_name || '—'} • Prazo: {a.due_date ? new Date(a.due_date).toLocaleDateString('pt-BR') : '—'}</p>
               <p>Status: {statusLabel[a.status] || a.status} • Prioridade: {priorityLabel[a.priority] || a.priority} • Impacto: {a.impact || '—'} • Esforço: {a.effort || '—'}</p>
               <p>Evidência esperada: {a.expected_evidence || '—'}</p>
             </div>;
@@ -144,7 +145,7 @@ export default function CounselorCenterPage() {
         <CardHeader><CardTitle>Evolução recente por dimensão</CardTitle></CardHeader>
         <CardContent className='space-y-3 text-sm'>
           {latestProgressByDimension.length === 0 ? <p className='text-muted-foreground'>Ainda não há leitura de evolução por dimensão. Registre a evolução das dimensões discutidas no encontro para orientar decisões.</p> : latestProgressByDimension.map(d => <div key={d.id} className='rounded-md border p-3'>
-            <div className='flex flex-wrap gap-2 items-center'><Badge variant='outline' className='executive-pill'>{d.dimension_label}</Badge><Badge className='executive-pill'>{trendLabel[d.trend] || d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
+            <div className='flex flex-wrap gap-2 items-center'><DimensionBadge code={d.dimension_id} label={d.dimension_label} /><Badge className='executive-pill'>{trendLabel[d.trend] || d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
             <p>Evidência: {d.evidence_note || '—'}</p>
             <p>Comentário: {d.counselor_comment || '—'}</p>
             <p className='text-muted-foreground'>Última atualização: {d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR') : '—'}</p>

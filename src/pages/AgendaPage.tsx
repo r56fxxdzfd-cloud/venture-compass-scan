@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DimensionBadge, getDimensionFullLabel } from '@/components/DimensionBadge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,17 +15,6 @@ import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, Dimension
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
 const mt = { collective: 'Coletivo', individual: 'Individual', extraordinary: 'Extraordinário' } as const;
-const fallbackDimensionLabels: Record<string, string> = {
-  IC: 'Identidade & Cultura',
-  PL: 'Pessoas & Liderança',
-  GR: 'Governança & Riscos',
-  EE: 'Estratégia & Execução',
-  PM: 'Processos & Métricas',
-  FS: 'Finanças & Sustentabilidade',
-  MN: 'Modelo de Negócio',
-  GT: 'Go-to-market & Tração',
-  PT: 'Produto & Tecnologia',
-};
 const trendLabels: Record<DimensionTrend | 'sem_trend', string> = {
   improving: 'Melhorando',
   stable: 'Estável',
@@ -133,7 +123,7 @@ export default function AgendaPage() {
     }
     const resolveLabel = (dimension: string, progressLabel?: string) => {
       const catalogLabel = dimensionCatalog.find((d) => d.id === dimension)?.label;
-      return catalogLabel || progressLabel || fallbackDimensionLabels[dimension] || dimension;
+      return catalogLabel || getDimensionFullLabel(dimension, progressLabel);
     };
     return Object.entries(map)
       .map(([dimension, info]) => {
@@ -196,7 +186,7 @@ export default function AgendaPage() {
         const completedCount = am.filter(a => a.status === 'completed').length;
         const completionPct = am.length ? Math.round((completedCount / am.length) * 100) : 0;
         return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader><CardTitle className='flex flex-wrap justify-between gap-2'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
-          <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge>{(m.related_dimensions || []).map(d => <Badge key={d} variant='outline'>{d}</Badge>)}</div>
+          <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge>{(m.related_dimensions || []).map(d => <DimensionBadge key={d} code={d} size='sm' />)}</div>
           <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {openCount} abertas / {completedCount} concluídas</p>
           <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-primary' style={{ width: `${completionPct}%` }} /></div>
           <p className='text-xs text-muted-foreground'>{completedCount} de {am.length} ações concluídas</p>
@@ -232,7 +222,7 @@ export default function AgendaPage() {
                     ? 'Dimensão avaliada recentemente'
                     : 'Sem tendência registrada';
               return <div key={item.dimension} className='executive-card rounded p-3 space-y-2'>
-                <div className='flex items-start justify-between gap-2'><p className='font-medium leading-tight'>{item.label}</p><Badge variant='outline' className='executive-pill text-xs'>{item.dimension}</Badge></div>
+                <div className='flex items-start justify-between gap-2'><p className='font-medium leading-tight'>{item.label}</p><DimensionBadge code={item.dimension} label={item.label} size='sm' className='text-xs' /></div>
                 <div className='flex items-center justify-between text-xs text-muted-foreground'><span>{item.count} aparições</span><span>#{idx + 1}</span></div>
                 <div className='h-2 rounded bg-muted/70 overflow-hidden'><div className={`h-full ${item.trend === 'worsening' ? 'bg-rose-500' : 'bg-cyan-400'}`} style={{ width: `${width}%` }} /></div>
                 <div className='flex items-center justify-between'><Badge variant='outline' className={`${item.trend === 'worsening' ? 'border-rose-400/40 text-rose-300' : ''}`}>{item.trendLabel}</Badge><span className='text-xs text-muted-foreground'>{item.trendCount} registros de evolução</span></div>

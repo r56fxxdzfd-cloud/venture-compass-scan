@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend } from '@/types/council';
 
@@ -151,7 +152,7 @@ export default function ProgressReportPage() {
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
         {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-3 text-sm'>
           <p className='font-medium'>{action.title}</p>
-          <p className='text-muted-foreground'>{action.related_dimension || 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
+          <p className='text-muted-foreground'>{action.related_dimension ? <DimensionBadge code={action.related_dimension} /> : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Prioridade: {action.priority} | Impacto: {action.impact || '—'} | Esforço: {action.effort || '—'} | Status: {actionStatusLabel[action.status]}</p>
           <p><strong>Evidência esperada:</strong> {action.expected_evidence || '—'}</p>
         </div>)}

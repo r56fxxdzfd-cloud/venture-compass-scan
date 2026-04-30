@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -197,7 +198,7 @@ export default function MeetingDetailPage() {
     <Card className='executive-panel'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
       {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhum template relacionado às dimensões deste encontro. Consulte a biblioteca de templates para qualificar a pauta.</p> :
       suggestedTemplates.map(t => <div key={t.id} className='executive-card rounded-lg p-3 space-y-2'>
-        <p className='font-medium'>{t.dimension_label} • {t.title}</p>
+        <p className='font-medium flex items-center gap-2'><DimensionBadge code={t.dimension_id} label={t.dimension_label} /><span>{t.title}</span></p>
         <p className='text-sm'><strong>Objetivo:</strong> {t.objective}</p>
         <ul className='list-disc pl-5 text-sm'>{t.key_questions.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
       </div>)}
