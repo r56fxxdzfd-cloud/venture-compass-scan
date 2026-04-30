@@ -41,12 +41,11 @@ export function DimensionBadge({ code, label, size = 'md', variant = 'outline', 
             variant={variant}
             className={cn('executive-pill', size === 'sm' && 'text-xs px-2 py-0.5', className)}
             aria-label={ariaLabel}
-            title={fullLabel}
           >
             {safeCode}
           </Badge>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="top" align="center">
           <p>{fullLabel}</p>
         </TooltipContent>
       </Tooltip>
