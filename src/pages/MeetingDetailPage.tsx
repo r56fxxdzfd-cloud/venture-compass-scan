@@ -144,6 +144,21 @@ export default function MeetingDetailPage() {
   if (loading) return <div className='text-sm text-muted-foreground'>Carregando encontro...</div>;
   if (!meeting) return <div className='text-sm text-muted-foreground'>Encontro não encontrado.</div>;
 
+  const today = new Date();
+  const totalActions = actions.length;
+  const completedActions = actions.filter(a => a.status === 'completed').length;
+  const openActions = actions.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
+  const overdueActions = actions.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+  const blockedActions = actions.filter(a => a.status === 'blocked').length;
+  const progressPct = totalActions ? Math.round((completedActions / totalActions) * 100) : 0;
+  const actionsByStatus = {
+    not_started: actions.filter(a => a.status === 'not_started'),
+    in_progress: actions.filter(a => a.status === 'in_progress'),
+    blocked: actions.filter(a => a.status === 'blocked'),
+    completed: actions.filter(a => a.status === 'completed'),
+    cancelled: actions.filter(a => a.status === 'cancelled'),
+  };
+
   const discussedDimensionIds = new Set([
     ...(meeting.related_dimensions || []),
     ...progressRows.map(p => p.dimension_id),
@@ -154,6 +169,14 @@ export default function MeetingDetailPage() {
   );
 
   return <div className='space-y-4'>
+    <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-6'>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{totalActions}</p><p className='text-xs text-muted-foreground'>Ações totais</p></CardContent></Card>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{completedActions}</p><p className='text-xs text-muted-foreground'>Concluídas</p></CardContent></Card>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{openActions}</p><p className='text-xs text-muted-foreground'>Abertas</p></CardContent></Card>
+      <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{overdueActions}</p><p className='text-xs text-muted-foreground'>Atrasadas</p></CardContent></Card>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{progressRows.length}</p><p className='text-xs text-muted-foreground'>Dimensões avaliadas</p></CardContent></Card>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{meeting.next_agenda ? 'Sim' : 'Não'}</p><p className='text-xs text-muted-foreground'>Próxima pauta definida</p></CardContent></Card>
+    </div>
     <Card className='executive-panel'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <Badge className='executive-pill'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
       <p><strong>Empresa:</strong> {companyName || '—'}</p>
@@ -162,6 +185,12 @@ export default function MeetingDetailPage() {
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
       <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
       <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+      <div className='flex flex-wrap gap-2'>
+        {!meeting.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
+        {totalActions === 0 && <Badge variant='outline'>Sem ações</Badge>}
+        {overdueActions > 0 && <Badge variant='destructive'>Ações atrasadas</Badge>}
+        {progressRows.length === 0 && <Badge variant='outline'>Sem evolução registrada</Badge>}
+      </div>
     <div className='pt-1'><Link to='/app/agenda/templates' className='text-sm text-primary underline'>Consultar Templates de Pauta</Link></div></CardContent></Card>
 
 
@@ -205,16 +234,25 @@ export default function MeetingDetailPage() {
     </CardContent></Card>
 
     <Card className='executive-panel'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>
+      <div className='space-y-1'>
+        <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-primary' style={{ width: `${progressPct}%` }} /></div>
+        <p className='text-xs text-muted-foreground'>{completedActions} de {totalActions} ações concluídas ({progressPct}%)</p>
+      </div>
       <div className='grid md:grid-cols-5 gap-2'>
         <div className='md:col-span-2'><Label>Ação</Label><Input value={newAction.title || ''} onChange={e => setNewAction({ ...newAction, title: e.target.value })} /></div>
         <div><Label>Responsável</Label><Input value={newAction.owner_name || ''} onChange={e => setNewAction({ ...newAction, owner_name: e.target.value })} /></div>
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
         <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
       </div><Button onClick={addAction}>Adicionar ação de conselho</Button>
-      <div className='space-y-2'>{actions.map(a => <div key={a.id} className='executive-card rounded p-3 flex items-center justify-between gap-2'>
-        <div><p className='font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>{a.impact === 'high' && a.effort === 'low' && <Badge className='mt-1'>Prioridade imediata</Badge>}</div>
-        <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-40'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
-      </div>)}</div>
+      {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação vinculada. Sem ações fica impossível monitorar execução do encontro. Próximo passo: registre ao menos uma ação com responsável e prazo.</p> :
+      <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>{Object.entries(actionsByStatus).map(([status, rows]) => <div key={status} className='executive-card rounded p-2 space-y-2'>
+        <p className='text-sm font-semibold capitalize'>{status.replace('_', ' ')}</p>
+        {rows.length === 0 ? <p className='text-xs text-muted-foreground'>Sem itens</p> : rows.map(a => <div key={a.id} className='rounded border border-border/50 p-2 space-y-1'>
+          <p className='text-sm font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>
+          {a.impact === 'high' && a.effort === 'low' && ['not_started', 'in_progress', 'blocked'].includes(a.status) && <Badge className='mt-1'>Prioridade imediata</Badge>}
+          <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-full h-8'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
+        </div>)}
+      </div>)}</div>}
     </CardContent></Card>
   </div>;
 }
