@@ -40,11 +40,16 @@ export default function ProgressReportPage() {
       if (!id) return;
       setLoading(true);
 
-      const [{ data: companyData }, { data: meetingsData }, { data: dimensionsData }] = await Promise.all([
+      const [{ data: companyData }, { data: meetingsData }, { data: publishedConfig }] = await Promise.all([
         supabase.from('companies').select('id,name').eq('id', id).single(),
         supabase.from('council_meetings').select('*').eq('company_id', id).order('meeting_date', { ascending: false }),
-        supabase.from('dimensions').select('id,label').order('sort_order', { ascending: true }),
+        supabase.from('config_versions').select('id').eq('status', 'published').single(),
       ]);
+
+      const dimensionsQuery = supabase.from('dimensions').select('id,label').order('sort_order', { ascending: true });
+      const { data: dimensionsData } = publishedConfig?.id
+        ? await dimensionsQuery.eq('config_version_id', publishedConfig.id)
+        : await dimensionsQuery;
 
       const meetingIds = (meetingsData || []).map(m => m.id);
       const [{ data: actionsData }, { data: progressData }] = await Promise.all([
@@ -95,6 +100,9 @@ export default function ProgressReportPage() {
     };
   }, [meetings.length, actionsByStatus.completed.length, dimensionRows, actions, dimensions]);
 
+
+  const openActions = useMemo(() => actions.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked'), [actions]);
+
   const latestMeeting = meetings[0];
   const oldestMeeting = meetings[meetings.length - 1];
 
@@ -113,7 +121,7 @@ export default function ProgressReportPage() {
         <p><strong>Período analisado:</strong> {oldestMeeting?.meeting_date ? new Date(oldestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'} até {latestMeeting?.meeting_date ? new Date(latestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'}</p>
         <p><strong>Última reunião:</strong> {latestMeeting?.meeting_date ? new Date(latestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'}</p>
         <p><strong>Encontros registrados:</strong> {meetings.length}</p>
-        <p><strong>Ações totais/abertas:</strong> {actions.length} / {actions.length - actionsByStatus.completed.length}</p>
+        <p><strong>Ações totais/abertas:</strong> {actions.length} / {openActions.length}</p>
         <p><strong>Ações concluídas/travadas:</strong> {actionsByStatus.completed.length} / {actionsByStatus.blocked.length}</p>
       </div>
     </div>
@@ -175,7 +183,7 @@ function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: Cou
   progressRows.filter(d => d.trend === 'worsening').forEach(d => items.push(`Reverter tendência de queda em ${dimensionName(d.dimension_id)}.`));
   progressRows.filter(d => d.trend === 'stable' && (d.current_perceived_score ?? 999) <= 2.5).forEach(d => items.push(`Elevar score percebido (estável e baixo) em ${dimensionName(d.dimension_id)}.`));
   actions.filter(a => a.status === 'blocked' && a.priority === 'high').forEach(a => items.push(`Destravar ação crítica: ${a.title}.`));
-  actions.filter(a => a.status !== 'completed' && a.impact === 'high' && a.effort === 'low').forEach(a => items.push(`Executar quick win de alto impacto: ${a.title}.`));
+  actions.filter(a => (a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked') && a.impact === 'high' && a.effort === 'low').forEach(a => items.push(`Executar quick win de alto impacto: ${a.title}.`));
 
   return Array.from(new Set(items)).slice(0, 8);
 }
