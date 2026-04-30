@@ -11,6 +11,7 @@ import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning, RefreshCw } fr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 interface UserWithRole {
   id: string;
@@ -427,6 +428,7 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <BackToTopFooter />
     </div>
   );
 }

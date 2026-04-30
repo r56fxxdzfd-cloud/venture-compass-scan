@@ -23,6 +23,7 @@ import { scoreTo100, getLevel } from '@/utils/report-helpers';
 import { getCurrentSemester, getFounderStageLabel } from '@/utils/founder-scoring';
 import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
 import type { Founder, FounderAssessment } from '@/types/founder';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
@@ -214,6 +215,7 @@ export default function StartupDetailPage() {
         <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-4 w-full" />)}</CardContent></Card>
         <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-12 w-full rounded-lg" />)}</CardContent></Card>
       </div>
+      <BackToTopFooter />
     </div>
   );
 

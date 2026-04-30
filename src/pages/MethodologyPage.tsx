@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
 import '@/styles/methodology-print.css';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 // ---- Helpers ----
 
@@ -105,6 +106,7 @@ export default function MethodologyPage() {
           </CardContent>
         </Card>
       ))}
+      <BackToTopFooter />
     </div>
   );
 

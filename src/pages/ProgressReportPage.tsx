@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend } from '@/types/council';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type CompanyLite = { id: string; name: string };
 type DimensionOption = { id: string; label: string };
@@ -174,6 +175,7 @@ export default function ProgressReportPage() {
       {summary.nextFocus.length === 0 ? <p className='text-sm text-muted-foreground'>Sem focos sugeridos no momento.</p> :
       <ol className='list-decimal pl-5 text-sm space-y-1'>{summary.nextFocus.map((item, idx) => <li key={idx}>{item}</li>)}</ol>}
     </CardContent></Card>
+    <BackToTopFooter />
   </div>;
 }
 

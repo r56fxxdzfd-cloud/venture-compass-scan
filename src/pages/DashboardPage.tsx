@@ -7,6 +7,7 @@ import AttentionSection, { AttentionItem } from '@/components/dashboard/Attentio
 import AssessmentsTable, { AssessmentRow } from '@/components/dashboard/AssessmentsTable';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel';
 import { Building2, CalendarRange, Users, FileText, FileStack } from 'lucide-react';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 
 const executiveShortcuts = [
@@ -341,6 +342,7 @@ export default function DashboardPage() {
       <div className="lg:hidden">
         <QuickActionsPanel />
       </div>
+      <BackToTopFooter />
     </div>
   );
 }

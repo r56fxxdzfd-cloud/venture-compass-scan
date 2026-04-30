@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAgendaTemplate, CouncilAgendaTemplatePriority } from '@/types/council';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const priorityLabel: Record<CouncilAgendaTemplatePriority, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
 
@@ -118,5 +119,6 @@ export default function AgendaTemplatesPage() {
       </div>
       <div className='flex gap-2 justify-end'><Button variant='outline' onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={save}>Salvar</Button></div>
     </CardContent></Card>}
+    <BackToTopFooter />
   </div>;
 }

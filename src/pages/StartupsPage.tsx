@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { Company } from '@/types/darwin';
 import { motion } from 'framer-motion';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 export default function StartupsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -219,6 +220,7 @@ export default function StartupsPage() {
           )}
         </>
       )}
+      <BackToTopFooter />
     </div>
   );
 }

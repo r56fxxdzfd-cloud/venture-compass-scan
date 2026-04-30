@@ -22,6 +22,7 @@ import {
 } from '@/components/report/ReportSections';
 import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from '@/components/report/ParetoSections';
 import { FounderLeadershipSection } from '@/components/report/FounderLeadershipSection';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const anchorLinks = [
   { label: 'Score Geral', id: 'section-overall' },
@@ -214,6 +215,7 @@ export default function ReportPage() {
           </CardContent>
         </Card>
       ))}
+      <BackToTopFooter />
     </div>
   );
 
