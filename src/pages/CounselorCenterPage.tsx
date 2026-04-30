@@ -6,6 +6,7 @@ import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CouncilAction, CouncilAgendaTemplate, CouncilDimensionProgress, CouncilMeeting } from '@/types/council';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type Company = { id: string; name: string };
 
@@ -163,5 +164,6 @@ export default function CounselorCenterPage() {
         <Button variant='ghost' asChild><Link to={`/app/startups/${company.id}`}>Voltar para empresa</Link></Button>
       </CardContent>
     </Card>
+    <BackToTopFooter />
   </div>;
 }

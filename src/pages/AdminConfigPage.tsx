@@ -11,6 +11,7 @@ import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp,
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
 
@@ -443,6 +444,7 @@ export default function AdminConfigPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <BackToTopFooter />
     </div>
   );
 }

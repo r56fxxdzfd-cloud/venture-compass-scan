@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, DimensionTrend } from '@/types/council';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type DimensionOption = { id: string; label: string };
 type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
@@ -264,5 +265,6 @@ export default function MeetingDetailPage() {
         </div>)}
       </div>)}</div>}
     </CardContent></Card>
+    <BackToTopFooter />
   </div>;
 }

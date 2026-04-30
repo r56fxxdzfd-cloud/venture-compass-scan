@@ -21,6 +21,7 @@ import {
   RoadmapSection, DeepDiveSection,
 } from '@/components/report/ReportSections';
 import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from '@/components/report/ParetoSections';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 export default function SimulatorPage() {
   const { user } = useAuth();
@@ -145,6 +146,7 @@ export default function SimulatorPage() {
         </div>
         <div className="space-y-4">{[1,2,3].map(i=><Skeleton key={i} className="h-40 w-full rounded-lg" />)}</div>
       </div>
+      <BackToTopFooter />
     </div>
   );
 

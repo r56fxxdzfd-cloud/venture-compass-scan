@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend, MeetingType } from '@/types/council';
+import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
@@ -242,5 +243,6 @@ export default function AgendaPage() {
       </div>
       <div className='flex justify-end'><Button onClick={saveMeeting}>Salvar encontro</Button></div>
     </DialogContent></Dialog>
+    <BackToTopFooter />
   </div>;
 }
