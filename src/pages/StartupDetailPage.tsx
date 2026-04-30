@@ -240,7 +240,7 @@ export default function StartupDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Voltar para lista de startups</TooltipContent>
+            <TooltipContent>Voltar para lista de organizações</TooltipContent>
           </Tooltip>
         </TooltipProvider>
         <div className="flex-1">
@@ -254,7 +254,7 @@ export default function StartupDetailPage() {
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Editar dados da startup</TooltipContent>
+                  <TooltipContent>Editar dados da organização</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
@@ -276,7 +276,7 @@ export default function StartupDetailPage() {
           <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
           <div className='flex flex-col md:items-end justify-end gap-2'>
             <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
-            <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver relatório de progresso</Link></Button>
+            <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link></Button>
             <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
           </div>
         </CardContent>

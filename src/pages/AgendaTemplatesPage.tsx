@@ -67,7 +67,7 @@ export default function AgendaTemplatesPage() {
   return <div className='space-y-6'>
     <div className='executive-header flex items-center justify-between'>
       <h1 className='text-2xl font-bold'>Templates de Pauta</h1>
-      {canWrite && <Button onClick={() => setEditing({ priority: 'medium', is_active: true, sort_order: 0, key_questions: [], expected_evidence: [], suggested_actions: [], associated_red_flags: [] })}>Novo template</Button>}
+      {canWrite && <div className='flex gap-2'><Button variant='outline' asChild><a href='/app/agenda'>Abrir Agenda de Evolução</a></Button><Button onClick={() => setEditing({ priority: 'medium', is_active: true, sort_order: 0, key_questions: [], expected_evidence: [], suggested_actions: [], associated_red_flags: [] })}>Adicionar template</Button></div>}
     </div>
 
     <Card className='executive-surface'><CardContent className='pt-6 grid md:grid-cols-2 gap-3'>

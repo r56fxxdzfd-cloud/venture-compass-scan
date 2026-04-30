@@ -9,6 +9,10 @@ import type { CouncilAction, CouncilAgendaTemplate, CouncilDimensionProgress, Co
 type Company = { id: string; name: string };
 
 const openStatuses = new Set(['not_started', 'in_progress', 'blocked']);
+const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
+const trendLabel: Record<string, string> = { improving: 'Melhorando', stable: 'Estável', worsening: 'Piorando', insufficient_evidence: 'Sem evidência' };
+const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
+
 
 export default function CounselorCenterPage() {
   const { id } = useParams();
@@ -85,7 +89,7 @@ export default function CounselorCenterPage() {
 
     {!latestMeeting ? <Card className='executive-surface print-safe'><CardContent className='py-8 text-center space-y-2'>
       <p className='font-medium'>Sem encontros registrados para esta empresa.</p>
-      <p className='text-sm text-muted-foreground'>Registre o primeiro encontro para habilitar o resumo executivo do conselho.</p>
+      <p className='text-sm text-muted-foreground'>Registre o primeiro encontro para iniciar o acompanhamento da organização e liberar a visão executiva do conselho.</p>
       <Button asChild><Link to='/app/agenda'>Registrar primeiro encontro</Link></Button>
     </CardContent></Card> : <>
       <Card className='executive-surface print-safe'>
@@ -105,7 +109,7 @@ export default function CounselorCenterPage() {
       <Card className='executive-surface'>
         <CardHeader><CardTitle>Pauta sugerida</CardTitle></CardHeader>
         <CardContent className='space-y-3'>
-          {suggestedTemplates.length === 0 ? <p className='text-sm'>Sem templates relacionados. <Link to='/app/agenda/templates' className='text-primary underline'>Abrir biblioteca de templates</Link>.</p> : suggestedTemplates.map(t => <div key={t.id} className='rounded-md border p-3 space-y-1 text-sm'>
+          {suggestedTemplates.length === 0 ? <p className='text-sm'>Nenhum template relacionado às dimensões atuais. Isso reduz a qualidade da preparação do encontro. <Link to='/app/agenda/templates' className='text-primary underline'>Consultar templates de pauta</Link>.</p> : suggestedTemplates.map(t => <div key={t.id} className='rounded-md border p-3 space-y-1 text-sm'>
             <div className='flex flex-wrap items-center gap-2'><Badge variant='outline'>{t.dimension_label}</Badge><p className='font-medium'>{t.title}</p></div>
             <p><strong>Objetivo:</strong> {t.objective}</p>
             <p><strong>Perguntas-chave:</strong> {t.key_questions.join(' • ') || '—'}</p>
@@ -118,18 +122,18 @@ export default function CounselorCenterPage() {
       <Card className='executive-surface'>
         <CardHeader><CardTitle>Ações pendentes</CardTitle></CardHeader>
         <CardContent className='space-y-3'>
-          {openActions.length === 0 ? <p className='text-sm text-muted-foreground'>Não há ações pendentes para esta empresa.</p> : openActions.map(a => {
+          {openActions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação de conselho em aberto. Mantenha o registro atualizado para sustentar a execução entre encontros.</p> : openActions.map(a => {
             const overdue = a.due_date && new Date(a.due_date) < new Date();
             const quickWin = a.impact === 'high' && a.effort === 'low';
             return <div key={a.id} className='rounded-md border p-3 text-sm'>
               <div className='flex flex-wrap items-center gap-2'>
                 <p className='font-medium'>{a.title}</p>
                 {overdue && <Badge variant='destructive'>Atrasada</Badge>}
-                {a.status === 'blocked' && <Badge variant='destructive'>Blocked</Badge>}
-                {quickWin && <Badge variant='secondary'>High impact / low effort</Badge>}
+                {a.status === 'blocked' && <Badge variant='destructive'>Travada</Badge>}
+                {quickWin && <Badge variant='secondary'>Alto impacto / baixo esforço</Badge>}
               </div>
               <p>Dimensão: {a.related_dimension || '—'} • Responsável: {a.owner_name || '—'} • Prazo: {a.due_date ? new Date(a.due_date).toLocaleDateString('pt-BR') : '—'}</p>
-              <p>Status: {a.status} • Prioridade: {a.priority} • Impacto: {a.impact || '—'} • Esforço: {a.effort || '—'}</p>
+              <p>Status: {statusLabel[a.status] || a.status} • Prioridade: {priorityLabel[a.priority] || a.priority} • Impacto: {a.impact || '—'} • Esforço: {a.effort || '—'}</p>
               <p>Evidência esperada: {a.expected_evidence || '—'}</p>
             </div>;
           })}
@@ -139,8 +143,8 @@ export default function CounselorCenterPage() {
       <Card className='executive-surface'>
         <CardHeader><CardTitle>Evolução recente por dimensão</CardTitle></CardHeader>
         <CardContent className='space-y-3 text-sm'>
-          {latestProgressByDimension.length === 0 ? <p className='text-muted-foreground'>Sem evolução por dimensão. Registre no detalhe de um encontro.</p> : latestProgressByDimension.map(d => <div key={d.id} className='rounded-md border p-3'>
-            <div className='flex flex-wrap gap-2 items-center'><Badge variant='outline'>{d.dimension_label}</Badge><Badge>{d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
+          {latestProgressByDimension.length === 0 ? <p className='text-muted-foreground'>Ainda não há leitura de evolução por dimensão. Registre a evolução das dimensões discutidas no encontro para orientar decisões.</p> : latestProgressByDimension.map(d => <div key={d.id} className='rounded-md border p-3'>
+            <div className='flex flex-wrap gap-2 items-center'><Badge variant='outline'>{d.dimension_label}</Badge><Badge>{trendLabel[d.trend] || d.trend}</Badge><span>Score atual: <strong>{d.current_perceived_score ?? '—'}</strong></span></div>
             <p>Evidência: {d.evidence_note || '—'}</p>
             <p>Comentário: {d.counselor_comment || '—'}</p>
             <p className='text-muted-foreground'>Última atualização: {d.updated_at ? new Date(d.updated_at).toLocaleDateString('pt-BR') : '—'}</p>
@@ -153,8 +157,8 @@ export default function CounselorCenterPage() {
       <CardHeader><CardTitle>Ações rápidas</CardTitle></CardHeader>
       <CardContent className='flex flex-wrap gap-2'>
         <Button asChild><Link to='/app/agenda'>Registrar novo encontro</Link></Button>
-        <Button variant='secondary' asChild><Link to={`/app/startups/${company.id}/progress`}>Ver relatório de progresso</Link></Button>
-        <Button variant='outline' asChild><Link to='/app/agenda/templates'>Ver templates de pauta</Link></Button>
+        <Button variant='secondary' asChild><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link></Button>
+        <Button variant='outline' asChild><Link to='/app/agenda/templates'>Consultar Templates de Pauta</Link></Button>
         <Button variant='ghost' asChild><Link to={`/app/startups/${company.id}`}>Voltar para empresa</Link></Button>
       </CardContent>
     </Card>

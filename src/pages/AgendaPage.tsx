@@ -77,13 +77,13 @@ export default function AgendaPage() {
   };
 
   return <div className='space-y-6'>
-    <div className='executive-header flex items-center justify-between'><div><h1 className='text-2xl font-bold'>Agenda de Evolução</h1><Link className='text-sm text-primary underline' to='/app/agenda/templates'>Templates de Pauta</Link></div><Button onClick={() => setOpen(true)}>Novo encontro</Button></div>
+    <div className='executive-header flex flex-wrap items-center justify-between gap-3'><div><h1 className='text-2xl font-bold'>Agenda de Evolução</h1><p className='text-sm text-muted-foreground'>Organize encontros, decisões e execução contínua do conselho.</p><Link className='text-sm text-primary underline print:hidden' to='/app/agenda/templates'>Consultar Templates de Pauta</Link></div><Button className='print:hidden' onClick={() => setOpen(true)}>Registrar novo encontro</Button></div>
     <Card className='executive-surface'><CardContent className='pt-6 grid md:grid-cols-3 gap-3'>
       <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
-      <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em progresso</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Bloqueada</SelectItem></SelectContent></Select>
+      <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
     </CardContent></Card>
-    {loading ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda.<div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar primeiro encontro</Button></div></CardContent></Card> :
+    {loading ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-surface'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
       <div className='grid gap-3'>{filtered.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
         return <Card key={m.id} className='executive-surface'><CardHeader><CardTitle className='flex justify-between'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
@@ -91,10 +91,10 @@ export default function AgendaPage() {
           <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {am.filter(a => a.status !== 'completed').length} abertas / {am.filter(a => a.status === 'completed').length} concluídas</p>
           <p><strong>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
           <p><strong>Dimensões avaliadas:</strong> {progressCountByMeeting[m.id] || 0}</p>
-          <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Ver detalhes</Link>
+          <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Abrir detalhe do encontro</Link>
         </CardContent></Card>;
       })}</div>}
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className='max-w-3xl'><DialogHeader><DialogTitle>Novo encontro</DialogTitle></DialogHeader>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className='max-w-3xl'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
       <div className='grid md:grid-cols-2 gap-3'>
         <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Data*</Label><Input type='date' value={form.meeting_date || ''} onChange={e => setForm({ ...form, meeting_date: e.target.value })} /></div>
