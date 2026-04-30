@@ -63,6 +63,54 @@ export default function AgendaPage() {
     return true;
   }), [meetings, companyId, typeFilter, actionStatus, actions]);
 
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  const actionsForFilteredMeetings = useMemo(() => {
+    const ids = new Set(filtered.map(m => m.id));
+    return actions.filter(a => ids.has(a.meeting_id));
+  }, [filtered, actions]);
+
+  const executiveKpis = useMemo(() => {
+    const totalMeetings = filtered.length;
+    const meetingsThisMonth = filtered.filter(m => {
+      const d = new Date(m.meeting_date);
+      return d >= monthStart && d <= monthEnd;
+    }).length;
+    const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
+    const lateActions = actionsForFilteredMeetings.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+    const blockedActions = actionsForFilteredMeetings.filter(a => a.status === 'blocked').length;
+    const nonCancelledActions = actionsForFilteredMeetings.filter(a => a.status !== 'cancelled');
+    const completed = nonCancelledActions.filter(a => a.status === 'completed').length;
+    const completionRate = nonCancelledActions.length ? Math.round((completed / nonCancelledActions.length) * 100) : 0;
+    return { totalMeetings, meetingsThisMonth, openActions, lateActions, blockedActions, completed, nonCancelledTotal: nonCancelledActions.length, completionRate };
+  }, [filtered, actionsForFilteredMeetings]);
+
+  const dimensionsInFocus = useMemo(() => {
+    const map: Record<string, { count: number; trends: Record<string, number> }> = {};
+    for (const m of filtered) {
+      for (const dim of m.related_dimensions || []) {
+        if (!map[dim]) map[dim] = { count: 0, trends: {} };
+        map[dim].count += 1;
+      }
+    }
+    for (const [meetingId, count] of Object.entries(progressCountByMeeting)) {
+      if (!count) continue;
+      const meeting = filtered.find(m => m.id === meetingId);
+      if (!meeting) continue;
+      for (const dim of meeting.related_dimensions || []) {
+        if (!map[dim]) map[dim] = { count: 0, trends: {} };
+        map[dim].trends.avaliada = (map[dim].trends.avaliada || 0) + 1;
+      }
+    }
+    return Object.entries(map).map(([dimension, info]) => ({
+      dimension,
+      count: info.count,
+      trend: Object.entries(info.trends).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Sem tendência',
+    })).sort((a, b) => b.count - a.count).slice(0, 12);
+  }, [filtered, progressCountByMeeting]);
+
   const saveMeeting = async () => {
     if (!form.company_id || !form.meeting_date || !form.meeting_type) return toast({ title: 'Preencha empresa, data e tipo', variant: 'destructive' });
     const payload = {
@@ -83,17 +131,43 @@ export default function AgendaPage() {
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
       <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
     </CardContent></Card>
-    {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
+    {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
+      <>
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-6'>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.totalMeetings}</p><p className='text-xs text-muted-foreground'>Total de encontros</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.meetingsThisMonth}</p><p className='text-xs text-muted-foreground'>Encontros no mês</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.openActions}</p><p className='text-xs text-muted-foreground'>Ações abertas</p></CardContent></Card>
+        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{executiveKpis.lateActions}</p><p className='text-xs text-muted-foreground'>Ações atrasadas</p></CardContent></Card>
+        <Card className='executive-card border-amber-500/40'><CardContent className='p-4'><p className='text-2xl font-bold text-amber-400'>{executiveKpis.blockedActions}</p><p className='text-xs text-muted-foreground'>Ações travadas</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.completionRate}%</p><p className='text-xs text-muted-foreground'>Taxa de conclusão</p></CardContent></Card>
+      </div>
       <div className='grid gap-3'>{filtered.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
-        return <Card key={m.id} className='executive-panel'><CardHeader><CardTitle className='flex justify-between'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
+        const overdue = am.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+        const openCount = am.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
+        const completedCount = am.filter(a => a.status === 'completed').length;
+        const completionPct = am.length ? Math.round((completedCount / am.length) * 100) : 0;
+        return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader><CardTitle className='flex flex-wrap justify-between gap-2'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
           <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge>{(m.related_dimensions || []).map(d => <Badge key={d} variant='outline'>{d}</Badge>)}</div>
-          <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {am.filter(a => a.status !== 'completed').length} abertas / {am.filter(a => a.status === 'completed').length} concluídas</p>
+          <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {openCount} abertas / {completedCount} concluídas</p>
+          <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-primary' style={{ width: `${completionPct}%` }} /></div>
+          <p className='text-xs text-muted-foreground'>{completedCount} de {am.length} ações concluídas</p>
           <p><strong>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
           <p><strong>Dimensões avaliadas:</strong> {progressCountByMeeting[m.id] || 0}</p>
+          <div className='flex flex-wrap gap-2'>
+            {am.length === 0 && <Badge variant='outline'>Sem ações</Badge>}
+            {!m.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
+            {overdue > 0 && <Badge variant='destructive'>Ações atrasadas</Badge>}
+            {(progressCountByMeeting[m.id] || 0) === 0 && <Badge variant='outline'>Sem evolução registrada</Badge>}
+          </div>
           <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Abrir detalhe do encontro</Link>
         </CardContent></Card>;
-      })}</div>}
+      })}</div>
+      <Card className='executive-panel'><CardHeader><CardTitle>Dimensões em foco</CardTitle></CardHeader><CardContent>
+        {dimensionsInFocus.length === 0 ? <p className='text-sm text-muted-foreground'>As dimensões em foco aparecerão quando os encontros tiverem evolução registrada. Isso ajuda a visualizar concentração das discussões e possíveis lacunas.</p> :
+          <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-2'>{dimensionsInFocus.map(item => <div key={item.dimension} className='executive-card rounded p-3'><p className='font-medium'>{item.dimension}</p><p className='text-sm text-muted-foreground'>{item.count} aparições</p><Badge variant='outline' className='mt-1'>{item.trend}</Badge></div>)}</div>}
+      </CardContent></Card>
+      </>}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className='max-w-3xl'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
       <div className='grid md:grid-cols-2 gap-3'>
         <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
