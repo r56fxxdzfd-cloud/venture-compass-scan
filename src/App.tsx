@@ -29,6 +29,7 @@ import FounderAssessmentPdfPage from "./pages/FounderAssessmentPdfPage";
 import AgendaPage from "./pages/AgendaPage";
 import MeetingDetailPage from "./pages/MeetingDetailPage";
 import AgendaTemplatesPage from "./pages/AgendaTemplatesPage";
+import ProgressReportPage from "./pages/ProgressReportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ function AnimatedRoutes() {
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/startups/:id/progress" element={<ProtectedRoute><AppLayout><AnimatedPage><ProgressReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/founders" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderListPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
