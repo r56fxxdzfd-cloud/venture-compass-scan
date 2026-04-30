@@ -357,7 +357,7 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
   const waves = [
     { wave: 1 as const, label: '0-30 dias', color: 'border-destructive/50 bg-destructive/5' },
     { wave: 2 as const, label: '31-90 dias', color: 'border-warning/50 bg-warning/5' },
-    { wave: 3 as const, label: '3-6 meses', color: 'border-primary/50 bg-primary/5' },
+    { wave: 3 as const, label: '91-180 dias', color: 'border-primary/50 bg-primary/5' },
   ];
 
   return (
@@ -370,16 +370,20 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
         <div className="grid gap-4 sm:grid-cols-3">
           {waves.map(({ wave, label, color }) => {
             const waveActions = actions.filter((a) => a.wave === wave);
-            if (waveActions.length === 0) return null;
             return (
               <div key={wave} className={`rounded-lg border p-4 space-y-3 ${color}`}>
                 <p className="text-xs font-semibold uppercase tracking-wider">Wave {wave} — {label}</p>
-                {waveActions.map((a, i) => (
-                  <div key={i} className="space-y-1">
-                    <p className="text-sm font-medium">{a.title}</p>
-                    <p className="text-xs text-muted-foreground">{a.rationale}</p>
-                  </div>
-                ))}
+                {waveActions.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">A definir após validação no próximo conselho.</p>
+                ) : (
+                  waveActions.map((a, i) => (
+                    <div key={i} className="space-y-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{a.source}</p>
+                      <p className="text-sm font-medium">{a.title}</p>
+                      <p className="text-xs text-muted-foreground">{a.rationale}</p>
+                    </div>
+                  ))
+                )}
               </div>
             );
           })}
