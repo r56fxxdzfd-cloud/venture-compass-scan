@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import KpiCards, { KpiData } from '@/components/dashboard/KpiCards';
 import AttentionSection, { AttentionItem } from '@/components/dashboard/AttentionSection';
 import AssessmentsTable, { AssessmentRow } from '@/components/dashboard/AssessmentsTable';
 import QuickActionsPanel from '@/components/dashboard/QuickActionsPanel';
+import { Building2, CalendarRange, Users, FileText, FileStack } from 'lucide-react';
+
+
+const executiveShortcuts = [
+  { label: 'Organizações', description: 'Acompanhar portfólio e diagnósticos', href: '/app/startups', icon: Building2 },
+  { label: 'Agenda de Evolução', description: 'Planejar ritos de acompanhamento', href: '/app/agenda', icon: CalendarRange },
+  { label: 'Central do Conselheiro', description: 'Acessar materiais e registros de apoio', href: '/app/methodology', icon: Users },
+  { label: 'Relatório de Progresso', description: 'Ler evolução e próximos focos', href: '/app/startups', icon: FileText },
+  { label: 'Templates de Pauta', description: 'Estruturar encontros executivos', href: '/app/methodology', icon: FileStack },
+];
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -300,8 +311,25 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 lg:space-y-6">
       <DashboardHeader configVersion={configVersion} />
+
+      <section className="executive-panel rounded-2xl p-3 sm:p-4">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {executiveShortcuts.map((shortcut) => (
+            <Link key={shortcut.label} to={shortcut.href} className="executive-card rounded-xl px-3.5 py-3.5 hover:border-primary/35 transition-all group">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <shortcut.icon className="h-3.5 w-3.5" />
+                </div>
+                <p className="text-xs font-medium">{shortcut.label}</p>
+              </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">{shortcut.description}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       <KpiCards data={kpi} loading={loading} />
       <AttentionSection items={attentionItems} loading={loading} />
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">

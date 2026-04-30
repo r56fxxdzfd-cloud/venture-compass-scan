@@ -43,47 +43,53 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
   }, [configVersion?.id]);
 
   return (
-    <div className="executive-surface rounded-xl p-4 sm:p-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="space-y-1">
-        <p className="executive-header">Painel Executivo</p>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Darwin Startup Readiness</h1>
-        <p className="text-sm text-muted-foreground">Visão consolidada de governança, método e execução do ciclo.</p>
-      </div>
-      <div className="flex items-center gap-2 shrink-0">
-        {configVersion && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link to="/app/admin/config">
-                  <Badge
-                    variant="outline"
-                    className="gap-1.5 text-[11px] font-normal cursor-pointer hover:bg-muted transition-colors"
-                  >
-                    <Settings2 className="h-3 w-3" />
-                    Config: {configVersion.name}
-                  </Badge>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs space-y-1 max-w-[220px]">
-                <p className="font-medium">Config publicada: {configVersion.name}</p>
-                {configVersion.publishedAt && (
-                  <p className="text-muted-foreground">
-                    Publicada em {new Date(configVersion.publishedAt).toLocaleDateString('pt-BR')}
-                  </p>
-                )}
-                {stats && (
-                  <p className="text-muted-foreground">
-                    {stats.dimensions} dimensões · {stats.questions} perguntas · {stats.redFlags} red flags · {stats.presets} presets
-                  </p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        <Button onClick={() => navigate('/app/startups')} size="sm" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          Novo Diagnóstico
-        </Button>
+    <div className="executive-hero rounded-2xl px-5 py-6 sm:px-7 sm:py-8">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-3 max-w-3xl">
+          <Badge variant="outline" className="executive-pill w-fit border-primary/35 bg-primary/10 text-primary">
+            Painel executivo
+          </Badge>
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground/95">Conselho OS</h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
+              Governança, diagnóstico e evolução das organizações acompanhadas pela JV.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+          {configVersion && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/app/admin/config">
+                    <Badge variant="outline" className="executive-pill gap-1.5 text-[11px] font-medium cursor-pointer hover:bg-secondary/70 transition-colors">
+                      <Settings2 className="h-3 w-3" />
+                      Config ativa: {configVersion.name}
+                    </Badge>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs space-y-1 max-w-[220px]">
+                  <p className="font-medium">Config publicada: {configVersion.name}</p>
+                  {configVersion.publishedAt && (
+                    <p className="text-muted-foreground">
+                      Publicada em {new Date(configVersion.publishedAt).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
+                  {stats && (
+                    <p className="text-muted-foreground">
+                      {stats.dimensions} dimensões · {stats.questions} perguntas · {stats.redFlags} red flags · {stats.presets} presets
+                    </p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <Button onClick={() => navigate('/app/startups')} size="sm" className="h-10 px-4 gap-1.5 font-medium shadow-md shadow-primary/20">
+            <Plus className="h-4 w-4" />
+            Novo Diagnóstico
+          </Button>
+        </div>
       </div>
     </div>
   );

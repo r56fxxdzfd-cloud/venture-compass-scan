@@ -14,38 +14,12 @@ import {
 } from '@/components/ui/select';
 import { Search, ArrowRight, Inbox, ArrowUpDown } from 'lucide-react';
 
-export interface AssessmentRow {
-  id: string;
-  companyName: string;
-  stage: string | null;
-  status: string | null;
-  answeredCount: number;
-  score: number | null;
-  updatedAt: string;
-  hasHighRedFlags?: boolean;
-}
-
-interface AssessmentsTableProps {
-  rows: AssessmentRow[];
-  loading: boolean;
-}
-
-const stageLabels: Record<string, string> = {
-  pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A',
-};
-const statusLabels: Record<string, string> = {
-  in_progress: 'Em andamento', completed: 'Concluído',
-};
-
+export interface AssessmentRow { id: string; companyName: string; stage: string | null; status: string | null; answeredCount: number; score: number | null; updatedAt: string; hasHighRedFlags?: boolean; }
+interface AssessmentsTableProps { rows: AssessmentRow[]; loading: boolean; }
+const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
+const statusLabels: Record<string, string> = { in_progress: 'Em andamento', completed: 'Concluído' };
 const TOTAL_QUESTIONS = 45;
-
-function scoreLabel(score: number): string {
-  if (score < 35) return 'Inicial';
-  if (score < 55) return 'Em evolução';
-  if (score < 75) return 'Estruturado';
-  return 'Avançado';
-}
-
+function scoreLabel(score: number): string { if (score < 35) return 'Inicial'; if (score < 55) return 'Em evolução'; if (score < 75) return 'Estruturado'; return 'Avançado'; }
 type SortField = 'updatedAt' | 'score' | 'progress';
 
 export default function AssessmentsTable({ rows, loading }: AssessmentsTableProps) {
@@ -57,25 +31,14 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
 
   const filtered = useMemo(() => {
     let result = rows;
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(r => r.companyName.toLowerCase().includes(q));
-    }
-    if (stageFilter !== 'all') {
-      result = result.filter(r => r.stage === stageFilter);
-    }
-    if (statusFilter !== 'all') {
-      result = result.filter(r => r.status === statusFilter);
-    }
+    if (search) result = result.filter(r => r.companyName.toLowerCase().includes(search.toLowerCase()));
+    if (stageFilter !== 'all') result = result.filter(r => r.stage === stageFilter);
+    if (statusFilter !== 'all') result = result.filter(r => r.status === statusFilter);
     result = [...result].sort((a, b) => {
       let cmp = 0;
-      if (sortField === 'updatedAt') {
-        cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-      } else if (sortField === 'score') {
-        cmp = (a.score ?? -1) - (b.score ?? -1);
-      } else {
-        cmp = a.answeredCount - b.answeredCount;
-      }
+      if (sortField === 'updatedAt') cmp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      else if (sortField === 'score') cmp = (a.score ?? -1) - (b.score ?? -1);
+      else cmp = a.answeredCount - b.answeredCount;
       return sortAsc ? cmp : -cmp;
     });
     return result;
@@ -93,186 +56,68 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
     return 'bg-success/15 text-success border-success/20';
   };
 
-  function getNextAction(row: AssessmentRow): { label: string; href: string } {
-    if (row.status === 'completed' && row.hasHighRedFlags) {
-      return { label: 'Ver alertas', href: `/app/assessments/${row.id}/report` };
-    }
-    if (row.status === 'completed') {
-      return { label: 'Relatório', href: `/app/assessments/${row.id}/report` };
-    }
+  const getNextAction = (row: AssessmentRow): { label: string; href: string } => {
+    if (row.status === 'completed' && row.hasHighRedFlags) return { label: 'Ver alertas', href: `/app/assessments/${row.id}/report` };
+    if (row.status === 'completed') return { label: 'Relatório', href: `/app/assessments/${row.id}/report` };
     return { label: 'Continuar', href: `/app/assessments/${row.id}/questionnaire` };
-  }
+  };
 
   return (
-    <Card className="executive-surface flex flex-col h-full">
-      <CardHeader className="pb-2 pt-4 px-4">
-        <CardTitle className="text-xs font-semibold">Diagnósticos</CardTitle>
-        <div className="flex flex-wrap gap-2 mt-2">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar startup..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
-            />
+    <Card className="executive-panel flex flex-col h-full">
+      <CardHeader className="pb-3 pt-5 px-5 border-b border-border/60">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="executive-section-title text-base">Portfólio de Diagnósticos</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Acompanhe progresso, risco e maturidade por organização.</p>
+          </div>
+          <Badge variant="outline" className="executive-pill">{filtered.length} registros</Badge>
+        </div>
+        <div className="grid gap-2.5 mt-4 md:grid-cols-[1fr_auto_auto]">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar organização..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm bg-background/70" />
           </div>
           <Select value={stageFilter} onValueChange={setStageFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-[11px]">
-              <SelectValue placeholder="Estágio: Todos" />
-            </SelectTrigger>
+            <SelectTrigger className="w-full md:w-[150px] h-9 text-xs"><SelectValue placeholder="Estágio" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Estágio: Todos</SelectItem>
-              <SelectItem value="pre_seed">Pre-Seed</SelectItem>
-              <SelectItem value="seed">Seed</SelectItem>
-              <SelectItem value="series_a">Series A</SelectItem>
+              <SelectItem value="all">Estágio: Todos</SelectItem><SelectItem value="pre_seed">Pre-Seed</SelectItem><SelectItem value="seed">Seed</SelectItem><SelectItem value="series_a">Series A</SelectItem>
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-[11px]">
-              <SelectValue placeholder="Status: Todos" />
-            </SelectTrigger>
+            <SelectTrigger className="w-full md:w-[150px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Status: Todos</SelectItem>
-              <SelectItem value="in_progress">Em andamento</SelectItem>
-              <SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="all">Status: Todos</SelectItem><SelectItem value="in_progress">Em andamento</SelectItem><SelectItem value="completed">Concluído</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {/* Sort presets */}
-        <div className="flex gap-1 mt-1.5">
-          {([
-            { field: 'progress' as SortField, label: 'Menor progresso', asc: true },
-            { field: 'score' as SortField, label: 'Menor score', asc: true },
-            { field: 'updatedAt' as SortField, label: 'Atualizados', asc: false },
-          ]).map(preset => (
-            <button
-              key={preset.label}
-              onClick={() => { setSortField(preset.field); setSortAsc(preset.asc); }}
-              className={`text-[10px] px-2 py-0.5 rounded-full border transition-colors ${
-                sortField === preset.field
-                  ? 'bg-primary/10 text-primary border-primary/30'
-                  : 'text-muted-foreground border-transparent hover:border-border'
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-auto p-0">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="flex items-center gap-4">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-2 w-24" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-10 px-4">
-            <Inbox className="mx-auto h-7 w-7 text-muted-foreground/30 mb-2" />
-            <p className="text-xs text-muted-foreground">Nenhum diagnóstico encontrado.</p>
-          </div>
-        ) : (
+        {loading ? <div className="p-5 space-y-3">{[1, 2, 3, 4].map(i => <div key={i} className="flex items-center gap-4"><Skeleton className="h-4 w-32" /><Skeleton className="h-4 w-16" /><Skeleton className="h-4 w-20" /><Skeleton className="h-2 w-24" /></div>)}</div> : filtered.length === 0 ? <div className="text-center py-14 px-4"><Inbox className="mx-auto h-8 w-8 text-muted-foreground/30 mb-3" /><p className="text-sm text-muted-foreground">Nenhum diagnóstico encontrado.</p></div> : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="text-[11px]">Startup</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[11px]">Organização</TableHead>
                 <TableHead className="text-[11px] hidden md:table-cell">Estágio</TableHead>
                 <TableHead className="text-[11px]">Status</TableHead>
-                <TableHead className="text-[11px]">
-                  <button
-                    onClick={() => toggleSort('progress')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                  >
-                    Progresso <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </TableHead>
-                <TableHead className="text-[11px] hidden sm:table-cell">
-                  <button
-                    onClick={() => toggleSort('score')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                  >
-                    Score <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </TableHead>
-                <TableHead className="text-[11px] hidden lg:table-cell">
-                  <button
-                    onClick={() => toggleSort('updatedAt')}
-                    className="inline-flex items-center gap-1 hover:text-foreground"
-                  >
-                    Atualizado <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </TableHead>
-                <TableHead className="text-[11px] w-[100px]">Próxima ação</TableHead>
+                <TableHead className="text-[11px]"><button onClick={() => toggleSort('progress')} className="inline-flex items-center gap-1 hover:text-foreground">Cobertura <ArrowUpDown className="h-3 w-3" /></button></TableHead>
+                <TableHead className="text-[11px] hidden sm:table-cell"><button onClick={() => toggleSort('score')} className="inline-flex items-center gap-1 hover:text-foreground">Maturidade <ArrowUpDown className="h-3 w-3" /></button></TableHead>
+                <TableHead className="text-[11px] hidden lg:table-cell"><button onClick={() => toggleSort('updatedAt')} className="inline-flex items-center gap-1 hover:text-foreground">Atualização <ArrowUpDown className="h-3 w-3" /></button></TableHead>
+                <TableHead className="text-[11px] w-[122px]">Ação</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((row) => {
                 const progressPct = Math.min(Math.round((row.answeredCount / TOTAL_QUESTIONS) * 100), 100);
                 const action = getNextAction(row);
-
                 return (
-                  <TableRow key={row.id} className="group hover:bg-muted/30">
-                    <TableCell className="text-xs font-medium py-2.5">{row.companyName}</TableCell>
-                    <TableCell className="hidden md:table-cell py-2.5">
-                      {row.stage ? (
-                        <Badge variant="outline" className="text-[10px] font-normal">
-                          {stageLabels[row.stage] || row.stage}
-                        </Badge>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      <Badge
-                        variant={row.status === 'completed' ? 'default' : 'secondary'}
-                        className="text-[10px]"
-                      >
-                        {statusLabels[row.status || ''] || row.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      <div className="flex items-center gap-2 min-w-[90px]">
-                        <Progress value={progressPct} className="h-1.5 flex-1" />
-                        <span className="text-[10px] text-muted-foreground w-8 text-right font-mono">
-                          {row.answeredCount}/{TOTAL_QUESTIONS}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell py-2.5">
-                      {row.status === 'completed' && row.score != null ? (
-                        <Badge variant="outline" className={`text-[10px] font-medium ${getScoreBadge(row.score)}`}>
-                          {row.score}/100 · {scoreLabel(row.score)}
-                        </Badge>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell py-2.5">
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(row.updatedAt).toLocaleDateString('pt-BR', {
-                          day: '2-digit', month: 'short',
-                        })}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2.5">
-                      <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[11px] gap-1 group-hover:text-primary px-2"
-                      >
-                        <Link to={action.href}>
-                          {action.label}
-                          <ArrowRight className="h-3 w-3" />
-                        </Link>
-                      </Button>
-                    </TableCell>
+                  <TableRow key={row.id} className="group hover:bg-muted/25">
+                    <TableCell className="py-3"><p className="text-sm font-semibold leading-tight">{row.companyName}</p></TableCell>
+                    <TableCell className="hidden md:table-cell py-3">{row.stage ? <Badge variant="outline" className="text-[10px] font-normal">{stageLabels[row.stage] || row.stage}</Badge> : <span className="text-[10px] text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="py-3"><Badge variant={row.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">{statusLabels[row.status || ''] || row.status}</Badge></TableCell>
+                    <TableCell className="py-3"><div className="flex items-center gap-2 min-w-[110px]"><Progress value={progressPct} className="h-1.5 flex-1" /><span className="text-[10px] text-muted-foreground w-9 text-right font-mono">{row.answeredCount}/{TOTAL_QUESTIONS}</span></div></TableCell>
+                    <TableCell className="hidden sm:table-cell py-3">{row.status === 'completed' && row.score != null ? <Badge variant="outline" className={`text-[10px] font-medium ${getScoreBadge(row.score)}`}>{row.score}/100 · {scoreLabel(row.score)}</Badge> : <span className="text-[10px] text-muted-foreground">—</span>}</TableCell>
+                    <TableCell className="hidden lg:table-cell py-3"><span className="text-[10px] text-muted-foreground">{new Date(row.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span></TableCell>
+                    <TableCell className="py-3"><Button asChild variant="outline" size="sm" className="h-7 text-[11px] gap-1 border-border/70"><Link to={action.href}>{action.label}<ArrowRight className="h-3 w-3" /></Link></Button></TableCell>
                   </TableRow>
                 );
               })}
