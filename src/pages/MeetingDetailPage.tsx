@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -170,6 +171,14 @@ export default function MeetingDetailPage() {
   );
 
   return <div className='space-y-4'>
+    <div>
+      <Button variant='ghost' asChild className='px-0 text-muted-foreground hover:text-foreground'>
+        <Link to='/app/agenda'>
+          <ArrowLeft className='h-4 w-4' />
+          Voltar para Agenda
+        </Link>
+      </Button>
+    </div>
     <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-6'>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{totalActions}</p><p className='text-xs text-muted-foreground'>Ações totais</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{completedActions}</p><p className='text-xs text-muted-foreground'>Concluídas</p></CardContent></Card>
