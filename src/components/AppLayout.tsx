@@ -199,7 +199,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         </header>
 
         {/* Content */}
-        <main ref={mainRef} id="main-scroll-container" className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0">
+        <main
+          ref={mainRef}
+          id="app-main-scroll"
+          data-scroll-container="main"
+          className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0"
+        >
           <div className="flex-1">{children}</div>
           <div className="flex flex-col items-center gap-3 pt-4 pb-3 select-none">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />
