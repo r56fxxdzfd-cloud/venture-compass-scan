@@ -156,7 +156,8 @@
 @layer utilities {
   .executive-surface {
     @apply border border-border/70 bg-card/95 shadow-sm;
-    box-shadow: 0 8px 24px hsl(var(--foreground) / 0.05);
+    box-shadow: 0 10px 30px hsl(var(--foreground) / 0.08);
+    backdrop-filter: blur(8px);
   }
 
   .executive-header {
@@ -164,8 +165,13 @@
   }
 
   .executive-kpi {
-    background: linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.05) 100%);
-    @apply border border-border/70 shadow-sm;
+    background: linear-gradient(160deg, hsl(var(--card)) 0%, hsl(var(--primary) / 0.07) 100%);
+    @apply border border-border/70 shadow-sm transition-all duration-300;
+  }
+
+  .executive-kpi:hover {
+    border-color: hsl(var(--primary) / 0.35);
+    box-shadow: 0 12px 28px hsl(var(--primary) / 0.12);
   }
   .print-safe {
     @apply bg-card text-card-foreground shadow-none;
