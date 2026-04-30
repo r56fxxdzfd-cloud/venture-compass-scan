@@ -364,6 +364,9 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
     <Card>
       <CardContent className="pt-6 space-y-4">
         <h3 className="text-base font-semibold">Roadmap 6 Meses</h3>
+        <p className="text-xs text-muted-foreground">
+          Plano preliminar de execução, sujeito a validação e ajustes no conselho.
+        </p>
         <div className="grid gap-4 sm:grid-cols-3">
           {waves.map(({ wave, label, color }) => {
             const waveActions = actions.filter((a) => a.wave === wave);
@@ -457,6 +460,9 @@ export function DeepDiveSection({ result, config, answers }: { result: Assessmen
           <h3 className="text-base font-semibold flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-accent" /> Deep Dive — Questões para Aprofundamento
           </h3>
+          <p className="text-xs text-muted-foreground">
+            Perguntas críticas para validar causas, riscos e hipóteses antes da deliberação.
+          </p>
           {result.deep_dive_dimensions.map((dimId) => {
             const dim = config.dimensions.find((d) => d.id === dimId);
             const prompts = selectPrompts(dimId);

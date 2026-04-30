@@ -319,22 +319,32 @@ export default function ReportPage() {
         <FounderLeadershipSection companyId={(assessment as any).company_id || (assessment as any).company?.id} />
       </div>
 
-      <div id="section-roadmap">
-        <RoadmapSection result={result} config={config} stage={stage} />
-      </div>
+      <div className="space-y-4">
+        <div className="executive-panel print-safe rounded-xl border p-4 sm:p-5">
+          <h3 className="text-base font-semibold">Do diagnóstico à execução</h3>
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            Esta seção traduz o diagnóstico em condução prática do conselho: primeiro define os temas prioritários da próxima reunião, depois sugere perguntas para aprofundamento e, por fim, organiza as ações em um roadmap preliminar de 6 meses.
+          </p>
+        </div>
 
-      <div id="section-deepdive">
-        <DeepDiveSection result={result} config={config} answers={answers.map(a => {
-          const q = config.questions?.find(q => q.id === a.question_id);
-          return { question_id: a.question_id, dimension_id: q?.dimension_id || '', score: a.value, notes: a.notes };
-        })} />
+        <div id="section-roadmap">
+          <MeetingAgendaSection config={config} result={result} stage={stage} answers={answers} />
+        </div>
+
+        <div id="section-deepdive">
+          <DeepDiveSection result={result} config={config} answers={answers.map(a => {
+            const q = config.questions?.find(q => q.id === a.question_id);
+            return { question_id: a.question_id, dimension_id: q?.dimension_id || '', score: a.value, notes: a.notes };
+          })} />
+        </div>
+
+        <RoadmapSection result={result} config={config} stage={stage} />
       </div>
 
       <div id="section-quickwins">
         <QuickWinsSection config={config} result={result} stage={stage} />
       </div>
 
-      <MeetingAgendaSection config={config} result={result} stage={stage} answers={answers} />
       <RiskImpactMatrixSection config={config} result={result} stage={stage} />
 
       {completeness.confidence === 'low' && (
