@@ -277,6 +277,7 @@ export default function StartupDetailPage() {
           <div className='flex flex-col md:items-end justify-end gap-2'>
             <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
             <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver relatório de progresso</Link></Button>
+            <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
           </div>
         </CardContent>
         <CardContent className='pt-0 text-sm space-y-1'>
