@@ -274,7 +274,10 @@ export default function StartupDetailPage() {
           <div><p className='text-muted-foreground'>Ações concluídas</p><p className='text-xl font-semibold'>{councilStats.completed}</p></div>
           <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{councilStats.lastMeeting !== '-' ? new Date(councilStats.lastMeeting).toLocaleDateString('pt-BR') : '-'}</p></div>
           <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
-          <div className='flex items-end'><Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button></div>
+          <div className='flex flex-col md:items-end justify-end gap-2'>
+            <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
+            <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver relatório de progresso</Link></Button>
+          </div>
         </CardContent>
         <CardContent className='pt-0 text-sm space-y-1'>
           <p className='text-muted-foreground'>Resumo do último encontro</p>
