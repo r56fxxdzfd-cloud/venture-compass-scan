@@ -3,6 +3,16 @@ import { Button } from '@/components/ui/button';
 
 export function BackToTopFooter() {
   const handleBackToTop = () => {
+    const container =
+      document.getElementById('app-main-scroll') ??
+      document.querySelector<HTMLElement>('[data-scroll-container="main"]') ??
+      document.getElementById('main-scroll-container');
+
+    if (container) {
+      container.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

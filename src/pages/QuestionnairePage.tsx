@@ -265,7 +265,7 @@ export default function QuestionnairePage() {
                   <Button
                     onClick={() => {
                       setActiveDim(dimIds[currentIdx + 1]);
-                      document.getElementById('main-scroll-container')?.scrollTo({ top: 0, behavior: 'smooth' });
+                      document.getElementById('app-main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                   >
                     Próxima dimensão →

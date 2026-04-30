@@ -134,6 +134,7 @@
       display: none !important;
     }
 
+    #app-main-scroll,
     #main-scroll-container {
       overflow: visible !important;
       height: auto !important;
