@@ -46,12 +46,15 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
     <div className="executive-hero rounded-2xl px-5 py-6 sm:px-7 sm:py-8">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3 max-w-3xl">
-          <Badge variant="outline" className="executive-pill w-fit border-primary/35 bg-primary/10 text-primary">
+          <Badge
+            variant="outline"
+            className="executive-pill w-fit border-white/35 bg-white/10 text-white/95 dark:border-primary/35 dark:bg-primary/10 dark:text-primary"
+          >
             Painel executivo
           </Badge>
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-foreground/95">Conselho OS</h1>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-2xl">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white dark:text-foreground/95">Conselho OS</h1>
+            <p className="text-sm sm:text-base text-slate-200 dark:text-muted-foreground max-w-2xl">
               Governança, diagnóstico e evolução das organizações acompanhadas pela JV.
             </p>
           </div>
@@ -63,7 +66,10 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link to="/app/admin/config">
-                    <Badge variant="outline" className="executive-pill gap-1.5 text-[11px] font-medium cursor-pointer hover:bg-secondary/70 transition-colors">
+                    <Badge
+                      variant="outline"
+                      className="executive-pill gap-1.5 text-[11px] font-medium cursor-pointer border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors dark:border-border/70 dark:bg-secondary/30 dark:text-foreground dark:hover:bg-secondary/70"
+                    >
                       <Settings2 className="h-3 w-3" />
                       Config ativa: {configVersion.name}
                     </Badge>
