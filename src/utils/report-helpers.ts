@@ -151,6 +151,85 @@ export interface RoadmapAction {
 const WAVE_LIMITS: Record<1 | 2 | 3, number> = { 1: 2, 2: 3, 3: 3 };
 const WAVE_LABELS: Record<1 | 2 | 3, string> = { 1: '0-30 dias', 2: '31-90 dias', 3: '91-180 dias' };
 
+interface TemporalTrail {
+  wave1: string;
+  wave2: string;
+  wave3: string;
+}
+
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function getRedFlagTrail(label: string): TemporalTrail {
+  const n = normalizeText(label);
+
+  if ((n.includes('dependenc') && n.includes('pessoa')) || n.includes('key person') || n.includes('concentracao em 1 pessoa')) {
+    return {
+      wave1: 'Mapear pontos únicos de dependência, riscos operacionais e responsáveis de contingência',
+      wave2: 'Implementar delegação progressiva, documentação crítica e backups operacionais',
+      wave3: 'Consolidar sucessão, validar autonomia do time e reduzir dependência da liderança',
+    };
+  }
+
+  if (n.includes('cap table') || n.includes('acordo de socios') || n.includes('vesting') || n.includes('societ')) {
+    return {
+      wave1: 'Levantar pendências societárias, papéis críticos e plano de regularização prioritária',
+      wave2: 'Formalizar cap table, acordo de sócios, vesting e alçadas de decisão críticas',
+      wave3: 'Institucionalizar revisão societária periódica e governança de decisões estratégicas',
+    };
+  }
+
+  if (n.includes('seguranca') || n.includes('privacidade') || n.includes('lgpd') || n.includes('dados')) {
+    return {
+      wave1: 'Revisar acessos críticos, backup e riscos imediatos de exposição de dados',
+      wave2: 'Implementar controles mínimos de LGPD, política de dados e gestão de permissões',
+      wave3: 'Monitorar compliance, revisar incidentes e consolidar práticas de segurança operacional',
+    };
+  }
+
+  if (n.includes('pipeline') || n.includes('funil') || n.includes('visibilidade comercial')) {
+    return {
+      wave1: 'Definir etapas mínimas do pipeline, critérios básicos e responsáveis por atualização',
+      wave2: 'Implantar CRM/planilha, cadência semanal e critérios objetivos de avanço de etapa',
+      wave3: 'Revisar conversões, previsibilidade e qualidade do funil de captação/vendas',
+    };
+  }
+
+  if (n.includes('concentracao de receita') || (n.includes('receita') && n.includes('concentr'))) {
+    return {
+      wave1: 'Mapear concentração de receita, risco de perda e contas de maior criticidade',
+      wave2: 'Executar plano de diversificação de canais, base de clientes e parceiros estratégicos',
+      wave3: 'Monitorar concentração, ampliar recorrência e revisar dependência estratégica',
+    };
+  }
+
+  if (n.includes('churn') || n.includes('retenc')) {
+    return {
+      wave1: 'Diagnosticar causas de churn/retenção e segmentos mais afetados',
+      wave2: 'Implementar plano de retenção, onboarding e acompanhamento de coortes',
+      wave3: 'Consolidar rotina de métricas de retenção, expansão e melhoria contínua',
+    };
+  }
+
+  if (n.includes('entrega') || n.includes('instab') || n.includes('incidente') || n.includes('disponibilidade')) {
+    return {
+      wave1: 'Priorizar incidentes críticos e definir plano de estabilidade operacional',
+      wave2: 'Implementar observabilidade, post-mortems e rotina de correção recorrente',
+      wave3: 'Consolidar qualidade, reduzir recorrência de falhas e revisar dívida técnica',
+    };
+  }
+
+  return {
+    wave1: `Definir contenção inicial e responsáveis para mitigar ${label}`,
+    wave2: `Implementar plano estruturante para atacar as causas de ${label}`,
+    wave3: `Consolidar monitoramento, revisão de eficácia e institucionalização para ${label}`,
+  };
+}
+
 function getRoadmapTitle(g: PrioritizedGap, wave: 1 | 2 | 3): string {
   if (wave === 1) {
     if (g.score100 < 30) return `Diagnosticar lacunas críticas em ${g.label} e definir plano de contenção`;
@@ -216,27 +295,43 @@ export function generateRoadmap(
 
   redFlags.forEach((rf, index) => {
     const primaryAction = rf.actions[0] || rf.label;
-    const inferredWave = inferWaveFromActionText(primaryAction);
     const severityBoost = rf.severity === 'critical' ? 12 : rf.severity === 'high' ? 9 : rf.severity === 'medium_high' ? 6 : 3;
     const priorityBase = Math.max(1, redFlags.length - index);
+    const trail = getRedFlagTrail(rf.label);
 
-    const wave1Title = `Mapear e priorizar contenção para ${rf.label}`;
     pushCandidate({
-      title: wave1Title,
+      title: trail.wave1,
       rationale: `Red Flag "${rf.label}" — contenção inicial e definição de responsáveis`,
       wave: 1,
       waveLabel: WAVE_LABELS[1],
       source: 'Red flag',
     }, 90 + severityBoost + priorityBase, `rf:${rf.code}:w1`);
 
+    pushCandidate({
+      title: trail.wave2,
+      rationale: `Desdobramento da Red Flag "${rf.label}" — implementação estruturante`,
+      wave: 2,
+      waveLabel: WAVE_LABELS[2],
+      source: 'Red flag',
+    }, 78 + severityBoost, `rf:${rf.code}:w2`);
+
+    pushCandidate({
+      title: trail.wave3,
+      rationale: `Desdobramento da Red Flag "${rf.label}" — consolidação`,
+      wave: 3,
+      waveLabel: WAVE_LABELS[3],
+      source: 'Red flag',
+    }, 68 + severityBoost, `rf:${rf.code}:w3`);
+
+    const inferredWave = inferWaveFromActionText(primaryAction);
     if (inferredWave && inferredWave > 1) {
       pushCandidate({
         title: primaryAction,
-        rationale: `Desdobramento da Red Flag "${rf.label}" para execução estruturante`,
+        rationale: `Ação sugerida da Red Flag "${rf.label}" para acelerar execução`,
         wave: inferredWave,
         waveLabel: WAVE_LABELS[inferredWave],
-        source: 'Red flag',
-      }, 70 + severityBoost, `rf:${rf.code}:action`);
+        source: 'Ação sugerida',
+      }, 64 + severityBoost, `rf:${rf.code}:action:${inferredWave}`);
     }
   });
 
@@ -245,7 +340,7 @@ export function generateRoadmap(
     const baseScore = Math.round(g.priority_score);
 
     pushCandidate({
-      title: getRoadmapTitle(g, baseWave),
+      title: baseWave === 1 ? `Definir foco inicial e métrica mínima de ${g.label}` : getRoadmapTitle(g, baseWave),
       rationale: result ? getRoadmapRationale(g, result) : `Gap de ${g.gap_potential}pts (prioridade ${baseScore})`,
       wave: baseWave,
       waveLabel: WAVE_LABELS[baseWave],
@@ -254,8 +349,8 @@ export function generateRoadmap(
 
     if (baseWave === 1) {
       pushCandidate({
-        title: `Implementar plano estruturante de ${g.label}`,
-        rationale: `Sequência da priorização inicial em ${g.label}`,
+        title: `Implementar rotina estruturante de ${g.label} com processo e cadência`,
+        rationale: `Desdobramento do Gap "${g.label}" — implementação estruturante`,
         wave: 2,
         waveLabel: WAVE_LABELS[2],
         source: 'Ação sugerida',
@@ -263,8 +358,8 @@ export function generateRoadmap(
     }
 
     pushCandidate({
-      title: `Consolidar ganhos de ${g.label} com revisão de maturidade`,
-      rationale: `Evolução e estabilidade de longo ciclo para ${g.label}`,
+      title: `Consolidar revisão periódica de ${g.label} e melhoria contínua`,
+      rationale: `Desdobramento do Gap "${g.label}" — consolidação`,
       wave: 3,
       waveLabel: WAVE_LABELS[3],
       source: 'Ação sugerida',
