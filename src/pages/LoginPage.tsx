@@ -86,14 +86,14 @@ export default function LoginPage() {
               <span className="text-lg font-black text-accent-foreground">ST</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-primary-foreground">Darwin</h1>
-              <p className="text-sm text-primary-foreground/60">Startup Readiness</p>
+              <h1 className="text-2xl font-bold text-white">Darwin</h1>
+              <p className="text-sm text-white/60">Startup Readiness</p>
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-primary-foreground mb-4">
+          <h2 className="text-3xl font-bold text-white mb-4">
             Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para Startups
           </h2>
-          <p className="text-primary-foreground/70 leading-relaxed">
+          <p className="text-white/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
             Tudo configurável pela equipe da JV.
           </p>
