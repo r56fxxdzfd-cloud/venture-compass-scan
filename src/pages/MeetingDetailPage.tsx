@@ -30,6 +30,8 @@ const trendVariant: Record<DimensionTrend, 'default' | 'secondary' | 'destructiv
   worsening: 'destructive',
   insufficient_evidence: 'outline',
 };
+const winsSuggestions = ['Ação concluída','Decisão tomada','Indicador criado','Responsável definido','Documento criado','Rotina iniciada','Risco mitigado'];
+const blockerSuggestions = ['Falta de responsável','Falta de dados','Falta de caixa','Dependência da liderança','Resistência interna','Falta de governança','Captação insuficiente','Processo inexistente','Sobrecarga operacional'];
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
@@ -161,6 +163,16 @@ export default function MeetingDetailPage() {
     completed: actions.filter(a => a.status === 'completed'),
     cancelled: actions.filter(a => a.status === 'cancelled'),
   };
+  const completionRate = totalActions ? completedActions / totalActions : 0;
+  const healthIssues = (overdueActions > 0 ? 1 : 0) + (blockedActions > 0 ? 1 : 0) + (!meeting.next_agenda ? 1 : 0) + (progressRows.length === 0 ? 1 : 0) + (completionRate < 0.4 ? 1 : 0);
+  const cycleHealth = healthIssues >= 3 ? 'Crítico' : healthIssues >= 1 ? 'Atenção' : 'Saudável';
+
+  const matrix = {
+    high_low: actions.filter(a => a.impact === 'high' && a.effort === 'low'),
+    high_high: actions.filter(a => a.impact === 'high' && a.effort === 'high'),
+    low_low: actions.filter(a => a.impact === 'low' && a.effort === 'low'),
+    low_high: actions.filter(a => a.impact === 'low' && a.effort === 'high'),
+  };
 
   const discussedDimensionIds = new Set([
     ...(meeting.related_dimensions || []),
@@ -187,6 +199,7 @@ export default function MeetingDetailPage() {
       <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{overdueActions}</p><p className='text-xs text-muted-foreground'>Atrasadas</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{progressRows.length}</p><p className='text-xs text-muted-foreground'>Dimensões avaliadas</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{meeting.next_agenda ? 'Sim' : 'Não'}</p><p className='text-xs text-muted-foreground'>Próxima pauta definida</p></CardContent></Card>
+      <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{cycleHealth}</p><p className='text-xs text-muted-foreground'>Saúde do ciclo (atrasos, travas, pauta, evolução e conclusão)</p></CardContent></Card>
     </div>
     <Card className='executive-panel'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <Badge className='executive-pill'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
@@ -195,6 +208,8 @@ export default function MeetingDetailPage() {
       <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
       <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
       <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
+      <div><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
+      <div><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>
       <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
       <div className='flex flex-wrap gap-2'>
         {!meeting.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
@@ -226,6 +241,8 @@ export default function MeetingDetailPage() {
               <p className='font-medium'>{d.label}</p>
               <Badge variant={trendVariant[row.trend]}>{trendLabel[row.trend]}</Badge>
             </div>
+            <div className='grid grid-cols-3 gap-2 text-xs'><div><p className='text-muted-foreground'>Antes</p><p className='font-semibold'>{row.initial_score ?? '—'}</p></div><div><p className='text-muted-foreground'>Agora</p><p className='font-semibold'>{row.current_perceived_score ?? '—'}</p></div><div><p className='text-muted-foreground'>Diferença</p><p className='font-semibold'>{row.initial_score != null && row.current_perceived_score != null ? `${(row.current_perceived_score - row.initial_score) > 0 ? '+' : ''}${(row.current_perceived_score - row.initial_score).toFixed(1)}` : '—'}</p></div></div>
+            <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-cyan-500' style={{ width: `${((row.current_perceived_score ?? row.initial_score ?? 0) / 5) * 100}%` }} /></div>
             <div className='grid md:grid-cols-3 gap-2'>
               <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
               <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
@@ -264,6 +281,15 @@ export default function MeetingDetailPage() {
           <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-full h-8'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
         </div>)}
       </div>)}</div>}
+    </CardContent></Card>
+
+    <Card className='executive-panel'><CardHeader><CardTitle>Matriz impacto x esforço</CardTitle></CardHeader><CardContent>
+      <div className='grid md:grid-cols-2 gap-3 text-sm'>
+        <div className='executive-card rounded p-3'><p className='font-semibold'>Alto impacto / baixo esforço</p><p>{matrix.high_low.length} ações</p></div>
+        <div className='executive-card rounded p-3'><p className='font-semibold'>Alto impacto / alto esforço</p><p>{matrix.high_high.length} ações</p></div>
+        <div className='executive-card rounded p-3'><p className='font-semibold'>Baixo impacto / baixo esforço</p><p>{matrix.low_low.length} ações</p></div>
+        <div className='executive-card rounded p-3'><p className='font-semibold'>Baixo impacto / alto esforço</p><p>{matrix.low_high.length} ações</p></div>
+      </div>
     </CardContent></Card>
     <BackToTopFooter />
   </div>;
