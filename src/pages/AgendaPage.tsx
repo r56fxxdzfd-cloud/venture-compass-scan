@@ -24,6 +24,14 @@ const trendLabels: Record<DimensionTrend | 'sem_trend', string> = {
   insufficient_evidence: 'Sem evidência',
   sem_trend: 'Sem evidência',
 };
+const officialDimensionOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'] as const;
+const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
+  improving: 'text-emerald-500',
+  stable: 'text-slate-500',
+  worsening: 'text-rose-500',
+  insufficient_evidence: 'text-muted-foreground',
+  sem_trend: 'text-muted-foreground',
+};
 
 export default function AgendaPage() {
   const { toast } = useToast();
@@ -150,6 +158,38 @@ export default function AgendaPage() {
     const noEvidence = dimensionsInFocus.filter((d) => d.trend === 'insufficient_evidence' || d.trend === 'sem_trend').length;
     return { total: dimensionsInFocus.length, mostRecurring, positive, negative, noEvidence };
   }, [dimensionsInFocus]);
+  const focusAnalytics = useMemo(() => {
+    const maxCount = dimensionsInFocus[0]?.count || 1;
+    const focusByDimension = new Map(dimensionsInFocus.map((item) => [item.dimension, item]));
+    const actionBuckets = actionsForFilteredMeetings.reduce((acc, action) => {
+      if (!action.related_dimension) return acc;
+      if (!acc[action.related_dimension]) acc[action.related_dimension] = { open: 0, blocked: 0, completed: 0 };
+      if (action.status === 'blocked') acc[action.related_dimension].blocked += 1;
+      else if (action.status === 'completed') acc[action.related_dimension].completed += 1;
+      else if (['not_started', 'in_progress'].includes(action.status)) acc[action.related_dimension].open += 1;
+      return acc;
+    }, {} as Record<string, { open: number; blocked: number; completed: number }>);
+    const hasActionDimensionData = Object.keys(actionBuckets).length > 0;
+    const trendDistribution = dimensionsInFocus.reduce((acc, item) => {
+      const key = item.trend === 'sem_trend' ? 'insufficient_evidence' : item.trend;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const heatmap = officialDimensionOrder.map((code) => {
+      const item = focusByDimension.get(code);
+      const count = item?.count || 0;
+      const intensity = count === 0 ? 0 : Math.max(18, Math.round((count / maxCount) * 100));
+      return {
+        code,
+        label: getDimensionFullLabel(code),
+        count,
+        trend: item?.trend || 'sem_trend',
+        trendLabel: item?.trendLabel || trendLabels.sem_trend,
+        intensity,
+      };
+    });
+    return { maxCount, actionBuckets, hasActionDimensionData, trendDistribution, heatmap };
+  }, [dimensionsInFocus, actionsForFilteredMeetings]);
 
   const saveMeeting = async () => {
     if (!form.company_id || !form.meeting_date || !form.meeting_type) return toast({ title: 'Preencha empresa, data e tipo', variant: 'destructive' });
@@ -204,31 +244,61 @@ export default function AgendaPage() {
           <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Abrir detalhe do encontro</Link>
         </CardContent></Card>;
       })}</div>
-      <Card className='executive-panel'><CardHeader><CardTitle>Dimensões em foco</CardTitle></CardHeader><CardContent className='space-y-4'>
+      <Card className='executive-panel'><CardHeader><CardTitle>Mapa de Foco do Conselho</CardTitle><p className='text-sm text-muted-foreground'>Veja quais dimensões dominaram os encontros recentes, onde há evolução percebida e onde o conselho precisa manter atenção.</p></CardHeader><CardContent className='space-y-4'>
         {dimensionsInFocus.length === 0 ? <div className='space-y-2 text-sm'><p className='text-muted-foreground'>Nenhuma dimensão em foco ainda.</p><p className='text-muted-foreground'>As dimensões aparecerão aqui quando os encontros tiverem dimensões relacionadas ou evolução registrada.</p><Link className='text-primary underline' to='/app/agenda'>Registrar evolução em um encontro</Link></div> :
           <>
             <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-5'>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Dimensões em foco</p><p className='text-xl font-semibold'>{focusSummary.total}</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Mais recorrente</p><p className='text-sm font-medium truncate'>{focusSummary.mostRecurring?.label || '—'}</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Tendência positiva</p><p className='text-xl font-semibold text-emerald-400'>{focusSummary.positive}</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Tendência negativa</p><p className='text-xl font-semibold text-rose-400'>{focusSummary.negative}</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Sem evidência</p><p className='text-xl font-semibold'>{focusSummary.noEvidence}</p></div>
+              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Tema dominante</p><p className='text-sm font-semibold leading-tight'>{focusSummary.mostRecurring?.label || '—'}</p><p className='text-xs text-muted-foreground mt-1'>{focusSummary.mostRecurring?.count || 0} aparições no ciclo filtrado.</p></div>
+              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Dimensões monitoradas</p><p className='text-xl font-semibold'>{focusSummary.total}</p><p className='text-xs text-muted-foreground mt-1'>Total com sinal em encontros ou evolução.</p></div>
+              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Evolução positiva</p><p className='text-xl font-semibold text-emerald-500'>{focusSummary.positive}</p><p className='text-xs text-muted-foreground mt-1'>Dimensões com tendência improving.</p></div>
+              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Atenção crítica</p><p className='text-xl font-semibold text-rose-500'>{focusSummary.negative}</p><p className='text-xs text-muted-foreground mt-1'>Dimensões com tendência worsening.</p></div>
+              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Sem evidência</p><p className='text-xl font-semibold'>{focusSummary.noEvidence}</p><p className='text-xs text-muted-foreground mt-1'>Sem leitura robusta de tendência.</p></div>
             </div>
-            <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-3'>{dimensionsInFocus.map((item, idx) => {
-              const maxCount = dimensionsInFocus[0]?.count || 1;
-              const width = Math.max(8, Math.round((item.count / maxCount) * 100));
+            <div className='executive-card rounded p-3 space-y-3'>
+              <div className='flex items-center justify-between gap-2'><p className='text-sm font-semibold'>Concentração por dimensão</p><p className='text-xs text-muted-foreground'>Heatmap das 9 dimensões oficiais</p></div>
+              <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2'>
+                {focusAnalytics.heatmap.map((cell) => <div key={cell.code} className='rounded border p-2 min-h-[84px] flex flex-col justify-between' style={{ background: `color-mix(in oklab, hsl(var(--primary)) ${cell.intensity}%, hsl(var(--card)))` }} aria-label={`${cell.code} ${cell.label}. ${cell.count} aparições. ${cell.count === 0 ? 'Sem sinal no ciclo' : `Tendência ${cell.trendLabel}`}`}>
+                    <div className='flex justify-between items-center gap-1'><DimensionBadge code={cell.code} size='sm' /><span className='text-[11px] text-muted-foreground'>{cell.count}x</span></div>
+                    <p className='text-xs leading-tight'>{cell.label}</p>
+                    <p className={`text-[11px] font-medium ${trendToneClasses[cell.trend]}`}>{cell.count === 0 ? 'Sem sinal no ciclo' : cell.trendLabel}</p>
+                  </div>)}
+              </div>
+            </div>
+            <div className='executive-card rounded p-3 space-y-3'>
+              <p className='text-sm font-semibold'>Distribuição de tendências</p>
+              <div className='h-3 w-full rounded-full bg-muted overflow-hidden flex'>
+                {(['improving', 'stable', 'worsening', 'insufficient_evidence'] as const).map((trend) => {
+                  const count = focusAnalytics.trendDistribution[trend] || 0;
+                  const width = focusSummary.total ? `${(count / focusSummary.total) * 100}%` : '0%';
+                  const colorClass = trend === 'improving' ? 'bg-emerald-500' : trend === 'stable' ? 'bg-slate-400' : trend === 'worsening' ? 'bg-rose-500' : 'bg-zinc-400';
+                  return <div key={trend} className={colorClass} style={{ width }} aria-label={`${trendLabels[trend]}: ${count}`} />;
+                })}
+              </div>
+              <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs text-muted-foreground'>
+                <p><strong>Melhorando:</strong> {focusAnalytics.trendDistribution.improving || 0}</p>
+                <p><strong>Estável:</strong> {focusAnalytics.trendDistribution.stable || 0}</p>
+                <p><strong>Piorando:</strong> {focusAnalytics.trendDistribution.worsening || 0}</p>
+                <p><strong>Sem evidência:</strong> {focusAnalytics.trendDistribution.insufficient_evidence || 0}</p>
+              </div>
+            </div>
+            <div className='space-y-2'>{dimensionsInFocus.map((item, idx) => {
+              const width = Math.max(8, Math.round((item.count / focusAnalytics.maxCount) * 100));
               const context = item.trend === 'worsening'
                 ? 'Atenção: tendência negativa'
                 : item.trend === 'improving'
-                  ? 'Tema recorrente no ciclo'
+                  ? 'Evolução positiva percebida'
                   : item.trend === 'stable'
-                    ? 'Dimensão avaliada recentemente'
-                    : 'Sem tendência registrada';
+                    ? 'Dimensão recorrente'
+                    : item.count === focusAnalytics.maxCount
+                      ? 'Tema dominante do ciclo'
+                      : 'Sem evidência suficiente';
+              const actionData = focusAnalytics.actionBuckets[item.dimension];
               return <div key={item.dimension} className='executive-card rounded p-3 space-y-2'>
-                <div className='flex items-start justify-between gap-2'><p className='font-medium leading-tight'>{item.label}</p><DimensionBadge code={item.dimension} label={item.label} size='sm' className='text-xs' /></div>
-                <div className='flex items-center justify-between text-xs text-muted-foreground'><span>{item.count} aparições</span><span>#{idx + 1}</span></div>
-                <div className='h-2 rounded bg-muted/70 overflow-hidden'><div className={`h-full ${item.trend === 'worsening' ? 'bg-rose-500' : 'bg-cyan-400'}`} style={{ width: `${width}%` }} /></div>
-                <div className='flex items-center justify-between'><Badge variant='outline' className={`${item.trend === 'worsening' ? 'border-rose-400/40 text-rose-300' : ''}`}>{item.trendLabel}</Badge><span className='text-xs text-muted-foreground'>{item.trendCount} registros de evolução</span></div>
+                <div className='flex items-start justify-between gap-2'><div><p className='text-xs text-muted-foreground'>#{idx + 1}</p><p className='font-medium leading-tight'>{item.label}</p></div><DimensionBadge code={item.dimension} label={item.label} size='sm' className='text-xs' /></div>
+                <div className='flex items-center justify-between text-xs text-muted-foreground'><span>{item.count} aparições</span><span className={trendToneClasses[item.trend]}>{item.trendLabel}</span></div>
+                <div className='h-2 rounded bg-muted/70 overflow-hidden'><div className={`h-full ${item.trend === 'worsening' ? 'bg-rose-500' : item.trend === 'improving' ? 'bg-emerald-500' : 'bg-cyan-400'}`} style={{ width: `${width}%` }} /></div>
+                <div className='flex items-center justify-between'><Badge variant='outline' className={`${item.trend === 'worsening' ? 'border-rose-400/40 text-rose-400' : ''}`}>{item.trendLabel}</Badge><span className='text-xs text-muted-foreground'>{item.trendCount} registros de evolução</span></div>
+                {focusAnalytics.hasActionDimensionData && actionData ? <p className='text-xs text-muted-foreground'>Ações: {actionData.open} abertas · {actionData.blocked} travadas · {actionData.completed} concluídas</p> : null}
                 <p className='text-xs text-muted-foreground'>{context}</p>
               </div>;
             })}</div>
