@@ -29,7 +29,7 @@ export function AppBreadcrumbs() {
   const location = useLocation();
   const segments = location.pathname.replace('/app/', '').split('/').filter(Boolean);
 
-  if (segments.length <= 1) return null;
+  if (segments.length === 0) return null;
 
   const crumbs: { label: string; href: string }[] = [];
   let path = '/app';
