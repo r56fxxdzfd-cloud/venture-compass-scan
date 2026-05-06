@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, DimensionTrend } from '@/types/council';
+import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, CouncilMeetingNotesDraft, DimensionTrend, SuggestedCouncilActionDraft, DimensionProgressSuggestionDraft } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type DimensionOption = { id: string; label: string };
@@ -33,6 +35,22 @@ const trendVariant: Record<DimensionTrend, 'default' | 'secondary' | 'destructiv
 const winsSuggestions = ['Ação concluída','Decisão tomada','Indicador criado','Responsável definido','Documento criado','Rotina iniciada','Risco mitigado'];
 const blockerSuggestions = ['Falta de responsável','Falta de dados','Falta de caixa','Dependência da liderança','Resistência interna','Falta de governança','Captação insuficiente','Processo inexistente','Sobrecarga operacional'];
 
+const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa' } as const;
+
+const emptyDraft: CouncilMeetingNotesDraft = {
+  executive_summary: '',
+  key_progress: '',
+  key_blockers: '',
+  decisions: '',
+  recommendations: '',
+  next_agenda: '',
+  related_dimensions: [],
+  suggested_actions: [],
+  dimension_progress_suggestions: [],
+  uncertain_items: [],
+};
+
+
 export default function MeetingDetailPage() {
   const { id } = useParams();
   const [meeting, setMeeting] = useState<CouncilMeeting | null>(null);
@@ -45,6 +63,12 @@ export default function MeetingDetailPage() {
   const [newAction, setNewAction] = useState<any>({ priority: 'medium', status: 'not_started' });
   const [companyName, setCompanyName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  const [transcriptText, setTranscriptText] = useState('');
+  const [draft, setDraft] = useState<CouncilMeetingNotesDraft | null>(null);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [applyingDraft, setApplyingDraft] = useState(false);
+
 
   const load = async () => {
     if (!id) return;
@@ -137,6 +161,97 @@ export default function MeetingDetailPage() {
     const { error } = await supabase.from('council_dimension_progress').upsert(payload, { onConflict: 'meeting_id,dimension_id' });
     if (error) return toast({ title: 'Erro ao salvar evolução', description: error.message, variant: 'destructive' });
     toast({ title: 'Evolução por dimensão atualizada' });
+    load();
+  };
+
+
+  const generateMeetingDraft = async () => {
+    if (!meeting || !transcriptText.trim()) return;
+    setGeneratingDraft(true);
+    const { data, error } = await supabase.functions.invoke('extract-council-meeting-notes', {
+      body: {
+        meeting_id: meeting.id,
+        company_id: meeting.company_id,
+        transcript_text: transcriptText,
+        context: {
+          organization_name: companyName,
+          official_dimensions: dimensions,
+          agenda_templates: agendaTemplates,
+          open_actions: actions.filter((action) => action.status !== 'completed' && action.status !== 'cancelled').slice(0, 12),
+          latest_agenda: meeting.next_agenda,
+        },
+      },
+    });
+    setGeneratingDraft(false);
+    if (error) return toast({ title: 'Erro ao analisar transcrição', description: error.message, variant: 'destructive' });
+    setDraft({ ...emptyDraft, ...(data?.draft || {}) });
+    toast({ title: 'Pré-ata gerada', description: 'Revise cada item antes de aplicar ao encontro.' });
+  };
+
+  const applyDraftToMeeting = async () => {
+    if (!meeting || !draft) return;
+    setApplyingDraft(true);
+    const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
+    const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
+
+    const { error: meetingError } = await supabase.from('council_meetings').update({
+      executive_summary: draft.executive_summary || null,
+      key_progress: draft.key_progress || null,
+      key_blockers: draft.key_blockers || null,
+      decisions: draft.decisions || null,
+      recommendations: draft.recommendations || null,
+      next_agenda: draft.next_agenda || null,
+      related_dimensions: draft.related_dimensions,
+    }).eq('id', meeting.id);
+
+    if (meetingError) {
+      setApplyingDraft(false);
+      return toast({ title: 'Erro ao aplicar pré-ata', description: meetingError.message, variant: 'destructive' });
+    }
+
+    if (approvedActions.length > 0) {
+      const payload = approvedActions.map((item) => ({
+        meeting_id: meeting.id,
+        company_id: meeting.company_id,
+        title: item.title,
+        description: item.description || null,
+        owner_name: item.owner_name || null,
+        due_date: item.due_date || null,
+        related_dimension: item.related_dimension || null,
+        priority: item.priority,
+        impact: item.impact,
+        effort: item.effort,
+        expected_evidence: item.expected_evidence || null,
+        status: 'not_started',
+      }));
+      const { error } = await supabase.from('council_actions').insert(payload);
+      if (error) {
+        setApplyingDraft(false);
+        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao criar ações: ${error.message}`, variant: 'destructive' });
+      }
+    }
+
+    for (const item of approvedProgress) {
+      const { error } = await supabase.from('council_dimension_progress').upsert({
+        meeting_id: meeting.id,
+        company_id: meeting.company_id,
+        dimension_id: item.dimension_id,
+        dimension_label: item.dimension_label,
+        current_perceived_score: item.current_perceived_score,
+        trend: item.trend,
+        evidence_note: item.evidence_note || null,
+        counselor_comment: item.counselor_comment || null,
+      }, { onConflict: 'meeting_id,dimension_id' });
+      if (error) {
+        setApplyingDraft(false);
+        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao salvar evolução: ${error.message}`, variant: 'destructive' });
+      }
+    }
+
+    setApplyingDraft(false);
+    setDraft(null);
+    setTranscriptText('');
+    toast({ title: 'Pré-ata aplicada com sucesso' });
     load();
   };
 
@@ -291,6 +406,51 @@ export default function MeetingDetailPage() {
         <div className='executive-card rounded p-3'><p className='font-semibold'>Baixo impacto / alto esforço</p><p>{matrix.low_high.length} ações</p></div>
       </div>
     </CardContent></Card>
+
+    <Card className='executive-panel'><CardHeader><CardTitle>Assistente de Ata do Conselho</CardTitle></CardHeader><CardContent className='space-y-3'>
+      <p className='text-xs text-muted-foreground'>A IA gera um rascunho. Revise antes de aplicar ao encontro.</p>
+      <Textarea value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)} placeholder='Cole a transcrição da reunião aqui...' className='min-h-40' />
+      <Button disabled={!transcriptText.trim() || generatingDraft} onClick={generateMeetingDraft}>{generatingDraft ? 'Analisando transcrição...' : 'Gerar pré-ata'}</Button>
+
+      {draft && <div className='space-y-4'>
+        <Tabs defaultValue='minutes'>
+          <TabsList>
+            <TabsTrigger value='minutes'>Ata estruturada</TabsTrigger>
+            <TabsTrigger value='actions'>Ações sugeridas</TabsTrigger>
+            <TabsTrigger value='progress'>Evolução por dimensão</TabsTrigger>
+            <TabsTrigger value='uncertain'>Itens incertos</TabsTrigger>
+          </TabsList>
+          <TabsContent value='minutes' className='space-y-2'>
+            <Input value={draft.executive_summary} onChange={(e) => setDraft({ ...draft, executive_summary: e.target.value })} placeholder='Resumo executivo' />
+            <Textarea value={draft.key_progress} onChange={(e) => setDraft({ ...draft, key_progress: e.target.value })} placeholder='Principais avanços' />
+            <Textarea value={draft.key_blockers} onChange={(e) => setDraft({ ...draft, key_blockers: e.target.value })} placeholder='Principais travas' />
+            <Textarea value={draft.decisions} onChange={(e) => setDraft({ ...draft, decisions: e.target.value })} placeholder='Decisões tomadas' />
+            <Textarea value={draft.recommendations} onChange={(e) => setDraft({ ...draft, recommendations: e.target.value })} placeholder='Recomendações do conselho' />
+            <Textarea value={draft.next_agenda} onChange={(e) => setDraft({ ...draft, next_agenda: e.target.value })} placeholder='Próxima pauta' />
+          </TabsContent>
+          <TabsContent value='actions' className='space-y-3'>
+            {draft.suggested_actions.map((action, idx) => <div key={idx} className='executive-card p-3 rounded space-y-2'>
+              <div className='flex items-center justify-between'><Badge className='executive-pill'>{confidenceLabel[action.confidence]}</Badge><Button size='icon' variant='ghost' onClick={() => setDraft({ ...draft, suggested_actions: draft.suggested_actions.filter((_, i) => i !== idx) })}><Trash2 className='h-4 w-4' /></Button></div>
+              <div className='flex items-center gap-2'><Checkbox checked={action.approved !== false} onCheckedChange={(checked) => setDraft({ ...draft, suggested_actions: draft.suggested_actions.map((row, i) => i === idx ? { ...row, approved: !!checked } : row) })} /><span className='text-xs'>Aplicar ação</span></div>
+              <Input value={action.title} onChange={(e) => setDraft({ ...draft, suggested_actions: draft.suggested_actions.map((row, i) => i === idx ? { ...row, title: e.target.value } : row) })} />
+              <p className='text-xs text-muted-foreground'>{(!action.owner_name || !action.due_date || !action.expected_evidence) ? 'Precisa revisão' : 'Pronta para aplicar'}</p>
+            </div>)}
+          </TabsContent>
+          <TabsContent value='progress' className='space-y-3'>
+            {draft.dimension_progress_suggestions.map((item, idx) => <div key={idx} className='executive-card p-3 rounded space-y-2'>
+              <div className='flex items-center justify-between'><Badge className='executive-pill'>{confidenceLabel[item.confidence]}</Badge><Button size='icon' variant='ghost' onClick={() => setDraft({ ...draft, dimension_progress_suggestions: draft.dimension_progress_suggestions.filter((_, i) => i !== idx) })}><Trash2 className='h-4 w-4' /></Button></div>
+              <div className='flex items-center gap-2'><Checkbox checked={item.approved !== false} onCheckedChange={(checked) => setDraft({ ...draft, dimension_progress_suggestions: draft.dimension_progress_suggestions.map((row, i) => i === idx ? { ...row, approved: !!checked } : row) })} /><span className='text-xs'>Aplicar evolução</span></div>
+              <Input value={item.dimension_label} onChange={(e) => setDraft({ ...draft, dimension_progress_suggestions: draft.dimension_progress_suggestions.map((row, i) => i === idx ? { ...row, dimension_label: e.target.value } : row) })} />
+            </div>)}
+          </TabsContent>
+          <TabsContent value='uncertain' className='space-y-2'>
+            {draft.uncertain_items.map((item, idx) => <div key={idx} className='executive-card p-3 rounded'><p className='text-sm font-medium'>{item.type}</p><p className='text-sm'>{item.note}</p></div>)}
+          </TabsContent>
+        </Tabs>
+        <Button onClick={applyDraftToMeeting} disabled={applyingDraft}>{applyingDraft ? 'Aplicando...' : 'Aplicar ao encontro'}</Button>
+      </div>}
+    </CardContent></Card>
+
     <BackToTopFooter />
   </div>;
 }
