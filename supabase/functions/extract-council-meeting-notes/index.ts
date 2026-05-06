@@ -23,9 +23,10 @@ Deno.serve(async (req) => {
     const { data: { user } } = await callerClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const { meeting_id, company_id, transcript_text, context } = await req.json();
-    if (!meeting_id || !company_id || !transcript_text?.trim()) {
-      return new Response(JSON.stringify({ error: 'meeting_id, company_id e transcript_text são obrigatórios' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { mode, meeting_id, company_id, transcript_text, context } = await req.json();
+    const isNewMeetingMode = mode === 'new_meeting';
+    if ((!isNewMeetingMode && !meeting_id) || !company_id || !transcript_text?.trim()) {
+      return new Response(JSON.stringify({ error: 'company_id e transcript_text são obrigatórios; meeting_id é obrigatório quando mode != new_meeting' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const prompt = `Você é Assistente de Ata do Conselho. Gere JSON estritamente válido, sem markdown, com o schema exigido.
