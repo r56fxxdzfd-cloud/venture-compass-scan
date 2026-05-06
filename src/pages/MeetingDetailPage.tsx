@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +37,23 @@ const blockerSuggestions = ['Falta de responsável','Falta de dados','Falta de c
 
 const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa' } as const;
 
+
+const MIN_TRANSCRIPT_CHARS = 80;
+
+function safeJsonClone<T>(value: T): T | null {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeDraftPayload(raw: unknown): CouncilMeetingNotesDraft | null {
+  const cloned = safeJsonClone(raw);
+  if (!cloned || typeof cloned !== 'object') return null;
+  return { ...emptyDraft, ...(cloned as Partial<CouncilMeetingNotesDraft>) };
+}
+
 const emptyDraft: CouncilMeetingNotesDraft = {
   executive_summary: '',
   key_progress: '',
@@ -68,6 +85,7 @@ export default function MeetingDetailPage() {
   const [draft, setDraft] = useState<CouncilMeetingNotesDraft | null>(null);
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [applyingDraft, setApplyingDraft] = useState(false);
+  const [lastAppliedDraftFingerprint, setLastAppliedDraftFingerprint] = useState<string | null>(null);
 
 
   const load = async () => {
@@ -166,13 +184,13 @@ export default function MeetingDetailPage() {
 
 
   const generateMeetingDraft = async () => {
-    if (!meeting || !transcriptText.trim()) return;
+    if (!meeting || trimmedTranscript.length < MIN_TRANSCRIPT_CHARS) return;
     setGeneratingDraft(true);
     const { data, error } = await supabase.functions.invoke('extract-council-meeting-notes', {
       body: {
         meeting_id: meeting.id,
         company_id: meeting.company_id,
-        transcript_text: transcriptText,
+        transcript_text: trimmedTranscript,
         context: {
           organization_name: companyName,
           official_dimensions: dimensions,
@@ -184,12 +202,29 @@ export default function MeetingDetailPage() {
     });
     setGeneratingDraft(false);
     if (error) return toast({ title: 'Erro ao analisar transcrição', description: error.message, variant: 'destructive' });
-    setDraft({ ...emptyDraft, ...(data?.draft || {}) });
+
+    const normalizedDraft = normalizeDraftPayload(data?.draft);
+    if (!normalizedDraft) {
+      return toast({ title: 'Resposta inválida do assistente', description: 'A IA retornou um formato inesperado. Tente novamente com outra transcrição.', variant: 'destructive' });
+    }
+
+    const invalidProgressDimensions = normalizedDraft.dimension_progress_suggestions.filter((item) => !officialDimensionIds.has(item.dimension_id));
+    const sanitizedDraft: CouncilMeetingNotesDraft = {
+      ...normalizedDraft,
+      suggested_actions: normalizedDraft.suggested_actions.map((item) => item.related_dimension && !officialDimensionIds.has(item.related_dimension) ? { ...item, related_dimension: '' } : item),
+      dimension_progress_suggestions: normalizedDraft.dimension_progress_suggestions.filter((item) => officialDimensionIds.has(item.dimension_id)),
+      uncertain_items: [
+        ...normalizedDraft.uncertain_items,
+        ...invalidProgressDimensions.map((item) => ({ type: 'dimension' as const, note: `Dimensão ignorada por não estar na lista oficial: ${item.dimension_id} (${item.dimension_label})`, source_excerpt: item.source_excerpt || '' })),
+      ],
+    };
+
+    setDraft(sanitizedDraft);
     toast({ title: 'Pré-ata gerada', description: 'Revise cada item antes de aplicar ao encontro.' });
   };
 
   const applyDraftToMeeting = async () => {
-    if (!meeting || !draft) return;
+    if (!meeting || !draft || !canApplyDraft) return;
     setApplyingDraft(true);
     const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
     const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
@@ -215,9 +250,9 @@ export default function MeetingDetailPage() {
         company_id: meeting.company_id,
         title: item.title,
         description: item.description || null,
-        owner_name: item.owner_name || null,
-        due_date: item.due_date || null,
-        related_dimension: item.related_dimension || null,
+        owner_name: item.owner_name?.trim() || null,
+        due_date: item.due_date?.trim() || null,
+        related_dimension: item.related_dimension && officialDimensionIds.has(item.related_dimension) ? item.related_dimension : null,
         priority: item.priority,
         impact: item.impact,
         effort: item.effort,
@@ -232,6 +267,7 @@ export default function MeetingDetailPage() {
     }
 
     for (const item of approvedProgress) {
+      if (!officialDimensionIds.has(item.dimension_id)) continue;
       const { error } = await supabase.from('council_dimension_progress').upsert({
         meeting_id: meeting.id,
         company_id: meeting.company_id,
@@ -249,6 +285,7 @@ export default function MeetingDetailPage() {
     }
 
     setApplyingDraft(false);
+    setLastAppliedDraftFingerprint(draftFingerprint);
     setDraft(null);
     setTranscriptText('');
     toast({ title: 'Pré-ata aplicada com sucesso' });
@@ -293,6 +330,12 @@ export default function MeetingDetailPage() {
     ...(meeting.related_dimensions || []),
     ...progressRows.map(p => p.dimension_id),
   ]);
+  const officialDimensionIds = useMemo(() => new Set(dimensions.map((d) => d.id)), [dimensions]);
+  const trimmedTranscript = transcriptText.trim();
+  const canGenerateDraft = trimmedTranscript.length >= MIN_TRANSCRIPT_CHARS && !generatingDraft;
+  const draftFingerprint = draft ? JSON.stringify(draft) : null;
+  const canApplyDraft = !!draft && !applyingDraft && !!draftFingerprint && draftFingerprint !== lastAppliedDraftFingerprint;
+
   const suggestedTemplates = agendaTemplates.filter(t =>
     discussedDimensionIds.has(t.dimension_id) ||
     Array.from(discussedDimensionIds).some(id => id.toLowerCase() === t.dimension_label.toLowerCase())
@@ -410,7 +453,8 @@ export default function MeetingDetailPage() {
     <Card className='executive-panel'><CardHeader><CardTitle>Assistente de Ata do Conselho</CardTitle></CardHeader><CardContent className='space-y-3'>
       <p className='text-xs text-muted-foreground'>A IA gera um rascunho. Revise antes de aplicar ao encontro.</p>
       <Textarea value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)} placeholder='Cole a transcrição da reunião aqui...' className='min-h-40' />
-      <Button disabled={!transcriptText.trim() || generatingDraft} onClick={generateMeetingDraft}>{generatingDraft ? 'Analisando transcrição...' : 'Gerar pré-ata'}</Button>
+      <Button disabled={!canGenerateDraft} onClick={generateMeetingDraft}>{generatingDraft ? 'Analisando transcrição...' : 'Gerar pré-ata'}</Button>
+      {trimmedTranscript.length > 0 && trimmedTranscript.length < MIN_TRANSCRIPT_CHARS ? <p className='text-xs text-muted-foreground'>A transcrição está curta demais. Inclua mais contexto (mínimo de {MIN_TRANSCRIPT_CHARS} caracteres).</p> : null}
 
       {draft && <div className='space-y-4'>
         <Tabs defaultValue='minutes'>
@@ -447,7 +491,7 @@ export default function MeetingDetailPage() {
             {draft.uncertain_items.map((item, idx) => <div key={idx} className='executive-card p-3 rounded'><p className='text-sm font-medium'>{item.type}</p><p className='text-sm'>{item.note}</p></div>)}
           </TabsContent>
         </Tabs>
-        <Button onClick={applyDraftToMeeting} disabled={applyingDraft}>{applyingDraft ? 'Aplicando...' : 'Aplicar ao encontro'}</Button>
+        <Button onClick={applyDraftToMeeting} disabled={!canApplyDraft}>{applyingDraft ? 'Aplicando...' : 'Aplicar ao encontro'}</Button>
       </div>}
     </CardContent></Card>
 
