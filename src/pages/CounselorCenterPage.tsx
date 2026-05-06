@@ -145,12 +145,12 @@ export default function CounselorCenterPage() {
 
 
       <Card className='executive-panel print-safe'>
-        <CardHeader><CardTitle>Radar de Evolução por Dimensão</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className='pt-6'>
           <DimensionEvolutionRadar
             dimensions={latestProgressByDimension.map((item) => ({ id: item.dimension_id, label: item.dimension_label }))}
             progressRecords={progress}
-            subtitle='Comparação entre baseline inicial e leitura mais recente para apoiar a próxima decisão do conselho.'
+            title='Radar de Evolução por Dimensão'
+            subtitle='Comparação entre o baseline inicial e a última leitura registrada pelo conselho.'
             compact
           />
         </CardContent>
