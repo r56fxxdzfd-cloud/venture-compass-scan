@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,8 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend, MeetingType } from '@/types/council';
+import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, CouncilMeetingNotesDraft, DimensionTrend, MeetingType } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 type Company = { id: string; name: string };
@@ -34,6 +37,7 @@ const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
 };
 
 export default function AgendaPage() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [meetings, setMeetings] = useState<CouncilMeeting[]>([]);
@@ -45,8 +49,14 @@ export default function AgendaPage() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [actionStatus, setActionStatus] = useState<string>('all');
   const [open, setOpen] = useState(false);
+  const [creationMode, setCreationMode] = useState<'manual' | 'transcript'>('manual');
   const [form, setForm] = useState<any>({ meeting_type: 'collective', related_dimensions: [] as string[], main_topic: '' });
+  const [transcriptText, setTranscriptText] = useState('');
+  const [draft, setDraft] = useState<CouncilMeetingNotesDraft | null>(null);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
+  const [creatingFromDraft, setCreatingFromDraft] = useState(false);
   const [loading, setLoading] = useState(true);
+  const MIN_TRANSCRIPT_CHARS = 200;
 
   const load = async () => {
     setLoading(true);
@@ -204,6 +214,77 @@ export default function AgendaPage() {
     setOpen(false); setForm({ meeting_type: 'collective', related_dimensions: [], main_topic: '' }); load();
   };
 
+  const resetDraftFlow = () => {
+    setTranscriptText('');
+    setDraft(null);
+    setGeneratingDraft(false);
+    setCreatingFromDraft(false);
+  };
+
+  const canGenerateDraft = !!form.company_id && !!form.meeting_date && !!form.meeting_type && transcriptText.trim().length >= MIN_TRANSCRIPT_CHARS;
+
+  const generateDraftFromTranscript = async () => {
+    if (!canGenerateDraft || generatingDraft) return;
+    const companyName = companies.find((c) => c.id === form.company_id)?.name || '';
+    setGeneratingDraft(true);
+    const { data: agendaTemplates } = await supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order');
+    const { data, error } = await supabase.functions.invoke('extract-council-meeting-notes', {
+      body: {
+        mode: 'new_meeting',
+        company_id: form.company_id,
+        transcript_text: transcriptText.trim(),
+        context: {
+          company_name: companyName,
+          meeting_date: form.meeting_date,
+          meeting_type: form.meeting_type,
+          selected_topic: form.main_topic || '',
+          selected_dimensions: form.related_dimensions || [],
+          official_dimensions: dimensionCatalog.map((d) => ({ id: d.id, label: d.label })),
+          agenda_templates: agendaTemplates || [],
+        },
+      },
+    });
+    setGeneratingDraft(false);
+    if (error) return toast({ title: 'Erro ao analisar transcrição', description: error.message, variant: 'destructive' });
+    if (!data?.draft || typeof data.draft !== 'object') return toast({ title: 'Resposta inválida da IA', description: 'A pré-ata retornou em formato inválido. Revise a transcrição e tente novamente.', variant: 'destructive' });
+    setDraft({ ...data.draft, suggested_actions: (data.draft.suggested_actions || []).map((a: any) => ({ ...a, approved: a.approved !== false })), dimension_progress_suggestions: (data.draft.dimension_progress_suggestions || []).map((p: any) => ({ ...p, approved: p.approved !== false })) } as CouncilMeetingNotesDraft);
+    toast({ title: 'Pré-ata gerada', description: 'A IA gerou um rascunho. Revise antes de criar o encontro.' });
+  };
+
+  const createMeetingWithDraft = async () => {
+    if (!draft || creatingFromDraft) return;
+    setCreatingFromDraft(true);
+    const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
+    const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
+    const { data: inserted, error: meetingError } = await supabase.from('council_meetings').insert({
+      company_id: form.company_id,
+      meeting_date: form.meeting_date,
+      meeting_type: form.meeting_type,
+      main_topic: form.main_topic || null,
+      related_dimensions: draft.related_dimensions?.length ? draft.related_dimensions : (form.related_dimensions?.length ? form.related_dimensions : null),
+      executive_summary: draft.executive_summary || null,
+      key_progress: draft.key_progress || null,
+      key_blockers: draft.key_blockers || null,
+      decisions: draft.decisions || null,
+      recommendations: draft.recommendations || null,
+      next_agenda: draft.next_agenda || null,
+    }).select('id,company_id').single();
+    if (meetingError || !inserted) {
+      setCreatingFromDraft(false);
+      return toast({ title: 'Erro ao criar encontro', description: meetingError?.message || 'Falha ao persistir encontro', variant: 'destructive' });
+    }
+    if (approvedActions.length) await supabase.from('council_actions').insert(approvedActions.map((item) => ({ meeting_id: inserted.id, company_id: inserted.company_id, title: item.title, description: item.description || null, owner_name: item.owner_name?.trim() || null, due_date: item.due_date?.trim() || null, related_dimension: item.related_dimension || null, priority: item.priority, impact: item.impact, effort: item.effort, expected_evidence: item.expected_evidence || null, status: 'not_started' })));
+    for (const item of approvedProgress) {
+      await supabase.from('council_dimension_progress').upsert({ meeting_id: inserted.id, company_id: inserted.company_id, dimension_id: item.dimension_id, dimension_label: item.dimension_label, current_perceived_score: item.current_perceived_score, trend: item.trend, evidence_note: item.evidence_note || null, counselor_comment: item.counselor_comment || null }, { onConflict: 'meeting_id,dimension_id' });
+    }
+    toast({ title: 'Encontro criado com pré-ata' });
+    resetDraftFlow();
+    setOpen(false);
+    setForm({ meeting_type: 'collective', related_dimensions: [], main_topic: '' });
+    await load();
+    navigate(`/app/agenda/${inserted.id}`);
+  };
+
   return <div className='space-y-6'>
     <div className='executive-header flex flex-wrap items-center justify-between gap-3'><div><h1 className='executive-section-title text-2xl font-bold'>Agenda de Evolução</h1><p className='text-sm text-muted-foreground'>Organize encontros, decisões e execução contínua do conselho.</p><Link className='text-sm text-primary underline print:hidden' to='/app/agenda/templates'>Consultar Templates de Pauta</Link></div><Button className='print:hidden' onClick={() => setOpen(true)}>Registrar novo encontro</Button></div>
     <Card className='executive-panel'><CardContent className='pt-6 grid md:grid-cols-3 gap-3'>
@@ -305,7 +386,13 @@ export default function AgendaPage() {
           </>}
       </CardContent></Card>
       </>}
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className='max-w-3xl'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
+    <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setCreationMode('manual'); resetDraftFlow(); } }}><DialogContent className='max-w-5xl max-h-[90vh] overflow-y-auto'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
+      <Tabs value={creationMode} onValueChange={(v) => setCreationMode(v as 'manual' | 'transcript')} className='space-y-3'>
+        <TabsList className='grid grid-cols-2 w-full'>
+          <TabsTrigger value='manual'>Registro manual</TabsTrigger>
+          <TabsTrigger value='transcript'>A partir de transcrição</TabsTrigger>
+        </TabsList>
+        <TabsContent value='manual' className='space-y-3'>
       <div className='grid md:grid-cols-2 gap-3'>
         <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Data*</Label><Input type='date' value={form.meeting_date || ''} onChange={e => setForm({ ...form, meeting_date: e.target.value })} /></div>
@@ -315,6 +402,34 @@ export default function AgendaPage() {
         <div className='md:col-span-2'><Label>Resumo executivo</Label><Input value={form.executive_summary || ''} onChange={e => setForm({ ...form, executive_summary: e.target.value })} /></div>
       </div>
       <div className='flex justify-end'><Button onClick={saveMeeting}>Salvar encontro</Button></div>
+        </TabsContent>
+        <TabsContent value='transcript' className='space-y-3'>
+          <p className='text-sm text-muted-foreground'>A IA gera um rascunho. Revise antes de criar o encontro.</p>
+          <div className='grid md:grid-cols-2 gap-3'>
+            <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Data*</Label><Input type='date' value={form.meeting_date || ''} onChange={e => setForm({ ...form, meeting_date: e.target.value })} /></div>
+            <div><Label>Tipo de encontro*</Label><Select value={form.meeting_type || 'collective'} onValueChange={v => setForm({ ...form, meeting_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='collective'>Conselho Coletivo</SelectItem><SelectItem value='individual'>Acompanhamento Individual</SelectItem><SelectItem value='extraordinary'>Reunião Extraordinária</SelectItem></SelectContent></Select></div>
+            <div><Label>Tema principal (opcional)</Label><Input value={form.main_topic || ''} onChange={(e) => setForm({ ...form, main_topic: e.target.value })} /></div>
+            <div className='md:col-span-2'><Label>Dimensões relacionadas (opcional)</Label><div className='mt-2 flex flex-wrap gap-2'>{dimensionCatalog.map(dim => { const selected = form.related_dimensions?.includes(dim.id); return <button key={dim.id} type='button' onClick={() => setForm((prev: any) => ({ ...prev, related_dimensions: selected ? prev.related_dimensions.filter((id: string) => id !== dim.id) : [...(prev.related_dimensions || []), dim.id] }))} className={`rounded-full border px-3 py-1 text-xs ${selected ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>{dim.label}</button>; })}</div></div>
+            <div className='md:col-span-2'><Label>Transcrição da reunião*</Label><Textarea className='min-h-[220px]' value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)} placeholder='Cole aqui a transcrição completa da reunião.' /></div>
+          </div>
+          <div className='flex justify-end'><Button disabled={!canGenerateDraft || generatingDraft} onClick={generateDraftFromTranscript}>{generatingDraft ? 'Analisando transcrição...' : 'Gerar pré-ata'}</Button></div>
+          {draft && <div className='space-y-3'>
+            <div className='grid md:grid-cols-2 gap-3'>
+              <div><Label>Resumo executivo</Label><Textarea value={draft.executive_summary || ''} onChange={(e) => setDraft({ ...draft, executive_summary: e.target.value })} /></div>
+              <div><Label>Próxima pauta</Label><Textarea value={draft.next_agenda || ''} onChange={(e) => setDraft({ ...draft, next_agenda: e.target.value })} /></div>
+              <div><Label>Progressos-chave</Label><Textarea value={draft.key_progress || ''} onChange={(e) => setDraft({ ...draft, key_progress: e.target.value })} /></div>
+              <div><Label>Bloqueios-chave</Label><Textarea value={draft.key_blockers || ''} onChange={(e) => setDraft({ ...draft, key_blockers: e.target.value })} /></div>
+              <div><Label>Decisões</Label><Textarea value={draft.decisions || ''} onChange={(e) => setDraft({ ...draft, decisions: e.target.value })} /></div>
+              <div><Label>Recomendações</Label><Textarea value={draft.recommendations || ''} onChange={(e) => setDraft({ ...draft, recommendations: e.target.value })} /></div>
+            </div>
+            <div className='space-y-2'>{draft.suggested_actions.map((action, idx) => <div key={idx} className='rounded border p-3 space-y-1 text-sm'><div className='flex items-center gap-2'><Checkbox checked={action.approved !== false} onCheckedChange={(checked) => setDraft({ ...draft, suggested_actions: draft.suggested_actions.map((row, i) => i === idx ? { ...row, approved: !!checked } : row) })} /><span className='font-medium'>{action.title}</span>{(!action.owner_name || !action.due_date || !action.expected_evidence) && <Badge variant='outline'>Precisa revisão</Badge>}</div><p>Responsável: {action.owner_name || '—'} · Prazo: {action.due_date || '—'} · Dimensão: {action.related_dimension || '—'}</p><p>Prioridade: {action.priority} · Impacto: {action.impact} · Esforço: {action.effort} · Confiança: {action.confidence}</p><p>Evidência esperada: {action.expected_evidence || '—'}</p></div>)}</div>
+            <div className='space-y-2'>{draft.dimension_progress_suggestions.map((item, idx) => <div key={idx} className='rounded border p-3 space-y-1 text-sm'><div className='flex items-center gap-2'><Checkbox checked={item.approved !== false} onCheckedChange={(checked) => setDraft({ ...draft, dimension_progress_suggestions: draft.dimension_progress_suggestions.map((row, i) => i === idx ? { ...row, approved: !!checked } : row) })} /><span className='font-medium'>{item.dimension_id} · {item.dimension_label}</span></div><p>Score: {item.current_perceived_score ?? '—'} · Tendência: {item.trend} · Confiança: {item.confidence}</p><p>Evidência: {item.evidence_note || '—'}</p><p>Comentário: {item.counselor_comment || '—'}</p></div>)}</div>
+            <div className='space-y-2'>{(draft.uncertain_items || []).map((item, idx) => <div key={idx} className='rounded border border-amber-500/40 p-3 text-sm'><p className='font-medium'>Item incerto: {item.type}</p><p>{item.note}</p></div>)}</div>
+            <div className='flex justify-end'><Button onClick={createMeetingWithDraft} disabled={creatingFromDraft}>{creatingFromDraft ? 'Criando encontro...' : 'Criar encontro com pré-ata'}</Button></div>
+          </div>}
+        </TabsContent>
+      </Tabs>
     </DialogContent></Dialog>
     <BackToTopFooter />
   </div>;
