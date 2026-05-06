@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
@@ -28,6 +27,24 @@ const actionStatusLabel: Record<CouncilAction['status'], string> = {
 };
 
 const statusOrder: CouncilAction['status'][] = ['completed', 'in_progress', 'blocked', 'not_started'];
+
+const valueLabels = {
+  priority: { low: 'Baixa', medium: 'Média', high: 'Alta' },
+  impact: { low: 'Baixo', medium: 'Médio', high: 'Alto' },
+  effort: { low: 'Baixo', medium: 'Médio', high: 'Alto' },
+} as const;
+
+const dimensionCodeToLabel: Record<string, string> = {
+  IC: 'Identidade & Cultura',
+  PL: 'Pessoas & Liderança',
+  GR: 'Governança & Riscos',
+  EE: 'Estratégia & Execução',
+  PM: 'Processos & Métricas',
+  FS: 'Finanças & Sustentabilidade',
+  MN: 'Modelo de Negócio',
+  GT: 'Go-to-market & Tração',
+  PT: 'Produto & Tecnologia',
+};
 
 export default function ProgressReportPage() {
   const { id } = useParams();
@@ -94,11 +111,13 @@ export default function ProgressReportPage() {
     const pending = actions.filter(a => a.status === 'blocked' || a.status === 'not_started').slice(0, 4).map(a => a.title);
     const nextFocus = buildNextFocuses(dimensionRows.map(r => r.progress!).filter(Boolean), actions, dimensions);
 
+    const normalizeSentence = (value: string) => value.replace(/\.{2,}/g, '.').replace(/\s+\./g, '.').trim();
+
     return {
-      text1: `Desde o início do acompanhamento, a empresa teve ${meetings.length} encontros, ${actionsByStatus.completed.length} ações concluídas e ${dimensionRows.length} dimensões avaliadas.`,
-      text2: `As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'nenhuma registrada até o momento'}.`,
-      text3: `As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`,
-      text4: `O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`,
+      text1: normalizeSentence(`Desde o início do acompanhamento, a empresa teve ${meetings.length} encontros, ${actionsByStatus.completed.length} ações concluídas e ${dimensionRows.length} dimensões avaliadas.`),
+      text2: normalizeSentence(`As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'nenhuma registrada até o momento'}.`),
+      text3: normalizeSentence(`As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`),
+      text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
       nextFocus,
     };
   }, [meetings.length, actionsByStatus.completed.length, dimensionRows, actions, dimensions]);
@@ -138,7 +157,7 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
 
-    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Radar de Evolução por Dimensão</CardTitle></CardHeader><CardContent>
+    <Card className='executive-surface print-safe'><CardContent className='pt-6'>
       <DimensionEvolutionRadar
         dimensions={dimensions}
         progressRecords={progressRows}
@@ -164,8 +183,8 @@ export default function ProgressReportPage() {
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
         {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-3 text-sm'>
           <p className='font-medium'>{action.title}</p>
-          <p className='text-muted-foreground'>{action.related_dimension ? <DimensionBadge code={action.related_dimension} /> : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
-          <p>Prioridade: {action.priority} | Impacto: {action.impact || '—'} | Esforço: {action.effort || '—'} | Status: {actionStatusLabel[action.status]}</p>
+          <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
+          <p>Prioridade: {valueLabels.priority[action.priority as keyof typeof valueLabels.priority] || action.priority} | Impacto: {action.impact ? (valueLabels.impact[action.impact as keyof typeof valueLabels.impact] || action.impact) : '—'} | Esforço: {action.effort ? (valueLabels.effort[action.effort as keyof typeof valueLabels.effort] || action.effort) : '—'} | Status: {actionStatusLabel[action.status]}</p>
           <p><strong>Evidência esperada:</strong> {action.expected_evidence || '—'}</p>
         </div>)}
       </div>)}</div>}
@@ -186,6 +205,7 @@ export default function ProgressReportPage() {
       {summary.nextFocus.length === 0 ? <p className='text-sm text-muted-foreground'>Sem focos sugeridos no momento.</p> :
       <ol className='list-decimal pl-5 text-sm space-y-1'>{summary.nextFocus.map((item, idx) => <li key={idx}>{item}</li>)}</ol>}
     </CardContent></Card>
+    <div className='hidden print:block mt-8 pt-3 border-t text-xs text-muted-foreground'>Relatório gerado pelo Venture Compass Scan — uso executivo.</div>
     <BackToTopFooter />
   </div>;
 }
