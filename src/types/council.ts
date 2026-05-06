@@ -78,3 +78,51 @@ export interface CouncilAgendaTemplate {
   created_at: string;
   updated_at: string;
 }
+
+export type DraftConfidence = 'high' | 'medium' | 'low';
+
+export interface SuggestedCouncilActionDraft {
+  title: string;
+  description: string;
+  owner_name: string;
+  due_date: string;
+  related_dimension: string;
+  priority: ActionPriority;
+  impact: ActionPriority;
+  effort: ActionPriority;
+  expected_evidence: string;
+  confidence: DraftConfidence;
+  source_excerpt: string;
+  approved?: boolean;
+}
+
+export interface DimensionProgressSuggestionDraft {
+  dimension_id: string;
+  dimension_label: string;
+  current_perceived_score: number | null;
+  trend: DimensionTrend;
+  evidence_note: string;
+  counselor_comment: string;
+  confidence: DraftConfidence;
+  source_excerpt: string;
+  approved?: boolean;
+}
+
+export interface UncertainItemDraft {
+  type: 'owner' | 'deadline' | 'decision' | 'action' | 'dimension' | 'other';
+  note: string;
+  source_excerpt: string;
+}
+
+export interface CouncilMeetingNotesDraft {
+  executive_summary: string;
+  key_progress: string;
+  key_blockers: string;
+  decisions: string;
+  recommendations: string;
+  next_agenda: string;
+  related_dimensions: string[];
+  suggested_actions: SuggestedCouncilActionDraft[];
+  dimension_progress_suggestions: DimensionProgressSuggestionDraft[];
+  uncertain_items: UncertainItemDraft[];
+}
