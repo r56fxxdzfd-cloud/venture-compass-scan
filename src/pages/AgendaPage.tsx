@@ -253,9 +253,46 @@ export default function AgendaPage() {
 
   const createMeetingWithDraft = async () => {
     if (!draft || creatingFromDraft) return;
-    setCreatingFromDraft(true);
+
     const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
     const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
+    if (!form.company_id || !form.meeting_date || !form.meeting_type) {
+      return toast({ title: 'Dados incompletos para criar encontro', description: 'Preencha empresa, data e tipo antes de criar o encontro com pré-ata.', variant: 'destructive' });
+    }
+
+    const actionPayload = approvedActions.map((item) => ({
+      title: item.title?.trim() || '',
+      description: item.description || null,
+      owner_name: item.owner_name?.trim() || null,
+      due_date: item.due_date?.trim() || null,
+      related_dimension: item.related_dimension || null,
+      priority: item.priority,
+      impact: item.impact,
+      effort: item.effort,
+      expected_evidence: item.expected_evidence || null,
+      status: 'not_started' as const,
+    }));
+
+    const invalidActionIndex = actionPayload.findIndex((item) => !item.title);
+    if (invalidActionIndex >= 0) {
+      return toast({ title: 'Pré-ata inválida nas ações', description: `A ação #${invalidActionIndex + 1} está sem título. Revise a pré-ata antes de criar o encontro.`, variant: 'destructive' });
+    }
+
+    const progressPayload = approvedProgress.map((item) => ({
+      dimension_id: item.dimension_id?.trim() || '',
+      dimension_label: item.dimension_label?.trim() || '',
+      current_perceived_score: item.current_perceived_score,
+      trend: item.trend,
+      evidence_note: item.evidence_note || null,
+      counselor_comment: item.counselor_comment || null,
+    }));
+
+    const invalidProgressIndex = progressPayload.findIndex((item) => !item.dimension_id || !item.dimension_label || typeof item.current_perceived_score !== 'number' || Number.isNaN(item.current_perceived_score));
+    if (invalidProgressIndex >= 0) {
+      return toast({ title: 'Pré-ata inválida na evolução por dimensão', description: `A linha de evolução #${invalidProgressIndex + 1} está com dados obrigatórios ausentes ou inválidos.`, variant: 'destructive' });
+    }
+
+    setCreatingFromDraft(true);
     const { data: inserted, error: meetingError } = await supabase.from('council_meetings').insert({
       company_id: form.company_id,
       meeting_date: form.meeting_date,
@@ -269,19 +306,55 @@ export default function AgendaPage() {
       recommendations: draft.recommendations || null,
       next_agenda: draft.next_agenda || null,
     }).select('id,company_id').single();
+
     if (meetingError || !inserted) {
       setCreatingFromDraft(false);
       return toast({ title: 'Erro ao criar encontro', description: meetingError?.message || 'Falha ao persistir encontro', variant: 'destructive' });
     }
-    if (approvedActions.length) await supabase.from('council_actions').insert(approvedActions.map((item) => ({ meeting_id: inserted.id, company_id: inserted.company_id, title: item.title, description: item.description || null, owner_name: item.owner_name?.trim() || null, due_date: item.due_date?.trim() || null, related_dimension: item.related_dimension || null, priority: item.priority, impact: item.impact, effort: item.effort, expected_evidence: item.expected_evidence || null, status: 'not_started' })));
-    for (const item of approvedProgress) {
-      await supabase.from('council_dimension_progress').upsert({ meeting_id: inserted.id, company_id: inserted.company_id, dimension_id: item.dimension_id, dimension_label: item.dimension_label, current_perceived_score: item.current_perceived_score, trend: item.trend, evidence_note: item.evidence_note || null, counselor_comment: item.counselor_comment || null }, { onConflict: 'meeting_id,dimension_id' });
+
+    const actionRows = actionPayload.map((item) => ({ ...item, meeting_id: inserted.id, company_id: inserted.company_id }));
+    const { error: actionsError } = actionRows.length ? await supabase.from('council_actions').insert(actionRows).select('id') : { error: null as any };
+
+    let progressError: Error | null = null;
+    if (!actionsError) {
+      for (const item of progressPayload) {
+        const { error } = await supabase.from('council_dimension_progress').upsert({ meeting_id: inserted.id, company_id: inserted.company_id, ...item }, { onConflict: 'meeting_id,dimension_id' });
+        if (error) {
+          progressError = error;
+          break;
+        }
+      }
     }
+
+    if (actionsError || progressError) {
+      const [{ error: rollbackActionsError }, { error: rollbackMeetingError }] = await Promise.all([
+        supabase.from('council_actions').delete().eq('meeting_id', inserted.id),
+        supabase.from('council_meetings').delete().eq('id', inserted.id),
+      ]);
+
+      setCreatingFromDraft(false);
+      const rollbackFailed = rollbackActionsError || rollbackMeetingError;
+      if (rollbackFailed) {
+        return toast({
+          title: 'Criação parcial detectada',
+          description: `O encontro foi criado, mas falhou ao salvar ações/evolução e não foi possível desfazer tudo automaticamente. Detalhe: ${(actionsError || progressError)?.message}`,
+          variant: 'destructive',
+        });
+      }
+
+      return toast({
+        title: 'Erro ao criar encontro com pré-ata',
+        description: `Falha ao salvar ações/evolução (${(actionsError || progressError)?.message}). O encontro foi revertido automaticamente.`,
+        variant: 'destructive',
+      });
+    }
+
     toast({ title: 'Encontro criado com pré-ata' });
     resetDraftFlow();
     setOpen(false);
     setForm({ meeting_type: 'collective', related_dimensions: [], main_topic: '' });
     await load();
+    setCreatingFromDraft(false);
     navigate(`/app/agenda/${inserted.id}`);
   };
 
