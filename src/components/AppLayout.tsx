@@ -206,7 +206,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0"
         >
           <div className="flex-1">{children}</div>
-          <div className="flex flex-col items-center gap-3 pt-4 pb-3 select-none">
+          <div data-print-hide="true" className="flex flex-col items-center gap-3 pt-4 pb-3 select-none print:hidden">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />
             <p className="text-[9px] text-muted-foreground/30 tracking-[0.15em] text-center font-medium uppercase">
               Developed and owned by Victor Levy. All rights reserved.
