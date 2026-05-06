@@ -7,6 +7,7 @@ import { DimensionBadge } from '@/components/DimensionBadge';
 import { Button } from '@/components/ui/button';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { DimensionEvolutionRadar } from '@/components/DimensionEvolutionRadar';
 
 type CompanyLite = { id: string; name: string };
 type DimensionOption = { id: string; label: string };
@@ -134,6 +135,16 @@ export default function ProgressReportPage() {
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <p>{summary.text1}</p><p>{summary.text2}</p><p>{summary.text3}</p><p>{summary.text4}</p>
+    </CardContent></Card>
+
+
+    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Radar de Evolução por Dimensão</CardTitle></CardHeader><CardContent>
+      <DimensionEvolutionRadar
+        dimensions={dimensions}
+        progressRecords={progressRows}
+        title='Radar de Evolução por Dimensão'
+        subtitle='Comparação entre o baseline inicial e a última leitura registrada pelo conselho.'
+      />
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent>

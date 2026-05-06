@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CouncilAction, CouncilAgendaTemplate, CouncilDimensionProgress, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { DimensionEvolutionRadar } from '@/components/DimensionEvolutionRadar';
 
 type Company = { id: string; name: string };
 
@@ -139,6 +140,19 @@ export default function CounselorCenterPage() {
               <p>Evidência esperada: {a.expected_evidence || '—'}</p>
             </div>;
           })}
+        </CardContent>
+      </Card>
+
+
+      <Card className='executive-panel print-safe'>
+        <CardHeader><CardTitle>Radar de Evolução por Dimensão</CardTitle></CardHeader>
+        <CardContent>
+          <DimensionEvolutionRadar
+            dimensions={latestProgressByDimension.map((item) => ({ id: item.dimension_id, label: item.dimension_label }))}
+            progressRecords={progress}
+            subtitle='Comparação entre baseline inicial e leitura mais recente para apoiar a próxima decisão do conselho.'
+            compact
+          />
         </CardContent>
       </Card>
 
