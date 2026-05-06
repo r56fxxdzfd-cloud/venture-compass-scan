@@ -48,7 +48,6 @@ function axisLabelFromDimension(label: string): string {
 const toNum = (value: number | null | undefined): number | null => (typeof value === 'number' ? value : null);
 
 export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline, title, subtitle, compact = false }: DimensionEvolutionRadarProps) {
-  const isPrintMode = typeof window !== 'undefined' && window.matchMedia?.('print')?.matches;
   const radarRows = useMemo(() => {
     const byDimension = new Map<string, CouncilDimensionProgress[]>();
     for (const row of progressRecords) {
@@ -73,6 +72,8 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
       const currentScore = toNum(latest?.current_perceived_score) ?? null;
       const variation = baselineScore !== null && currentScore !== null ? currentScore - baselineScore : null;
 
+      const hasRecordedData = baselineScore !== null || currentScore !== null;
+
       return {
         dimensionId: dimension.id,
         fullLabel: dimension.label,
@@ -81,14 +82,16 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
         currentScore,
         variation,
         trend: latest?.trend,
-        hasAnyData: baselineScore !== null || currentScore !== null,
-        baselineValue: baselineScore ?? 0,
-        currentValue: currentScore ?? 0,
+        hasRecordedData,
+        baselineValue: baselineScore,
+        currentValue: currentScore,
       };
     });
   }, [dimensions, progressRecords, baseline]);
 
-  const hasEnoughData = radarRows.some((row) => row.baselineScore !== null && row.currentScore !== null);
+  const rowsWithData = useMemo(() => radarRows.filter((row) => row.hasRecordedData), [radarRows]);
+  const rowsWithoutData = useMemo(() => radarRows.filter((row) => !row.hasRecordedData), [radarRows]);
+  const hasEnoughData = rowsWithData.some((row) => row.baselineScore !== null && row.currentScore !== null);
 
   if (!hasEnoughData) {
     return (
@@ -107,15 +110,17 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
         </div>
       )}
 
-      <div className="radar-chart-container print-safe">
+      <p className="text-xs text-muted-foreground print:hidden">Radar baseado apenas nas dimensões com leitura registrada pelo conselho.</p>
+
+      <div className="radar-chart-container print-safe print:hidden">
         <ResponsiveContainer width="100%" height={compact ? 280 : 340} minHeight={compact ? 240 : 280}>
-          <RadarChart data={radarRows} cx="50%" cy="50%" outerRadius={compact ? '58%' : '64%'}>
+          <RadarChart data={rowsWithData} cx="50%" cy="50%" outerRadius={compact ? '58%' : '64%'}>
             <PolarGrid stroke="hsl(var(--border))" />
             <PolarAngleAxis dataKey="shortLabel" tick={{ fill: 'hsl(var(--foreground))', fontSize: compact ? 10 : 11, fontWeight: 500 }} />
             <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickCount={6} />
-            <Radar name="Baseline inicial" dataKey="baselineValue" stroke="hsl(var(--chart-benchmark))" fill="hsl(var(--chart-benchmark))" fillOpacity={0.12} strokeWidth={2.5} strokeDasharray="7 3" />
-            <Radar name="Última leitura do conselho" dataKey="currentValue" stroke="hsl(var(--chart-current))" fill="hsl(var(--chart-current))" fillOpacity={0.2} strokeWidth={2.5} />
-            {!isPrintMode && <Tooltip
+            <Radar name="Baseline inicial" dataKey="baselineValue" connectNulls={false} stroke="hsl(var(--chart-benchmark))" fill="hsl(var(--chart-benchmark))" fillOpacity={0.1} strokeWidth={3} strokeDasharray="8 4" />
+            <Radar name="Última leitura do conselho" dataKey="currentValue" connectNulls={false} stroke="hsl(var(--chart-current))" fill="hsl(var(--chart-current))" fillOpacity={0.24} strokeWidth={3} />
+            <Tooltip
               content={({ payload }) => {
                 if (!payload?.length) return null;
                 const item = payload[0]?.payload;
@@ -131,11 +136,42 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
                   </div>
                 );
               }}
-            />}
+            />
             <Legend formatter={(value) => <span className="text-xs sm:text-sm">{value}</span>} />
           </RadarChart>
         </ResponsiveContainer>
       </div>
+
+      <div className="hidden print:block space-y-2 text-xs">
+        <p className="text-muted-foreground">Antes vs Agora (somente dimensões com leitura registrada)</p>
+        <div className="space-y-2">
+          {rowsWithData.map((row) => {
+            const baselinePct = row.baselineScore === null ? 0 : Math.min(100, Math.max(0, (row.baselineScore / 5) * 100));
+            const currentPct = row.currentScore === null ? 0 : Math.min(100, Math.max(0, (row.currentScore / 5) * 100));
+            const variationText = row.variation === null ? '—' : `${row.variation > 0 ? '+' : ''}${row.variation.toFixed(1)}`;
+
+            return (
+              <div key={row.dimensionId} className="rounded-md border p-2 space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-semibold">{row.fullLabel} ({row.shortLabel})</p>
+                  <p>{row.trend ? trendLabel[row.trend] || row.trend : 'Sem dados'}</p>
+                </div>
+                <p>Baseline inicial: <strong>{row.baselineScore === null ? '—' : row.baselineScore.toFixed(1)}</strong> • Última leitura: <strong>{row.currentScore === null ? '—' : row.currentScore.toFixed(1)}</strong> • Variação: <strong>{variationText}</strong></p>
+                <div className='print-mini-bar'>
+                  <div className='print-mini-baseline' style={{ width: `${baselinePct}%` }} />
+                  <div className='print-mini-current' style={{ width: `${currentPct}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {rowsWithoutData.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          <strong>Sem leitura registrada:</strong> {rowsWithoutData.map((row) => row.fullLabel).join(', ')}.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <p><strong>IC</strong> — Identidade & Cultura</p>
