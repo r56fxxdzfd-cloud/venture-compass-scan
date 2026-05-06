@@ -13,7 +13,7 @@ import { BackToTopFooter } from '@/components/BackToTopFooter';
 const executiveShortcuts = [
   { label: 'Organizações', description: 'Acompanhar portfólio e diagnósticos', href: '/app/startups', icon: Building2 },
   { label: 'Agenda de Evolução', description: 'Planejar ritos de acompanhamento', href: '/app/agenda', icon: CalendarRange },
-  { label: 'Central do Conselheiro', description: 'Acessar materiais e registros de apoio', href: '/app/startups', icon: Users },
+  { label: 'Central do Conselheiro', description: 'Acessar materiais e registros de apoio', href: '/app/counselor', icon: Users },
   { label: 'Relatório de Progresso', description: 'Ler evolução e próximos focos', href: '/app/startups', icon: FileText },
   { label: 'Templates de Pauta', description: 'Estruturar encontros executivos', href: '/app/agenda/templates', icon: FileStack },
 ];
