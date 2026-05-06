@@ -109,7 +109,7 @@ export default function ProgressReportPage() {
   const printDimensionRows = useMemo(() => dimensionRows
     .map(({ dim, progress }) => {
       const shortCodeRaw = dim.label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() || dim.label.split(/[\s&/-]+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
-      const safeCode = shortCodeRaw === 'MD' ? 'MN' : (dimensionCodeOrder.includes(shortCodeRaw as any) ? shortCodeRaw : 'MN');
+      const safeCode = dimensionCodeOrder.includes(shortCodeRaw as any) ? shortCodeRaw : 'MN';
       const initial = progress?.initial_score ?? null;
       const current = progress?.current_perceived_score ?? null;
       const variation = initial !== null && current !== null ? current - initial : null;
