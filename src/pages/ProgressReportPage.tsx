@@ -45,6 +45,7 @@ const dimensionCodeToLabel: Record<string, string> = {
   GT: 'Go-to-market & Tração',
   PT: 'Produto & Tecnologia',
 };
+const dimensionCodeOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'] as const;
 
 export default function ProgressReportPage() {
   const { id } = useParams();
@@ -105,6 +106,16 @@ export default function ProgressReportPage() {
   const dimensionRows = useMemo(() => dimensions
     .map((d) => ({ dim: d, progress: latestProgressByDimension.get(d.id) }))
     .filter((r) => !!r.progress), [dimensions, latestProgressByDimension]);
+  const printDimensionRows = useMemo(() => dimensionRows
+    .map(({ dim, progress }) => {
+      const shortCodeRaw = dim.label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() || dim.label.split(/[\s&/-]+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
+      const safeCode = shortCodeRaw === 'MD' ? 'MN' : (dimensionCodeOrder.includes(shortCodeRaw as any) ? shortCodeRaw : 'MN');
+      const initial = progress?.initial_score ?? null;
+      const current = progress?.current_perceived_score ?? null;
+      const variation = initial !== null && current !== null ? current - initial : null;
+      return { dim, progress, safeCode, initial, current, variation };
+    })
+    .sort((a, b) => dimensionCodeOrder.indexOf(a.safeCode as typeof dimensionCodeOrder[number]) - dimensionCodeOrder.indexOf(b.safeCode as typeof dimensionCodeOrder[number])), [dimensionRows]);
 
   const summary = useMemo(() => {
     const positive = dimensionRows.filter(r => r.progress?.trend === 'improving').map(r => r.dim.label);
@@ -157,7 +168,7 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
 
-    <Card className='executive-surface print-safe'><CardContent className='pt-6'>
+    <Card className='executive-surface print-safe print:hidden'><CardContent className='pt-6'>
       <DimensionEvolutionRadar
         dimensions={dimensions}
         progressRecords={progressRows}
@@ -166,9 +177,28 @@ export default function ProgressReportPage() {
       />
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent>
+    <Card className='executive-surface print-safe hidden print:block'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão — visão executiva</CardTitle></CardHeader><CardContent className='pt-0'>
+      {printDimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada.</p> :
+      <div className='print-dimension-grid'>{printDimensionRows.map(({ dim, progress, safeCode, initial, current, variation }) => {
+        const baselinePct = initial === null ? 0 : Math.min(100, Math.max(0, (initial / 5) * 100));
+        const currentPct = current === null ? 0 : Math.min(100, Math.max(0, (current / 5) * 100));
+        return <div key={dim.id} className='print-dimension-card'>
+          <div className='flex items-center justify-between gap-2'>
+            <p className='font-semibold text-[11px]'>{dim.label} ({safeCode})</p>
+            <Badge className='executive-pill h-5 text-[10px]'>{trendLabel[progress!.trend]}</Badge>
+          </div>
+          <p className='text-[11px] mt-1'><strong>Baseline:</strong> {initial ?? '—'} • <strong>Última leitura:</strong> {current ?? '—'} • <strong>Variação:</strong> {variation === null ? '—' : `${variation > 0 ? '+' : ''}${variation.toFixed(1)}`}</p>
+          <div className='print-mini-bar'>
+            <div className='print-mini-baseline' style={{ width: `${baselinePct}%` }} />
+            <div className='print-mini-current' style={{ width: `${currentPct}%` }} />
+          </div>
+        </div>;
+      })}</div>}
+    </CardContent></Card>
+
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
       {dimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada. Abra o detalhe do encontro para registrar evidências e tendência por dimensão.</p> :
-      <div className='space-y-3'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-3 text-sm space-y-1'>
+      <div className='space-y-2'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
         <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p><Badge className='executive-pill'>{trendLabel[progress!.trend]}</Badge></div>
         <p><strong>Score inicial:</strong> {progress?.initial_score ?? '—'} | <strong>Score percebido atual:</strong> {progress?.current_perceived_score ?? '—'}</p>
         <p><strong>Evidência:</strong> {progress?.evidence_note || '—'}</p>
@@ -177,11 +207,11 @@ export default function ProgressReportPage() {
       </div>)}</div>}
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Ações de conselho</CardTitle></CardHeader><CardContent>
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações de conselho</CardTitle></CardHeader><CardContent className='pt-2'>
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
-      <div className='space-y-4'>{statusOrder.map((status) => <div key={status} className='space-y-2'>
+      <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className='space-y-1.5'>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
-        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-3 text-sm'>
+        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm'>
           <p className='font-medium'>{action.title}</p>
           <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Prioridade: {valueLabels.priority[action.priority as keyof typeof valueLabels.priority] || action.priority} | Impacto: {action.impact ? (valueLabels.impact[action.impact as keyof typeof valueLabels.impact] || action.impact) : '—'} | Esforço: {action.effort ? (valueLabels.effort[action.effort as keyof typeof valueLabels.effort] || action.effort) : '—'} | Status: {actionStatusLabel[action.status]}</p>
@@ -190,8 +220,8 @@ export default function ProgressReportPage() {
       </div>)}</div>}
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='space-y-3'>
-      {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-3 text-sm'>
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='pt-2 space-y-2'>
+      {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
         <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {new Date(meeting.meeting_date).toLocaleDateString('pt-BR')}</p>
         <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
         <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
@@ -201,12 +231,12 @@ export default function ProgressReportPage() {
       {meetings.length === 0 && <p className='text-sm text-muted-foreground'>Sem encontros para extrair decisões e recomendações.</p>}
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader><CardTitle>Próximos focos sugeridos</CardTitle></CardHeader><CardContent>
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Próximos focos sugeridos</CardTitle></CardHeader><CardContent className='pt-2'>
       {summary.nextFocus.length === 0 ? <p className='text-sm text-muted-foreground'>Sem focos sugeridos no momento.</p> :
       <ol className='list-decimal pl-5 text-sm space-y-1'>{summary.nextFocus.map((item, idx) => <li key={idx}>{item}</li>)}</ol>}
     </CardContent></Card>
-    <div className='hidden print:block mt-8 pt-3 border-t text-xs text-muted-foreground'>Relatório gerado pelo Venture Compass Scan — uso executivo.</div>
     <BackToTopFooter />
+    <div className='hidden print:block print-report-footer'>Relatório gerado pelo Venture Compass Scan — uso executivo.</div>
   </div>;
 }
 
