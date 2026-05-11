@@ -71,3 +71,24 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Seed demo: Instituto Ponte Futuro
+
+Script idempotente para criar/complementar dados demo de Conselho OS.
+
+### Pré-requisitos
+
+- `VITE_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (recomendado para bypass de RLS em ambiente de seed)
+
+### Execução
+
+```sh
+npx tsx scripts/seed-demo-instituto-ponte-futuro.ts
+```
+
+### Limitações
+
+- Não altera schema, RLS nem regras de scoring.
+- Cria apenas dados suportados pelas tabelas atuais.
+- Se não houver `config_versions`, o diagnóstico principal (`assessments`) é ignorado com segurança.
