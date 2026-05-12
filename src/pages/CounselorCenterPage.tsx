@@ -200,7 +200,7 @@ export default function CounselorCenterPage() {
             <CardContent className="p-6 sm:p-7 space-y-5">
               <SectionHeader
                 icon={ClipboardList}
-                iconClass="text-primary"
+                iconClass="text-muted-foreground"
                 title="Antes da próxima reunião"
                 subtitle="Resumo executivo para preparar o encontro com base no histórico recente."
               />
