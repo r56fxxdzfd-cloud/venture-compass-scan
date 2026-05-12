@@ -52,6 +52,8 @@ function formatDate(d?: string | null) {
   return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+const dimensionOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'];
+
 export default function CounselorOverviewPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [meetings, setMeetings] = useState<CouncilMeeting[]>([]);
@@ -122,6 +124,14 @@ export default function CounselorOverviewPage() {
     return { open, overdue, blocked, inAttention, noAgenda };
   }, [actions, latestProgressByCompanyAndDimension, latestMeetingByCompany]);
 
+  const portfolioStatus = useMemo(() => {
+    const critical = kpis.overdue > 0 || kpis.blocked > 0 || latestProgressByCompanyAndDimension.some((p) => p.trend === 'worsening');
+    const attention = kpis.open > 0 || kpis.noAgenda > 0 || latestProgressByCompanyAndDimension.some((p) => p.trend === 'stable' && (p.current_perceived_score ?? 999) <= 2.5);
+    const level: 'Crítico' | 'Atenção' | 'Saudável' = critical ? 'Crítico' : attention ? 'Atenção' : 'Saudável';
+    const summary = `${kpis.overdue} ações atrasadas, ${kpis.blocked} travadas e ${kpis.noAgenda} organizações sem próxima pauta.`;
+    return { level, summary };
+  }, [kpis, latestProgressByCompanyAndDimension]);
+
   const companiesRequiringAttention = useMemo(() => companies.map((company) => {
     const reasons = attentionByCompany.get(company.id)!;
     const weight = reasons.overdue * 2 + reasons.blocked * 2 + reasons.worsening * 2 + (reasons.noAgenda ? 1 : 0) + (reasons.noEvolution ? 1 : 0);
@@ -132,10 +142,37 @@ export default function CounselorOverviewPage() {
   const criticalActions = useMemo(() => actions
     .filter((a) => openStatuses.has(a.status))
     .sort((a, b) => {
+      const score = (item: CouncilAction) => {
+        const blocked = item.status === 'blocked' ? 40 : 0;
+        const overdue = item.due_date && new Date(item.due_date) < today ? 30 : 0;
+        const highPriority = item.priority === 'high' ? 20 : 0;
+        const quickWin = item.impact === 'high' && item.effort === 'low' ? 10 : 0;
+        return blocked + overdue + highPriority + quickWin;
+      };
+      const scoreDiff = score(b) - score(a);
+      if (scoreDiff !== 0) return scoreDiff;
       const ad = a.due_date ? new Date(a.due_date).getTime() : Number.MAX_SAFE_INTEGER;
       const bd = b.due_date ? new Date(b.due_date).getTime() : Number.MAX_SAFE_INTEGER;
       return ad - bd;
     }), [actions]);
+
+  const nextRecommendedAction = useMemo(() => {
+    const companyName = (id: string) => companies.find((c) => c.id === id)?.name || '—';
+    const blockedHigh = actions.find((a) => openStatuses.has(a.status) && a.status === 'blocked' && a.priority === 'high');
+    if (blockedHigh) return { title: blockedHigh.title, companyId: blockedHigh.company_id, company: companyName(blockedHigh.company_id), reason: 'Ação travada com alta prioridade.', cta: `/app/startups/${blockedHigh.company_id}/counselor`, ctaText: 'Abrir Central' };
+    const overdueImpact = actions.find((a) => openStatuses.has(a.status) && a.due_date && new Date(a.due_date) < today && a.impact === 'high');
+    if (overdueImpact) return { title: overdueImpact.title, companyId: overdueImpact.company_id, company: companyName(overdueImpact.company_id), reason: 'Ação atrasada com alto impacto.', cta: `/app/startups/${overdueImpact.company_id}/counselor`, ctaText: 'Abrir Central' };
+    const worsening = companiesRequiringAttention.find((c) => c.reasons.worsening > 0);
+    if (worsening) return { title: `Revisar evolução das dimensões de ${worsening.company.name}`, companyId: worsening.company.id, company: worsening.company.name, reason: `${worsening.reasons.worsening} dimensão(ões) em piora.`, cta: `/app/startups/${worsening.company.id}/counselor`, ctaText: 'Abrir Central' };
+    const noAgenda = companies.find((company) => {
+      const lm = latestMeetingByCompany.get(company.id);
+      return !!lm && !lm.next_agenda;
+    });
+    if (noAgenda) return { title: `Definir próxima pauta de ${noAgenda.name}`, companyId: noAgenda.id, company: noAgenda.name, reason: 'Último encontro sem próxima pauta registrada.', cta: `/app/startups/${noAgenda.id}/counselor`, ctaText: 'Abrir Encontro' };
+    const quickWin = actions.find((a) => openStatuses.has(a.status) && a.impact === 'high' && a.effort === 'low');
+    if (quickWin) return { title: quickWin.title, companyId: quickWin.company_id, company: companyName(quickWin.company_id), reason: 'Quick win: alto impacto com baixo esforço.', cta: `/app/startups/${quickWin.company_id}/counselor`, ctaText: 'Abrir Central' };
+    return null;
+  }, [actions, companies, companiesRequiringAttention, latestMeetingByCompany, today]);
 
   if (loading) {
     return (
@@ -145,13 +182,13 @@ export default function CounselorOverviewPage() {
     );
   }
 
-  const kpiCards: Array<{ label: string; sublabel: string; value: number; tone: KpiTone; icon: typeof Building2 }> = [
-    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'neutral', icon: Building2 },
-    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'neutral', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'critical' : 'neutral', icon: AlertTriangle },
-    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'critical' : 'neutral', icon: ShieldAlert },
-    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'attention' : 'neutral', icon: TrendingDown },
-    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'attention' : 'neutral', icon: CalendarClock },
+  const kpiCards: Array<{ label: string; sublabel: string; value: number; tone: KpiTone; icon: typeof Building2; group: 'risco' | 'operacao' }> = [
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'critical' : 'neutral', icon: AlertTriangle, group: 'risco' },
+    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'critical' : 'neutral', icon: ShieldAlert, group: 'risco' },
+    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'attention' : 'neutral', icon: TrendingDown, group: 'risco' },
+    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'attention' : 'neutral', icon: CalendarClock, group: 'risco' },
+    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'neutral', icon: Building2, group: 'operacao' },
+    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'neutral', icon: ListChecks, group: 'operacao' },
   ];
 
   const focusMap = Object.entries(latestProgressByCompanyAndDimension.reduce((acc, item) => {
@@ -163,9 +200,7 @@ export default function CounselorOverviewPage() {
     }
     return acc;
   }, {} as Record<string, { label: string; count: number; trends: string[] }>))
-    .filter(([, value]) => value.count > 0)
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 6);
+    .sort((a, b) => dimensionOrder.indexOf(a[0]) - dimensionOrder.indexOf(b[0]));
 
   return (
     <div className="space-y-6">
@@ -176,14 +211,19 @@ export default function CounselorOverviewPage() {
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3 max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-              <Sparkles className="h-3 w-3" /> Visão consolidada
+              <Sparkles className="h-3 w-3" /> Cockpit do Conselheiro
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
               Central do Conselheiro
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Priorize organizações, pendências e próximos encontros a partir de uma leitura única do portfólio em acompanhamento.
+              Priorize riscos, prepare os próximos encontros e acompanhe a execução das organizações em conselho.
             </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 min-w-[260px]">
+            <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground font-semibold">Status geral do portfólio</p>
+            <Badge className={`mt-2 ${portfolioStatus.level === 'Crítico' ? 'bg-destructive/15 text-destructive' : portfolioStatus.level === 'Atenção' ? 'bg-primary/15 text-primary' : 'bg-emerald-500/15 text-emerald-600'}`}>{portfolioStatus.level}</Badge>
+            <p className="text-xs mt-2 text-muted-foreground">{portfolioStatus.summary}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" className="rounded-full">
@@ -201,8 +241,30 @@ export default function CounselorOverviewPage() {
       </section>
 
       {/* KPI Grid */}
-      <section className="grid gap-4 grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+      <section className="space-y-3">
+        <p className="executive-section-title text-xs">Risco</p>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        {kpiCards.filter((k) => k.group === 'risco').map((card) => {
+          const tone = toneStyles[card.tone];
+          return (
+            <Card key={card.label} className="executive-card rounded-2xl transition-all duration-300 hover:-translate-y-0.5">
+              <CardContent className="p-5 flex flex-col gap-4">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tone.wrap} ${tone.text}`}>
+                  <card.icon className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <p className="text-3xl font-extrabold tracking-tight tabular-nums text-foreground">{card.value}</p>
+                  <p className="mt-1 text-[11px] tracking-[0.14em] font-semibold text-muted-foreground uppercase">{card.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+        </div>
+        <p className="executive-section-title text-xs">Operação</p>
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-2">
         {kpiCards.map((card) => {
+          if (card.group !== 'operacao') return null;
           const tone = toneStyles[card.tone];
           return (
             <Card key={card.label} className="executive-card rounded-2xl transition-all duration-300 hover:-translate-y-0.5">
@@ -219,7 +281,23 @@ export default function CounselorOverviewPage() {
             </Card>
           );
         })}
+        </div>
       </section>
+
+      {nextRecommendedAction && (
+        <Card className="executive-panel rounded-3xl border-primary/30">
+          <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="executive-section-title text-xs">Próxima ação recomendada</p>
+              <p className="font-semibold mt-1">{nextRecommendedAction.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{nextRecommendedAction.company} · {nextRecommendedAction.reason}</p>
+            </div>
+            <Button asChild className="rounded-full">
+              <Link to={nextRecommendedAction.cta}>{nextRecommendedAction.ctaText}</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Organizações em atenção */}
       <Card className="executive-panel rounded-3xl">
@@ -227,7 +305,7 @@ export default function CounselorOverviewPage() {
           <header className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Organizações que exigem atenção
+                <Users className="h-4 w-4 text-primary" /> Top prioridades do conselheiro
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Ranking calculado por ações atrasadas, travadas, dimensões piorando e ausência de pauta.</p>
             </div>
@@ -269,7 +347,7 @@ export default function CounselorOverviewPage() {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-                      {motives.length ? motives.join(' · ') : 'Sem alertas críticos no momento'}
+                      {motives.length ? motives.join(' · ') : 'Sem alertas críticos no momento'} · Próxima ação: {row.reasons.noAgenda ? 'definir pauta do próximo encontro' : 'abrir central e destravar ações'}
                     </p>
                   </div>
                   <Button asChild size="sm" variant="ghost" className="rounded-full shrink-0 hover:bg-primary/10 hover:text-primary">
@@ -290,7 +368,7 @@ export default function CounselorOverviewPage() {
           <CardContent className="p-6 sm:p-7 space-y-4">
             <header>
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-muted-foreground" /> Próximas pautas e últimos encontros
+                <CalendarClock className="h-4 w-4 text-muted-foreground" /> Preparação da próxima reunião
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Garanta que toda organização tenha próxima pauta combinada.</p>
             </header>
@@ -321,6 +399,7 @@ export default function CounselorOverviewPage() {
                       <span className="font-semibold">Próxima pauta: </span>
                       {lastMeeting?.next_agenda || 'Não registrada'}
                     </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">Pontos para revisar: ações em aberto, dimensões em atenção e decisões pendentes.</p>
                   </div>
                 );
               })}
@@ -335,7 +414,7 @@ export default function CounselorOverviewPage() {
                 <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
                   <ShieldAlert className="h-4 w-4 text-muted-foreground" /> Pendências críticas
                 </h2>
-                <p className="text-xs text-muted-foreground mt-1">Ações abertas ordenadas por prazo.</p>
+                <p className="text-xs text-muted-foreground mt-1">Filtros: Travadas, Atrasadas, Alta prioridade e Quick wins (ordenado automaticamente).</p>
               </div>
               <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground/80">
                 {criticalActions.length}
@@ -407,7 +486,9 @@ export default function CounselorOverviewPage() {
                     className={`rounded-2xl border p-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors ${isWorsening ? 'border-destructive/30' : 'border-white/10'}`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <DimensionBadge code={key} label={value.label} />
+                      <div title={value.label}>
+                        <DimensionBadge code={key} label={value.label} />
+                      </div>
                       <Badge variant={isWorsening ? 'destructive' : 'secondary'} className="text-[10px]">
                         {isWorsening ? 'Piorando' : 'Estável (baixo)'}
                       </Badge>
