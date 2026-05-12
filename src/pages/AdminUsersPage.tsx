@@ -227,7 +227,7 @@ export default function AdminUsersPage() {
                           <p className="text-sm font-medium">{u.full_name || 'Sem nome'}</p>
                           {!u.email_confirmed && (
                             <>
-                              <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                              <Badge variant="outline" className="text-xs gap-1 border-border/60 text-muted-foreground">
                                 <MailWarning className="h-3 w-3" /> E-mail não confirmado
                               </Badge>
                               <TooltipProvider>
@@ -300,7 +300,7 @@ export default function AdminUsersPage() {
                             )}
                             {!u.email_confirmed && (
                               <>
-                                <Badge variant="outline" className="text-xs gap-1 border-amber-500/50 text-amber-600">
+                                <Badge variant="outline" className="text-xs gap-1 border-border/60 text-muted-foreground">
                                   <MailWarning className="h-3 w-3" /> E-mail não confirmado
                                 </Badge>
                                 <Button

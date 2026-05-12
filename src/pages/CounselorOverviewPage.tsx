@@ -39,12 +39,12 @@ const priorityLabel: Record<string, string> = {
   low: 'Baixa',
 };
 
-type KpiTone = 'neutral' | 'amber' | 'red';
+type KpiTone = 'neutral' | 'attention' | 'critical';
 
 const toneStyles: Record<KpiTone, { wrap: string; text: string; pill: string }> = {
   neutral: { wrap: 'bg-muted/40 border border-border/60', text: 'text-muted-foreground', pill: 'bg-muted/40 text-muted-foreground border-border/60' },
-  amber: { wrap: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-300', pill: 'bg-amber-500/15 text-amber-300 border-amber-500/25' },
-  red: { wrap: 'bg-red-500/10 border border-red-500/30', text: 'text-red-300', pill: 'bg-red-500/15 text-red-300 border-red-500/25' },
+  attention: { wrap: 'bg-primary/10 border border-primary/25', text: 'text-primary', pill: 'bg-primary/10 text-primary border-primary/25' },
+  critical: { wrap: 'bg-destructive/10 border border-destructive/30', text: 'text-destructive', pill: 'bg-destructive/10 text-destructive border-destructive/30' },
 };
 
 function formatDate(d?: string | null) {
@@ -148,10 +148,10 @@ export default function CounselorOverviewPage() {
   const kpiCards: Array<{ label: string; sublabel: string; value: number; tone: KpiTone; icon: typeof Building2 }> = [
     { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'neutral', icon: Building2 },
     { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'neutral', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'amber' : 'neutral', icon: AlertTriangle },
-    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'red' : 'neutral', icon: ShieldAlert },
-    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'amber' : 'neutral', icon: TrendingDown },
-    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'amber' : 'neutral', icon: CalendarClock },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'critical' : 'neutral', icon: AlertTriangle },
+    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'critical' : 'neutral', icon: ShieldAlert },
+    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'attention' : 'neutral', icon: TrendingDown },
+    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'attention' : 'neutral', icon: CalendarClock },
   ];
 
   const focusMap = Object.entries(latestProgressByCompanyAndDimension.reduce((acc, item) => {
@@ -250,10 +250,10 @@ export default function CounselorOverviewPage() {
 
               const tone =
                 row.level === 'Crítico'
-                  ? { dot: 'bg-red-400', border: 'border-l-red-500/70', pill: 'bg-red-500/15 text-red-300 border border-red-500/30' }
+                  ? { dot: 'bg-destructive', border: 'border-l-destructive/70', pill: 'bg-destructive/10 text-destructive border border-destructive/30' }
                   : row.level === 'Atenção'
-                  ? { dot: 'bg-amber-400', border: 'border-l-amber-500/70', pill: 'bg-amber-500/15 text-amber-300 border border-amber-500/30' }
-                  : { dot: 'bg-emerald-400', border: 'border-l-emerald-500/70', pill: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' };
+                  ? { dot: 'bg-primary', border: 'border-l-primary/70', pill: 'bg-primary/10 text-primary border border-primary/25' }
+                  : { dot: 'bg-muted-foreground/60', border: 'border-l-border', pill: 'bg-muted/40 text-muted-foreground border border-border/60' };
 
               return (
                 <div
@@ -290,7 +290,7 @@ export default function CounselorOverviewPage() {
           <CardContent className="p-6 sm:p-7 space-y-4">
             <header>
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-cyan-300" /> Próximas pautas e últimos encontros
+                <CalendarClock className="h-4 w-4 text-muted-foreground" /> Próximas pautas e últimos encontros
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Garanta que toda organização tenha próxima pauta combinada.</p>
             </header>
@@ -310,14 +310,14 @@ export default function CounselorOverviewPage() {
                         </p>
                       </div>
                       {lastMeeting && (
-                        <Button asChild variant="ghost" size="sm" className="rounded-full shrink-0 -mr-2 hover:bg-cyan-500/10 hover:text-cyan-300">
+                        <Button asChild variant="ghost" size="sm" className="rounded-full shrink-0 -mr-2 hover:bg-primary/10 hover:text-primary">
                           <Link to={`/app/agenda/${lastMeeting.id}`}>
                             Abrir <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
                           </Link>
                         </Button>
                       )}
                     </div>
-                    <div className={`mt-2.5 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-primary/5 border border-primary/15 text-foreground/90' : 'bg-amber-500/5 border border-amber-500/20 text-amber-200/80'}`}>
+                    <div className={`mt-2.5 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-muted/40 border border-border/60 text-muted-foreground'}`}>
                       <span className="font-semibold">Próxima pauta: </span>
                       {lastMeeting?.next_agenda || 'Não registrada'}
                     </div>
@@ -333,24 +333,24 @@ export default function CounselorOverviewPage() {
             <header className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-red-300" /> Pendências críticas
+                  <ShieldAlert className="h-4 w-4 text-muted-foreground" /> Pendências críticas
                 </h2>
                 <p className="text-xs text-muted-foreground mt-1">Ações abertas ordenadas por prazo.</p>
               </div>
-              <span className="inline-flex items-center rounded-full border border-red-500/25 bg-red-500/10 px-3 py-1 text-[11px] font-bold text-red-300">
+              <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground/80">
                 {criticalActions.length}
               </span>
             </header>
             <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
               {criticalActions.length === 0 ? (
-                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
-                  <p className="text-sm text-emerald-300 font-medium">Nenhuma pendência crítica em aberto.</p>
-                  <p className="text-xs text-emerald-300/70 mt-1">Ótimo trabalho no acompanhamento!</p>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                  <p className="text-sm text-foreground font-medium">Nenhuma pendência crítica em aberto.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Ótimo trabalho no acompanhamento!</p>
                 </div>
               ) : criticalActions.map((action) => {
                 const companyName = companies.find((c) => c.id === action.company_id)?.name || '—';
                 const isOverdue = action.due_date && new Date(action.due_date) < today;
-                const priorityTone = action.priority === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' : action.priority === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-muted/30 text-muted-foreground border-border/40';
+                const priorityTone = action.priority === 'high' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-muted/40 text-muted-foreground border-border/60';
                 return (
                   <div key={action.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                     <div className="flex items-start justify-between gap-3">
@@ -364,7 +364,7 @@ export default function CounselorOverviewPage() {
                     </p>
                     <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex items-center gap-2 text-[11px]">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${isOverdue ? 'bg-red-500/15 text-red-300' : 'bg-muted/30 text-muted-foreground'}`}>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${isOverdue ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
                           <CalendarClock className="h-3 w-3" /> {formatDate(action.due_date)}
                         </span>
                         <span className="text-muted-foreground">{statusLabel[action.status] || action.status}</span>
@@ -389,7 +389,7 @@ export default function CounselorOverviewPage() {
         <CardContent className="p-6 sm:p-7 space-y-5">
           <header>
             <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-              <Target className="h-4 w-4 text-violet-300" /> Mapa de foco do conselheiro
+              <Target className="h-4 w-4 text-muted-foreground" /> Mapa de foco do conselheiro
             </h2>
             <p className="text-xs text-muted-foreground mt-1">Dimensões que aparecem com baixa performance ou em piora em mais organizações.</p>
           </header>
@@ -404,7 +404,7 @@ export default function CounselorOverviewPage() {
                 return (
                   <div
                     key={key}
-                    className={`rounded-2xl border p-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors ${isWorsening ? 'border-red-500/30' : 'border-amber-500/25'}`}
+                    className={`rounded-2xl border p-4 bg-white/[0.03] hover:bg-white/[0.06] transition-colors ${isWorsening ? 'border-destructive/30' : 'border-white/10'}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <DimensionBadge code={key} label={value.label} />

@@ -29,11 +29,11 @@ const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_p
 const trendLabel: Record<string, string> = { improving: 'Melhorando', stable: 'Estável', worsening: 'Piorando', insufficient_evidence: 'Sem evidência' };
 const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
 
-type KpiTone = 'neutral' | 'amber' | 'red';
+type KpiTone = 'neutral' | 'attention' | 'critical';
 const toneStyles: Record<KpiTone, { wrap: string; text: string }> = {
   neutral: { wrap: 'bg-muted/40 border border-border/60', text: 'text-muted-foreground' },
-  amber: { wrap: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-300' },
-  red: { wrap: 'bg-red-500/10 border border-red-500/30', text: 'text-red-300' },
+  attention: { wrap: 'bg-primary/10 border border-primary/25', text: 'text-primary' },
+  critical: { wrap: 'bg-destructive/10 border border-destructive/30', text: 'text-destructive' },
 };
 
 function formatDate(d?: string | null) {
@@ -130,8 +130,8 @@ export default function CounselorCenterPage() {
   const summaryKpis: Array<{ label: string; sublabel: string; value: number | string; tone: KpiTone; icon: typeof Target }> = [
     { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'neutral', icon: CalendarClock },
     { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'neutral', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'red' : 'neutral', icon: AlertTriangle },
-    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: criticalDimensions.length ? 'amber' : 'neutral', icon: Activity },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'critical' : 'neutral', icon: AlertTriangle },
+    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: criticalDimensions.length ? 'attention' : 'neutral', icon: Activity },
   ];
 
   return (
@@ -284,14 +284,14 @@ export default function CounselorCenterPage() {
                 ) : openActions.map(a => {
                   const overdue = a.due_date && new Date(a.due_date) < new Date();
                   const quickWin = a.impact === 'high' && a.effort === 'low';
-                  const priorityTone = a.priority === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' : a.priority === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-muted/40 text-muted-foreground border-border/60';
+                  const priorityTone = a.priority === 'high' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-muted/40 text-muted-foreground border-border/60';
                   return (
                     <div key={a.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <p className="text-sm font-semibold text-foreground leading-snug">{a.title}</p>
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          {overdue && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-red-500/30 bg-red-500/15 text-red-300">Atrasada</span>}
-                          {a.status === 'blocked' && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-red-500/30 bg-red-500/15 text-red-300">Travada</span>}
+                          {overdue && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-destructive/30 bg-destructive/10 text-destructive">Atrasada</span>}
+                          {a.status === 'blocked' && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-destructive/30 bg-destructive/10 text-destructive">Travada</span>}
                           {quickWin && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-border/60 bg-muted/40 text-foreground/80">Quick win</span>}
                           <span className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border ${priorityTone}`}>{priorityLabel[a.priority] || a.priority}</span>
                         </div>
@@ -342,7 +342,7 @@ export default function CounselorCenterPage() {
                 {latestProgressByDimension.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">Ainda não há leitura de evolução por dimensão. Registre a evolução das dimensões discutidas no encontro para orientar decisões.</p>
                 ) : latestProgressByDimension.map(d => {
-                  const trendTone = d.trend === 'worsening' ? 'bg-red-500/15 text-red-300 border-red-500/30' : d.trend === 'improving' ? 'bg-muted/40 text-foreground/80 border-border/60' : 'bg-muted/30 text-muted-foreground border-border/40';
+                  const trendTone = d.trend === 'worsening' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-muted/40 text-muted-foreground border-border/60';
                   return (
                     <div key={d.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                       <div className="flex flex-wrap gap-2 items-center justify-between">
