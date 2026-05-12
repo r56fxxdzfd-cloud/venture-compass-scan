@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy } from 'lucide-react';
+import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
