@@ -228,11 +228,17 @@ export default function AdminConfigPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="executive-surface rounded-xl p-5 sm:p-6">
-        <p className="executive-header">Governança Metodológica</p>
-        <h1 className="text-2xl font-bold">Configuração</h1>
-        <p className="text-sm text-muted-foreground">Gerenciar versões de config (dimensões, perguntas, pesos, etc.)</p>
-      </div>
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+        <div className="relative space-y-3 max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+            <Sparkles className="h-3 w-3" /> Governança Metodológica
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Configuração</h1>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Gerenciar versões de config — dimensões, perguntas, pesos e demais parâmetros do diagnóstico.</p>
+        </div>
+      </section>
 
       <Card className="executive-surface">
         <CardHeader>
