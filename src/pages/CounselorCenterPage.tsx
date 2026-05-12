@@ -334,7 +334,7 @@ export default function CounselorCenterPage() {
             <CardContent className="p-6 sm:p-7 space-y-5">
               <SectionHeader
                 icon={Activity}
-                iconClass="text-emerald-300"
+                iconClass="text-muted-foreground"
                 title="Evolução recente por dimensão"
                 subtitle="Última leitura registrada pelo conselho em cada dimensão."
               />
@@ -342,7 +342,7 @@ export default function CounselorCenterPage() {
                 {latestProgressByDimension.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-2">Ainda não há leitura de evolução por dimensão. Registre a evolução das dimensões discutidas no encontro para orientar decisões.</p>
                 ) : latestProgressByDimension.map(d => {
-                  const trendTone = d.trend === 'worsening' ? 'bg-red-500/15 text-red-300 border-red-500/30' : d.trend === 'improving' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-muted/30 text-muted-foreground border-border/40';
+                  const trendTone = d.trend === 'worsening' ? 'bg-red-500/15 text-red-300 border-red-500/30' : d.trend === 'improving' ? 'bg-muted/40 text-foreground/80 border-border/60' : 'bg-muted/30 text-muted-foreground border-border/40';
                   return (
                     <div key={d.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                       <div className="flex flex-wrap gap-2 items-center justify-between">
