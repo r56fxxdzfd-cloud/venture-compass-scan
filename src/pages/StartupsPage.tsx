@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Building2 } from 'lucide-react';
+import { Plus, Search, Building2, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -64,19 +64,24 @@ export default function StartupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="executive-surface rounded-xl p-5 sm:p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="executive-header">Portfolio</p>
-          <h1 className="text-2xl font-bold tracking-tight">Central de Startups</h1>
-          <p className="text-muted-foreground text-sm">{companies.length} organizações cadastradas</p>
-        </div>
-        {canWrite && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" /> Nova Startup
-              </Button>
-            </DialogTrigger>
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+              <Sparkles className="h-3 w-3" /> Portfolio
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central de Startups</h1>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{companies.length} organizações cadastradas no portfólio do conselho.</p>
+          </div>
+          {canWrite && (
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="rounded-full">
+                  <Plus className="mr-2 h-4 w-4" /> Nova Startup
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Nova Startup</DialogTitle>
@@ -150,9 +155,10 @@ export default function StartupsPage() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        )}
-      </div>
+            </Dialog>
+          )}
+        </div>
+      </section>
 
       {companies.length > 0 && (
         <div className="relative">

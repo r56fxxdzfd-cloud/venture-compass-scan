@@ -273,23 +273,28 @@ export default function MethodologyPage() {
           <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
         </div>
 
-        <div id="section-header" className="executive-panel rounded-xl p-5 sm:p-6 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <BookOpen className="h-6 w-6" /> Metodologia
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
-            </p>
+        <section id="section-header" className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
+          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="space-y-3 max-w-2xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+                <BookOpen className="h-3 w-3" /> Conhecimento Aplicado
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Metodologia</h1>
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                Versão: {version.version_name} • Publicada em {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}
+              </p>
+            </div>
+            <div data-print-hide="true" className="shrink-0 print:hidden flex flex-col items-end gap-1">
+              <Button size="sm" variant="outline" className="rounded-full" onClick={handleExportPDF} disabled={exporting}>
+                {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+                {exporting ? 'Gerando...' : 'Exportar PDF'}
+              </Button>
+              {exportProgress && <p className="text-[10px] text-muted-foreground">{exportProgress}</p>}
+            </div>
           </div>
-          <div data-print-hide="true" className="shrink-0 print:hidden text-right">
-            <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-              {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-              {exporting ? 'Gerando...' : 'Exportar PDF'}
-            </Button>
-            {exportProgress && <p className="text-[10px] text-muted-foreground mt-1">{exportProgress}</p>}
-          </div>
-        </div>
+        </section>
 
         {/* Seção 1 — Sobre o Diagnóstico */}
         <Card id="section-about" className="executive-panel print-safe">
