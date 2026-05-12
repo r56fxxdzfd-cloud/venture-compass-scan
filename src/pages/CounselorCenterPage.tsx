@@ -29,13 +29,11 @@ const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_p
 const trendLabel: Record<string, string> = { improving: 'Melhorando', stable: 'Estável', worsening: 'Piorando', insufficient_evidence: 'Sem evidência' };
 const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
 
-type KpiTone = 'primary' | 'cyan' | 'amber' | 'red' | 'violet';
+type KpiTone = 'neutral' | 'amber' | 'red';
 const toneStyles: Record<KpiTone, { wrap: string; text: string }> = {
-  primary: { wrap: 'bg-primary/10 border border-primary/25', text: 'text-primary' },
-  cyan: { wrap: 'bg-cyan-500/10 border border-cyan-500/25', text: 'text-cyan-300' },
+  neutral: { wrap: 'bg-muted/40 border border-border/60', text: 'text-muted-foreground' },
   amber: { wrap: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-300' },
   red: { wrap: 'bg-red-500/10 border border-red-500/30', text: 'text-red-300' },
-  violet: { wrap: 'bg-violet-500/10 border border-violet-500/25', text: 'text-violet-300' },
 };
 
 function formatDate(d?: string | null) {
@@ -130,10 +128,10 @@ export default function CounselorCenterPage() {
   }
 
   const summaryKpis: Array<{ label: string; sublabel: string; value: number | string; tone: KpiTone; icon: typeof Target }> = [
-    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'primary', icon: CalendarClock },
-    { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'cyan', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'red' : 'primary', icon: AlertTriangle },
-    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: 'violet', icon: Activity },
+    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'neutral', icon: CalendarClock },
+    { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'neutral', icon: ListChecks },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'red' : 'neutral', icon: AlertTriangle },
+    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: criticalDimensions.length ? 'amber' : 'neutral', icon: Activity },
   ];
 
   return (

@@ -39,15 +39,12 @@ const priorityLabel: Record<string, string> = {
   low: 'Baixa',
 };
 
-type KpiTone = 'primary' | 'cyan' | 'amber' | 'red' | 'violet' | 'emerald';
+type KpiTone = 'neutral' | 'amber' | 'red';
 
 const toneStyles: Record<KpiTone, { wrap: string; text: string; pill: string }> = {
-  primary: { wrap: 'bg-primary/10 border border-primary/25', text: 'text-primary', pill: 'bg-primary/15 text-primary border-primary/25' },
-  cyan: { wrap: 'bg-cyan-500/10 border border-cyan-500/25', text: 'text-cyan-300', pill: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/25' },
+  neutral: { wrap: 'bg-muted/40 border border-border/60', text: 'text-muted-foreground', pill: 'bg-muted/40 text-muted-foreground border-border/60' },
   amber: { wrap: 'bg-amber-500/10 border border-amber-500/25', text: 'text-amber-300', pill: 'bg-amber-500/15 text-amber-300 border-amber-500/25' },
   red: { wrap: 'bg-red-500/10 border border-red-500/30', text: 'text-red-300', pill: 'bg-red-500/15 text-red-300 border-red-500/25' },
-  violet: { wrap: 'bg-violet-500/10 border border-violet-500/25', text: 'text-violet-300', pill: 'bg-violet-500/15 text-violet-300 border-violet-500/25' },
-  emerald: { wrap: 'bg-emerald-500/10 border border-emerald-500/25', text: 'text-emerald-300', pill: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25' },
 };
 
 function formatDate(d?: string | null) {
@@ -149,12 +146,12 @@ export default function CounselorOverviewPage() {
   }
 
   const kpiCards: Array<{ label: string; sublabel: string; value: number; tone: KpiTone; icon: typeof Building2 }> = [
-    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'primary', icon: Building2 },
-    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'cyan', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: 'amber', icon: AlertTriangle },
-    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: 'red', icon: ShieldAlert },
-    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: 'violet', icon: TrendingDown },
-    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: 'emerald', icon: CalendarClock },
+    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'neutral', icon: Building2 },
+    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'neutral', icon: ListChecks },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'amber' : 'neutral', icon: AlertTriangle },
+    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'red' : 'neutral', icon: ShieldAlert },
+    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'amber' : 'neutral', icon: TrendingDown },
+    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'amber' : 'neutral', icon: CalendarClock },
   ];
 
   const focusMap = Object.entries(latestProgressByCompanyAndDimension.reduce((acc, item) => {
