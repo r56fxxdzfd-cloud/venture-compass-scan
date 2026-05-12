@@ -155,9 +155,10 @@ export default function StartupsPage() {
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        )}
-      </div>
+            </Dialog>
+          )}
+        </div>
+      </section>
 
       {companies.length > 0 && (
         <div className="relative">
