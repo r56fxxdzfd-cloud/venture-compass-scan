@@ -36,6 +36,7 @@ const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
   insufficient_evidence: 'text-muted-foreground',
   sem_trend: 'text-muted-foreground',
 };
+const officialDimensions = new Set<string>(officialDimensionOrder);
 
 export default function AgendaPage() {
   const navigate = useNavigate();
@@ -116,37 +117,80 @@ export default function AgendaPage() {
       return d >= monthStart && d <= monthEnd;
     }).length;
     const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
-    const lateActions = actionsForFilteredMeetings.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
-    const blockedActions = actionsForFilteredMeetings.filter(a => a.status === 'blocked').length;
+    const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
+    const blockedActionIds = new Set(actionsForFilteredMeetings.filter(a => a.status === 'blocked').map((a) => a.id));
+    const criticalActionIds = new Set([...lateActionIds, ...blockedActionIds]);
     const nonCancelledActions = actionsForFilteredMeetings.filter(a => a.status !== 'cancelled');
     const completed = nonCancelledActions.filter(a => a.status === 'completed').length;
     const completionRate = nonCancelledActions.length ? Math.round((completed / nonCancelledActions.length) * 100) : 0;
-    return { totalMeetings, meetingsThisMonth, openActions, lateActions, blockedActions, completed, nonCancelledTotal: nonCancelledActions.length, completionRate };
+    return { totalMeetings, meetingsThisMonth, openActions, criticalActions: criticalActionIds.size, lateActions: lateActionIds.size, blockedActions: blockedActionIds.size, completed, nonCancelledTotal: nonCancelledActions.length, completionRate };
   }, [filtered, actionsForFilteredMeetings]);
 
-  const dimensionsInFocus = useMemo(() => {
+  const monthlyMeetingGroups = useMemo(() => {
+    const groups = filtered.reduce((acc, meeting) => {
+      const d = new Date(meeting.meeting_date);
+      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      if (!acc[key]) acc[key] = { label: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), meetings: [] as CouncilMeeting[], year: d.getFullYear(), month: d.getMonth() };
+      acc[key].meetings.push(meeting);
+      return acc;
+    }, {} as Record<string, { label: string; meetings: CouncilMeeting[]; year: number; month: number }>);
+    return Object.values(groups).sort((a, b) => b.year - a.year || b.month - a.month);
+  }, [filtered]);
+
+  const meetingsHealth = useMemo(() => {
+    return filtered.map((m) => {
+      const am = actions.filter((a) => a.meeting_id === m.id);
+      const overdue = am.filter((a) => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+      const blocked = am.filter((a) => a.status === 'blocked').length;
+      const critical = overdue + blocked > 0;
+      const noAgenda = !m.next_agenda;
+      const noEvolution = (progressCountByMeeting[m.id] || 0) === 0;
+      const completion = am.length ? am.filter((a) => a.status === 'completed').length / am.length : 0;
+      const status = critical ? 'Crítico' : (noAgenda || noEvolution || completion < 0.4 ? 'Atenção' : 'Saudável');
+      return { id: m.id, critical, noAgenda, noEvolution, status, overdue, blocked };
+    });
+  }, [filtered, actions, progressCountByMeeting, today]);
+
+  const cycleAlerts = useMemo(() => {
+    const noAgenda = meetingsHealth.filter((item) => item.noAgenda).length;
+    const critical = meetingsHealth.filter((item) => item.critical).length;
+    const noEvolution = meetingsHealth.filter((item) => item.noEvolution).length;
+    return { noAgenda, critical, noEvolution };
+  }, [meetingsHealth]);
+
+  const focusRecentSummary = useMemo(() => {
     const dimensionSortMap = new Map(dimensionCatalog.map((dim, idx) => [dim.id, dim.sort_order ?? idx + 1]));
-    const map: Record<string, { count: number; trends: Record<string, number>; trendCount: number; label?: string }> = {};
+    const officialMap: Record<string, { count: number; label?: string; trends: Record<string, number> }> = {};
+    const topicMap: Record<string, number> = {};
     for (const m of filtered) {
       for (const dim of m.related_dimensions || []) {
-        if (!map[dim]) map[dim] = { count: 0, trends: {}, trendCount: 0 };
-        map[dim].count += 1;
+        if (officialDimensions.has(dim)) {
+          if (!officialMap[dim]) officialMap[dim] = { count: 0, trends: {} };
+          officialMap[dim].count += 1;
+        } else {
+          topicMap[dim] = (topicMap[dim] || 0) + 1;
+        }
       }
+      const topic = m.main_topic?.trim();
+      if (topic) topicMap[topic] = (topicMap[topic] || 0) + 1;
     }
     const filteredMeetingIds = new Set(filtered.map((m) => m.id));
     for (const row of dimensionProgressRows) {
       if (!filteredMeetingIds.has(row.meeting_id)) continue;
       const dim = row.dimension_id;
-      if (!map[dim]) map[dim] = { count: 0, trends: {}, trendCount: 0, label: row.dimension_label };
-      map[dim].trends[row.trend] = (map[dim].trends[row.trend] || 0) + 1;
-      map[dim].trendCount += 1;
-      map[dim].label = map[dim].label || row.dimension_label;
+      if (!officialDimensions.has(dim)) {
+        topicMap[row.dimension_label || dim] = (topicMap[row.dimension_label || dim] || 0) + 1;
+        continue;
+      }
+      if (!officialMap[dim]) officialMap[dim] = { count: 0, trends: {}, label: row.dimension_label };
+      officialMap[dim].trends[row.trend] = (officialMap[dim].trends[row.trend] || 0) + 1;
+      officialMap[dim].label = officialMap[dim].label || row.dimension_label;
     }
     const resolveLabel = (dimension: string, progressLabel?: string) => {
       const catalogLabel = dimensionCatalog.find((d) => d.id === dimension)?.label;
       return catalogLabel || getDimensionFullLabel(dimension, progressLabel);
     };
-    return Object.entries(map)
+    const topDimensions = Object.entries(officialMap)
       .map(([dimension, info]) => {
         const dominantTrend = (Object.entries(info.trends).sort((a, b) => b[1] - a[1])[0]?.[0] || 'sem_trend') as DimensionTrend | 'sem_trend';
         return {
@@ -154,53 +198,16 @@ export default function AgendaPage() {
           label: resolveLabel(dimension, info.label),
           count: info.count,
           trend: dominantTrend,
-          trendLabel: trendLabels[dominantTrend],
-          trendCount: info.trendCount,
           sortOrder: dimensionSortMap.get(dimension) ?? 999,
         };
       })
       .sort((a, b) => b.count - a.count || a.sortOrder - b.sortOrder)
-      .slice(0, 12);
+      .slice(0, 3);
+    const topTopics = Object.entries(topicMap).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([label, count]) => ({ label, count }));
+    const attention = topDimensions.find((d) => d.trend === 'worsening') || topDimensions[0];
+    const insight = attention ? `${attention.label} concentra maior atenção no ciclo.` : '';
+    return { topDimensions, topTopics, insight };
   }, [filtered, dimensionCatalog, dimensionProgressRows]);
-  const focusSummary = useMemo(() => {
-    const mostRecurring = dimensionsInFocus[0];
-    const positive = dimensionsInFocus.filter((d) => d.trend === 'improving').length;
-    const negative = dimensionsInFocus.filter((d) => d.trend === 'worsening').length;
-    const noEvidence = dimensionsInFocus.filter((d) => d.trend === 'insufficient_evidence' || d.trend === 'sem_trend').length;
-    return { total: dimensionsInFocus.length, mostRecurring, positive, negative, noEvidence };
-  }, [dimensionsInFocus]);
-  const focusAnalytics = useMemo(() => {
-    const maxCount = dimensionsInFocus[0]?.count || 1;
-    const focusByDimension = new Map(dimensionsInFocus.map((item) => [item.dimension, item]));
-    const actionBuckets = actionsForFilteredMeetings.reduce((acc, action) => {
-      if (!action.related_dimension) return acc;
-      if (!acc[action.related_dimension]) acc[action.related_dimension] = { open: 0, blocked: 0, completed: 0 };
-      if (action.status === 'blocked') acc[action.related_dimension].blocked += 1;
-      else if (action.status === 'completed') acc[action.related_dimension].completed += 1;
-      else if (['not_started', 'in_progress'].includes(action.status)) acc[action.related_dimension].open += 1;
-      return acc;
-    }, {} as Record<string, { open: number; blocked: number; completed: number }>);
-    const hasActionDimensionData = Object.keys(actionBuckets).length > 0;
-    const trendDistribution = dimensionsInFocus.reduce((acc, item) => {
-      const key = item.trend === 'sem_trend' ? 'insufficient_evidence' : item.trend;
-      acc[key] = (acc[key] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    const heatmap = officialDimensionOrder.map((code) => {
-      const item = focusByDimension.get(code);
-      const count = item?.count || 0;
-      const intensity = count === 0 ? 0 : Math.max(18, Math.round((count / maxCount) * 100));
-      return {
-        code,
-        label: getDimensionFullLabel(code),
-        count,
-        trend: item?.trend || 'sem_trend',
-        trendLabel: item?.trendLabel || trendLabels.sem_trend,
-        intensity,
-      };
-    });
-    return { maxCount, actionBuckets, hasActionDimensionData, trendDistribution, heatmap };
-  }, [dimensionsInFocus, actionsForFilteredMeetings]);
 
   const saveMeeting = async () => {
     if (!form.company_id || !form.meeting_date || !form.meeting_type) return toast({ title: 'Preencha empresa, data e tipo', variant: 'destructive' });
@@ -390,96 +397,53 @@ export default function AgendaPage() {
     </CardContent></Card>
     {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
       <>
-      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-6'>
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.totalMeetings}</p><p className='text-xs text-muted-foreground'>Total de encontros</p></CardContent></Card>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.meetingsThisMonth}</p><p className='text-xs text-muted-foreground'>Encontros no mês</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.openActions}</p><p className='text-xs text-muted-foreground'>Ações abertas</p></CardContent></Card>
-        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{executiveKpis.lateActions}</p><p className='text-xs text-muted-foreground'>Ações atrasadas</p></CardContent></Card>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold text-foreground'>{executiveKpis.blockedActions}</p><p className='text-xs text-muted-foreground'>Ações travadas</p></CardContent></Card>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.completionRate}%</p><p className='text-xs text-muted-foreground'>Taxa de conclusão</p></CardContent></Card>
+        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{executiveKpis.criticalActions}</p><p className='text-xs text-muted-foreground'>Ações críticas</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.completionRate}%</p><p className='text-xs text-muted-foreground'>Taxa de conclusão</p><p className='text-[11px] text-muted-foreground mt-1'>{executiveKpis.completed}/{executiveKpis.nonCancelledTotal} concluídas · {executiveKpis.meetingsThisMonth} no mês</p></CardContent></Card>
       </div>
-      <div className='grid gap-3'>{filtered.map(m => {
+      <Card className='executive-panel'><CardHeader><CardTitle>Alertas do ciclo</CardTitle></CardHeader><CardContent className='grid gap-2 sm:grid-cols-3 text-sm'>
+        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Sem próxima pauta: <strong>{cycleAlerts.noAgenda}</strong></div>
+        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Com ações críticas: <strong>{cycleAlerts.critical}</strong></div>
+        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Sem evolução registrada: <strong>{cycleAlerts.noEvolution}</strong></div>
+      </CardContent></Card>
+      <Card className='executive-panel'><CardHeader><CardTitle>Próxima reunião a preparar</CardTitle></CardHeader><CardContent>
+        {filtered.length === 0 ? <p className='text-sm text-muted-foreground'>Sem próxima reunião a preparar.</p> : (() => {
+          const sorted = [...filtered].sort((a, b) => new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime());
+          const prioritized = sorted.find((m) => meetingsHealth.find((h) => h.id === m.id)?.critical)
+            || sorted.find((m) => meetingsHealth.find((h) => h.id === m.id)?.noAgenda)
+            || sorted[0];
+          const comp = companies.find((c) => c.id === prioritized.company_id)?.name || '—';
+          const health = meetingsHealth.find((h) => h.id === prioritized.id);
+          const reason = health?.critical ? 'Existem ações críticas no encontro.' : health?.noAgenda ? 'Encontro sem próxima pauta definida.' : 'Encontro mais recente do ciclo.';
+          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {new Date(prioritized.meeting_date).toLocaleDateString('pt-BR')}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
+        })()}
+      </CardContent></Card>
+      <div className='space-y-5'>{monthlyMeetingGroups.map((group) => <section key={`${group.year}-${group.month}`} className='space-y-3'>
+        <h3 className='text-lg font-semibold capitalize'>{group.label}</h3>
+        <div className='grid gap-3'>{group.meetings.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
-        const overdue = am.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
-        const openCount = am.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
+        const health = meetingsHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
-        const completionPct = am.length ? Math.round((completedCount / am.length) * 100) : 0;
+        const statusTone = health?.status === 'Crítico' ? 'destructive' : health?.status === 'Atenção' ? 'secondary' : 'outline';
+        const dimCount = progressCountByMeeting[m.id] || 0;
+        const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', health?.critical ? 'Ações críticas' : '', dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 2);
         return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader><CardTitle className='flex flex-wrap justify-between gap-2'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
-          <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge>{(m.related_dimensions || []).map(d => <DimensionBadge key={d} code={d} size='sm' />)}</div>
-          <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {completedCount}/{am.length} concluídas</p>
-          <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-primary' style={{ width: `${completionPct}%` }} /></div>
-          <p className='text-xs text-muted-foreground'>{completedCount} de {am.length} ações concluídas</p>
-          <p><strong>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
-          <p><strong>Dimensões avaliadas:</strong> {progressCountByMeeting[m.id] || 0}</p>
-          <div className='flex flex-wrap gap-2'>
-            {am.length === 0 && <Badge variant='outline'>Sem ações</Badge>}
-            {!m.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
-            {overdue > 0 && <Badge variant='destructive'>Ações atrasadas</Badge>}
-            {am.some(a => a.status === 'blocked') && <Badge variant='outline'>Ações travadas</Badge>}
-            {(progressCountByMeeting[m.id] || 0) === 0 && <Badge variant='outline'>Sem evolução registrada</Badge>}
-          </div>
-          <Link className='text-primary underline' to={`/app/agenda/${m.id}`}>Abrir detalhe do encontro</Link>
+          <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
+          <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {completedCount}/{am.length}</p>
+          <p><strong>Dimensões avaliadas:</strong> {dimCount}</p>
+          <p className='line-clamp-1'><strong>Próxima pauta:</strong> {m.next_agenda || 'Sem próxima pauta'}</p>
+          <div className='flex flex-wrap gap-2'>{badges.map((badge) => <Badge key={badge} variant='outline'>{badge}</Badge>)}</div>
+          <Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button>
         </CardContent></Card>;
       })}</div>
-      <Card className='executive-panel'><CardHeader><CardTitle>Mapa de Foco do Conselho</CardTitle><p className='text-sm text-muted-foreground'>Veja quais dimensões dominaram os encontros recentes, onde há evolução percebida e onde o conselho precisa manter atenção.</p></CardHeader><CardContent className='space-y-4'>
-        {dimensionsInFocus.length === 0 ? <div className='space-y-2 text-sm'><p className='text-muted-foreground'>Nenhuma dimensão em foco ainda.</p><p className='text-muted-foreground'>As dimensões aparecerão aqui quando os encontros tiverem dimensões relacionadas ou evolução registrada.</p><Link className='text-primary underline' to='/app/agenda'>Registrar evolução em um encontro</Link></div> :
-          <>
-            <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-5'>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Tema dominante</p><p className='text-sm font-semibold leading-tight'>{focusSummary.mostRecurring?.label || '—'}</p><p className='text-xs text-muted-foreground mt-1'>{focusSummary.mostRecurring?.count || 0} aparições no ciclo filtrado.</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Dimensões monitoradas</p><p className='text-xl font-semibold'>{focusSummary.total}</p><p className='text-xs text-muted-foreground mt-1'>Total com sinal em encontros ou evolução.</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Evolução positiva</p><p className='text-xl font-semibold text-emerald-500'>{focusSummary.positive}</p><p className='text-xs text-muted-foreground mt-1'>Dimensões com tendência improving.</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Atenção crítica</p><p className='text-xl font-semibold text-rose-500'>{focusSummary.negative}</p><p className='text-xs text-muted-foreground mt-1'>Dimensões com tendência worsening.</p></div>
-              <div className='executive-card rounded p-3'><p className='text-xs text-muted-foreground'>Sem evidência</p><p className='text-xl font-semibold'>{focusSummary.noEvidence}</p><p className='text-xs text-muted-foreground mt-1'>Sem leitura robusta de tendência.</p></div>
-            </div>
-            <div className='executive-card rounded p-3 space-y-3'>
-              <div className='flex items-center justify-between gap-2'><p className='text-sm font-semibold'>Concentração por dimensão</p><p className='text-xs text-muted-foreground'>Heatmap das 9 dimensões oficiais</p></div>
-              <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2'>
-                {focusAnalytics.heatmap.map((cell) => <div key={cell.code} className='rounded border p-2 min-h-[84px] flex flex-col justify-between' style={{ background: `color-mix(in oklab, hsl(var(--primary)) ${cell.intensity}%, hsl(var(--card)))` }} aria-label={`${cell.code} ${cell.label}. ${cell.count} aparições. ${cell.count === 0 ? 'Sem sinal no ciclo' : `Tendência ${cell.trendLabel}`}`}>
-                    <div className='flex justify-between items-center gap-1'><DimensionBadge code={cell.code} size='sm' /><span className='text-[11px] text-muted-foreground'>{cell.count}x</span></div>
-                    <p className='text-xs leading-tight'>{cell.label}</p>
-                    <p className={`text-[11px] font-medium ${trendToneClasses[cell.trend]}`}>{cell.count === 0 ? 'Sem sinal no ciclo' : cell.trendLabel}</p>
-                  </div>)}
-              </div>
-            </div>
-            <div className='executive-card rounded p-3 space-y-3'>
-              <p className='text-sm font-semibold'>Distribuição de tendências</p>
-              <div className='h-3 w-full rounded-full bg-muted overflow-hidden flex'>
-                {(['improving', 'stable', 'worsening', 'insufficient_evidence'] as const).map((trend) => {
-                  const count = focusAnalytics.trendDistribution[trend] || 0;
-                  const width = focusSummary.total ? `${(count / focusSummary.total) * 100}%` : '0%';
-                  const colorClass = trend === 'improving' ? 'bg-emerald-500' : trend === 'stable' ? 'bg-slate-400' : trend === 'worsening' ? 'bg-rose-500' : 'bg-zinc-400';
-                  return <div key={trend} className={colorClass} style={{ width }} aria-label={`${trendLabels[trend]}: ${count}`} />;
-                })}
-              </div>
-              <div className='grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs text-muted-foreground'>
-                <p><strong>Melhorando:</strong> {focusAnalytics.trendDistribution.improving || 0}</p>
-                <p><strong>Estável:</strong> {focusAnalytics.trendDistribution.stable || 0}</p>
-                <p><strong>Piorando:</strong> {focusAnalytics.trendDistribution.worsening || 0}</p>
-                <p><strong>Sem evidência:</strong> {focusAnalytics.trendDistribution.insufficient_evidence || 0}</p>
-              </div>
-            </div>
-            <div className='space-y-2'>{dimensionsInFocus.map((item, idx) => {
-              const width = Math.max(8, Math.round((item.count / focusAnalytics.maxCount) * 100));
-              const context = item.trend === 'worsening'
-                ? 'Atenção: tendência negativa'
-                : item.trend === 'improving'
-                  ? 'Evolução positiva percebida'
-                  : item.trend === 'stable'
-                    ? 'Dimensão recorrente'
-                    : item.count === focusAnalytics.maxCount
-                      ? 'Tema dominante do ciclo'
-                      : 'Sem evidência suficiente';
-              const actionData = focusAnalytics.actionBuckets[item.dimension];
-              return <div key={item.dimension} className='executive-card rounded p-3 space-y-2'>
-                <div className='flex items-start justify-between gap-2'><div><p className='text-xs text-muted-foreground'>#{idx + 1}</p><p className='font-medium leading-tight'>{item.label}</p></div><DimensionBadge code={item.dimension} label={item.label} size='sm' className='text-xs' /></div>
-                <div className='flex items-center justify-between text-xs text-muted-foreground'><span>{item.count} aparições</span><span className={trendToneClasses[item.trend]}>{item.trendLabel}</span></div>
-                <div className='h-2 rounded bg-muted/70 overflow-hidden'><div className={`h-full ${item.trend === 'worsening' ? 'bg-rose-500' : item.trend === 'improving' ? 'bg-emerald-500' : 'bg-cyan-400'}`} style={{ width: `${width}%` }} /></div>
-                <div className='flex items-center justify-between'><Badge variant='outline' className={`${item.trend === 'worsening' ? 'border-rose-400/40 text-rose-400' : ''}`}>{item.trendLabel}</Badge><span className='text-xs text-muted-foreground'>{item.trendCount} registros de evolução</span></div>
-                {focusAnalytics.hasActionDimensionData && actionData ? <p className='text-xs text-muted-foreground'>Ações: {actionData.open} abertas · {actionData.blocked} travadas · {actionData.completed} concluídas</p> : null}
-                <p className='text-xs text-muted-foreground'>{context}</p>
-              </div>;
-            })}</div>
-          </>}
+      </section>)}</div>
+      <Card className='executive-panel'><CardHeader><CardTitle>Foco recente do conselho</CardTitle></CardHeader><CardContent className='space-y-3 text-sm'>
+        {focusRecentSummary.topDimensions.length === 0 ? <p className='text-muted-foreground'>Sem foco recente.</p> : <div><p className='font-medium mb-1'>Dimensões oficiais</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary'>{item.dimension} · {item.count}x</Badge>)}</div></div>}
+        {focusRecentSummary.topTopics.length === 0 ? <p className='text-muted-foreground'>Sem temas frequentes.</p> : <div><p className='font-medium mb-1'>Temas frequentes</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline'>{item.label} · {item.count}x</Badge>)}</div></div>}
+        <p className='text-muted-foreground'>{focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p>
+        <Button asChild variant='outline' size='sm'><Link to='/app/counselor'>Ver Central do Conselheiro</Link></Button>
       </CardContent></Card>
       </>}
     <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setCreationMode('manual'); resetDraftFlow(); } }}><DialogContent className='max-w-5xl max-h-[90vh] overflow-y-auto'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
