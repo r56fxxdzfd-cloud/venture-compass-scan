@@ -128,10 +128,10 @@ export default function CounselorCenterPage() {
   }
 
   const summaryKpis: Array<{ label: string; sublabel: string; value: number | string; tone: KpiTone; icon: typeof Target }> = [
-    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'primary', icon: CalendarClock },
-    { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'cyan', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'red' : 'primary', icon: AlertTriangle },
-    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: 'violet', icon: Activity },
+    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'neutral', icon: CalendarClock },
+    { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'neutral', icon: ListChecks },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'red' : 'neutral', icon: AlertTriangle },
+    { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: criticalDimensions.length ? 'amber' : 'neutral', icon: Activity },
   ];
 
   return (
