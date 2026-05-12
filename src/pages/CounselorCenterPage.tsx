@@ -266,25 +266,25 @@ export default function CounselorCenterPage() {
             <CardContent className="p-6 sm:p-7 space-y-5">
               <SectionHeader
                 icon={ListChecks}
-                iconClass="text-cyan-300"
+                iconClass="text-muted-foreground"
                 title="Ações pendentes"
                 subtitle="Itens em execução, planejados ou travados."
                 trailing={
-                  <span className="inline-flex items-center rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-[11px] font-bold text-cyan-300">
+                  <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground/80">
                     {openActions.length}
                   </span>
                 }
               />
               <div className="space-y-3">
                 {openActions.length === 0 ? (
-                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 text-center">
-                    <p className="text-sm text-emerald-300 font-medium">Nenhuma ação de conselho em aberto.</p>
-                    <p className="text-xs text-emerald-300/70 mt-1">Mantenha o registro atualizado para sustentar a execução entre encontros.</p>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                    <p className="text-sm text-foreground font-medium">Nenhuma ação de conselho em aberto.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Mantenha o registro atualizado para sustentar a execução entre encontros.</p>
                   </div>
                 ) : openActions.map(a => {
                   const overdue = a.due_date && new Date(a.due_date) < new Date();
                   const quickWin = a.impact === 'high' && a.effort === 'low';
-                  const priorityTone = a.priority === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' : a.priority === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-muted/30 text-muted-foreground border-border/40';
+                  const priorityTone = a.priority === 'high' ? 'bg-red-500/15 text-red-300 border-red-500/30' : a.priority === 'medium' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-muted/40 text-muted-foreground border-border/60';
                   return (
                     <div key={a.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -292,13 +292,13 @@ export default function CounselorCenterPage() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {overdue && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-red-500/30 bg-red-500/15 text-red-300">Atrasada</span>}
                           {a.status === 'blocked' && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-red-500/30 bg-red-500/15 text-red-300">Travada</span>}
-                          {quickWin && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-emerald-500/30 bg-emerald-500/15 text-emerald-300">Quick win</span>}
+                          {quickWin && <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border border-border/60 bg-muted/40 text-foreground/80">Quick win</span>}
                           <span className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border ${priorityTone}`}>{priorityLabel[a.priority] || a.priority}</span>
                         </div>
                       </div>
                       <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                         {a.related_dimension && <DimensionBadge code={a.related_dimension} />}
-                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/30 px-2 py-0.5"><CalendarClock className="h-3 w-3" /> {formatDate(a.due_date)}</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/40 px-2 py-0.5"><CalendarClock className="h-3 w-3" /> {formatDate(a.due_date)}</span>
                         <span>· {a.owner_name || 'Sem responsável'}</span>
                         <span>· {statusLabel[a.status] || a.status}</span>
                         {a.impact && <span>· Impacto {a.impact}</span>}
