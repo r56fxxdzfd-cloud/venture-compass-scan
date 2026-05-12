@@ -2,7 +2,9 @@ import type { ConfigJSON, DimensionScore, EvaluatedRedFlag, AssessmentResult, An
 
 // ---- Score conversion ----
 export function scoreTo100(score: number): number {
-  return Math.round(((score - 1) / 4) * 100);
+  if (!score || score <= 1 || !Number.isFinite(score)) return 0;
+  const v = Math.round(((score - 1) / 4) * 100);
+  return Math.max(0, Math.min(100, v));
 }
 
 export function getLevel(score100: number): { label: string; color: string } {
