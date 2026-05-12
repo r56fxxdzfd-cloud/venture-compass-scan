@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, CouncilMeetingNotesDraft, DimensionTrend, MeetingType } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { Sparkles, Plus, FileStack } from 'lucide-react';
 
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
@@ -359,7 +360,29 @@ export default function AgendaPage() {
   };
 
   return <div className='space-y-6'>
-    <div className='executive-header flex flex-wrap items-center justify-between gap-3'><div><h1 className='executive-section-title text-2xl font-bold'>Agenda de Evolução</h1><p className='text-sm text-muted-foreground'>Organize encontros, decisões e execução contínua do conselho.</p><Link className='text-sm text-primary underline print:hidden' to='/app/agenda/templates'>Consultar Templates de Pauta</Link></div><Button className='print:hidden' onClick={() => setOpen(true)}>Registrar novo encontro</Button></div>
+    <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
+      <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-3 max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
+            <Sparkles className="h-3 w-3" /> Ritos do conselho
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Agenda de Evolução</h1>
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+            Organize encontros, decisões e execução contínua do conselho a partir de uma visão única dos ritos.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 print:hidden">
+          <Button size="sm" className="rounded-full" onClick={() => setOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" /> Registrar encontro
+          </Button>
+          <Button asChild size="sm" variant="outline" className="rounded-full">
+            <Link to="/app/agenda/templates"><FileStack className="h-4 w-4 mr-2" /> Templates de Pauta</Link>
+          </Button>
+        </div>
+      </div>
+    </section>
     <Card className='executive-panel'><CardContent className='pt-6 grid md:grid-cols-3 gap-3'>
       <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
