@@ -146,12 +146,12 @@ export default function CounselorOverviewPage() {
   }
 
   const kpiCards: Array<{ label: string; sublabel: string; value: number; tone: KpiTone; icon: typeof Building2 }> = [
-    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'primary', icon: Building2 },
-    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'cyan', icon: ListChecks },
-    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: 'amber', icon: AlertTriangle },
-    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: 'red', icon: ShieldAlert },
-    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: 'violet', icon: TrendingDown },
-    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: 'emerald', icon: CalendarClock },
+    { label: 'Organizações', sublabel: 'em acompanhamento ativo', value: companies.length, tone: 'neutral', icon: Building2 },
+    { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: 'neutral', icon: ListChecks },
+    { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'amber' : 'neutral', icon: AlertTriangle },
+    { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'red' : 'neutral', icon: ShieldAlert },
+    { label: 'Dimensões em atenção', sublabel: 'piorando ou com baixo score', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'amber' : 'neutral', icon: TrendingDown },
+    { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'amber' : 'neutral', icon: CalendarClock },
   ];
 
   const focusMap = Object.entries(latestProgressByCompanyAndDimension.reduce((acc, item) => {
