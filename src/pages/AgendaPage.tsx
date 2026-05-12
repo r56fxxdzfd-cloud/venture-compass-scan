@@ -395,7 +395,7 @@ export default function AgendaPage() {
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.meetingsThisMonth}</p><p className='text-xs text-muted-foreground'>Encontros no mês</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.openActions}</p><p className='text-xs text-muted-foreground'>Ações abertas</p></CardContent></Card>
         <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{executiveKpis.lateActions}</p><p className='text-xs text-muted-foreground'>Ações atrasadas</p></CardContent></Card>
-        <Card className='executive-card border-amber-500/40'><CardContent className='p-4'><p className='text-2xl font-bold text-amber-400'>{executiveKpis.blockedActions}</p><p className='text-xs text-muted-foreground'>Ações travadas</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold text-foreground'>{executiveKpis.blockedActions}</p><p className='text-xs text-muted-foreground'>Ações travadas</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.completionRate}%</p><p className='text-xs text-muted-foreground'>Taxa de conclusão</p></CardContent></Card>
       </div>
       <div className='grid gap-3'>{filtered.map(m => {
