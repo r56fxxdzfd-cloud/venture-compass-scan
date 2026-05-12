@@ -233,15 +233,15 @@ export default function CounselorCenterPage() {
             <CardContent className="p-6 sm:p-7 space-y-5">
               <SectionHeader
                 icon={Target}
-                iconClass="text-violet-300"
+                iconClass="text-muted-foreground"
                 title="Pauta sugerida"
                 subtitle="Templates de pauta relacionados às dimensões em foco."
               />
               <div className="space-y-3">
                 {suggestedTemplates.length === 0 ? (
-                  <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200/90">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-muted-foreground">
                     Nenhum template relacionado às dimensões atuais. Isso reduz a qualidade da preparação do encontro.{' '}
-                    <Link to="/app/agenda/templates" className="text-primary underline underline-offset-2">Consultar templates de pauta</Link>.
+                    <Link to="/app/agenda/templates" className="text-foreground underline underline-offset-2">Consultar templates de pauta</Link>.
                   </div>
                 ) : suggestedTemplates.map(t => (
                   <div key={t.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors space-y-2">
