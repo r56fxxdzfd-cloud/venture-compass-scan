@@ -15,7 +15,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, CouncilMeetingNotesDraft, DimensionTrend, MeetingType } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
-import { Sparkles, Plus, FileStack } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, FileStack, Plus, Sparkles, Target } from 'lucide-react';
 
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
@@ -188,7 +188,7 @@ export default function AgendaPage() {
       const d = m.meeting_date ? getDateParts(m.meeting_date) : null;
       return !!todayParts && !!d && d.year === todayParts.year && d.month === todayParts.month;
     }).length;
-    const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
+    const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress'].includes(a.status)).length;
     const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => todayParts && isDateOnlyBefore(a.due_date, todayParts) && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
     const blockedActionIds = new Set(actionsForFilteredMeetings.filter(a => a.status === 'blocked').map((a) => a.id));
     const criticalActionIds = new Set([...lateActionIds, ...blockedActionIds]);
@@ -462,29 +462,29 @@ export default function AgendaPage() {
         </div>
       </div>
     </section>
-    <Card className='executive-panel print:hidden'><CardContent className='pt-6 grid md:grid-cols-5 gap-3'>
-      <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-      <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
-      <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
-      <Select value={meetingStatus} onValueChange={(v) => setMeetingStatus(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos encontros</SelectItem><SelectItem value='critical'>Crítico</SelectItem><SelectItem value='attention'>Atenção</SelectItem><SelectItem value='healthy'>Saudável</SelectItem></SelectContent></Select>
-      <Button variant='ghost' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>
+    <Card className='executive-panel print:hidden'><CardContent className='p-4 grid md:grid-cols-5 gap-2'>
+      <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger className='h-9'><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+      <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger className='h-9'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
+      <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger className='h-9'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
+      <Select value={meetingStatus} onValueChange={(v) => setMeetingStatus(v as any)}><SelectTrigger className='h-9'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos encontros</SelectItem><SelectItem value='critical'>Crítico</SelectItem><SelectItem value='attention'>Atenção</SelectItem><SelectItem value='healthy'>Saudável</SelectItem></SelectContent></Select>
+      <Button size='sm' variant='ghost' className='h-9 text-muted-foreground hover:text-foreground' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>
     </CardContent></Card>
     {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>
       {meetings.length > 0 ? <>Nenhum encontro encontrado com os filtros atuais.<div className='mt-3'>{hasActiveFilters && <Button variant='outline' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>}</div></> : <>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></>}
     </CardContent></Card> :
       <>
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.totalMeetings}</p><p className='text-xs text-muted-foreground'>Total de encontros</p></CardContent></Card>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.openActions}</p><p className='text-xs text-muted-foreground'>Ações abertas</p></CardContent></Card>
-        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-2xl font-bold text-destructive'>{executiveKpis.criticalActions}</p><p className='text-xs text-muted-foreground'>Ações críticas</p></CardContent></Card>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.completionRate}%</p><p className='text-xs text-muted-foreground'>Taxa de conclusão</p><p className='text-[11px] text-muted-foreground mt-1'>{executiveKpis.completed}/{executiveKpis.nonCancelledTotal} concluídas · {executiveKpis.meetingsThisMonth} no mês</p></CardContent></Card>
+        <Card className='executive-card overflow-hidden'><CardContent className='p-4'><div className='flex items-start justify-between gap-3'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Total de encontros</p><p className='mt-1 text-3xl font-extrabold'>{executiveKpis.totalMeetings}</p></div><CalendarDays className='h-4 w-4 text-primary' /></div><p className='mt-2 text-[11px] text-muted-foreground'>Ritos visíveis no filtro atual · {executiveKpis.meetingsThisMonth} no mês</p></CardContent></Card>
+        <Card className='executive-card overflow-hidden'><CardContent className='p-4'><div className='flex items-start justify-between gap-3'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Ações abertas</p><p className='mt-1 text-3xl font-extrabold'>{executiveKpis.openActions}</p></div><Target className='h-4 w-4 text-primary' /></div><p className='mt-2 text-[11px] text-muted-foreground'>Em execução ou planejadas</p></CardContent></Card>
+        <Card className='executive-card overflow-hidden border-destructive/40'><CardContent className='p-4'><div className='flex items-start justify-between gap-3'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Ações críticas</p><p className='mt-1 text-3xl font-extrabold text-destructive'>{executiveKpis.criticalActions}</p></div><AlertTriangle className='h-4 w-4 text-destructive' /></div><p className='mt-2 text-[11px] text-muted-foreground'>Atrasadas ou travadas · {executiveKpis.lateActions} atrasadas</p></CardContent></Card>
+        <Card className='executive-card overflow-hidden'><CardContent className='p-4'><div className='flex items-start justify-between gap-3'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Taxa de conclusão</p><p className='mt-1 text-3xl font-extrabold'>{executiveKpis.completionRate}%</p></div><CheckCircle2 className='h-4 w-4 text-emerald-500' /></div><p className='mt-2 text-[11px] text-muted-foreground'>{executiveKpis.completed}/{executiveKpis.nonCancelledTotal} concluídas / total</p></CardContent></Card>
       </div>
-      <Card className='executive-panel'><CardHeader><CardTitle>Alertas do ciclo</CardTitle></CardHeader><CardContent className='grid gap-2 sm:grid-cols-3 text-sm'>
-        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Sem próxima pauta: <strong>{cycleAlerts.noAgenda}</strong></div>
-        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Com ações críticas: <strong>{cycleAlerts.critical}</strong></div>
-        <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Sem evolução registrada: <strong>{cycleAlerts.noEvolution}</strong></div>
+      <Card className='executive-panel'><CardHeader className='pb-2'><CardTitle>Alertas do ciclo</CardTitle></CardHeader><CardContent className='grid gap-2 sm:grid-cols-3 text-sm'>
+        <div className='rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3'><p className='text-2xl font-extrabold text-amber-600'>{cycleAlerts.noAgenda}</p><p className='text-xs font-semibold text-foreground'>Sem próxima pauta</p><p className='mt-1 text-[11px] text-muted-foreground'>Precisam de pauta para o rito seguinte.</p></div>
+        <div className='rounded-2xl border border-destructive/20 bg-destructive/5 p-3'><p className='text-2xl font-extrabold text-destructive'>{cycleAlerts.critical}</p><p className='text-xs font-semibold text-foreground'>Com ações críticas</p><p className='mt-1 text-[11px] text-muted-foreground'>Possuem ações atrasadas ou travadas.</p></div>
+        <div className='rounded-2xl border border-primary/20 bg-primary/5 p-3'><p className='text-2xl font-extrabold text-primary'>{cycleAlerts.noEvolution}</p><p className='text-xs font-semibold text-foreground'>Sem evolução registrada</p><p className='mt-1 text-[11px] text-muted-foreground'>Faltam dimensões avaliadas no ciclo.</p></div>
       </CardContent></Card>
-      <Card className='executive-panel'><CardHeader><CardTitle>Próximo rito a preparar</CardTitle></CardHeader><CardContent>
+      <Card className='executive-panel overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-background to-background print:break-inside-avoid'><CardHeader className='pb-2'><div className='flex items-center justify-between gap-3'><div><p className='text-[11px] font-semibold uppercase tracking-[0.16em] text-primary'>Recomendação operacional</p><CardTitle>Próximo rito a preparar</CardTitle></div><Badge variant='outline' className='executive-pill'>Prioridade do ciclo</Badge></div></CardHeader><CardContent>
         {filtered.length === 0 ? <p className='text-sm text-muted-foreground'>Sem próxima reunião a preparar.</p> : (() => {
           const sorted = [...filtered].sort((a, b) => compareDateOnlyDesc(a.meeting_date, b.meeting_date));
           const prioritized = sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.critical)
@@ -492,37 +492,63 @@ export default function AgendaPage() {
             || sorted[0];
           const comp = companies.find((c) => c.id === prioritized.company_id)?.name || '—';
           const health = filteredMeetingHealth.find((h) => h.id === prioritized.id);
-          const reason = health?.critical ? 'Existem ações críticas no encontro.' : health?.noAgenda ? 'Encontro sem próxima pauta definida.' : 'Encontro mais recente do ciclo.';
-          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {formatDateOnlyBR(prioritized.meeting_date)}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
+          const am = actions.filter(a => a.meeting_id === prioritized.id);
+          const completedCount = am.filter(a => a.status === 'completed').length;
+          const dimCount = progressCountByMeeting[prioritized.id] || 0;
+          const statusTone = health?.status === 'Crítico' ? 'destructive' : health?.status === 'Atenção' ? 'secondary' : 'outline';
+          const reason = health?.critical ? 'Atenção imediata: há ações atrasadas ou travadas.' : health?.noAgenda ? 'Preparar pauta: o encontro ainda não tem próximo passo registrado.' : 'Manter cadência: encontro mais recente do ciclo.';
+          return <div className='grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end text-sm'>
+            <div className='space-y-3'>
+              <div className='flex flex-wrap items-center gap-2'><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge><span className='text-xs text-muted-foreground'>{formatDateOnlyBR(prioritized.meeting_date)}</span></div>
+              <div><h3 className='text-xl font-bold leading-tight'>{prioritized.title || prioritized.main_topic || 'Encontro de conselho'}</h3><p className='mt-1 text-sm text-muted-foreground'>{reason}</p></div>
+              <div className='grid gap-2 sm:grid-cols-3'>
+                <div className='rounded-2xl border border-border/70 bg-background/60 p-3'><p className='text-[11px] uppercase tracking-[0.12em] text-muted-foreground'>Ações</p><p className='font-semibold'>{completedCount}/{am.length} concluídas</p></div>
+                <div className='rounded-2xl border border-border/70 bg-background/60 p-3'><p className='text-[11px] uppercase tracking-[0.12em] text-muted-foreground'>Dimensões</p><p className='font-semibold'>{dimCount} avaliadas</p></div>
+                <div className='rounded-2xl border border-border/70 bg-background/60 p-3'><p className='text-[11px] uppercase tracking-[0.12em] text-muted-foreground'>Próxima pauta</p><p className='line-clamp-1 font-semibold'>{prioritized.next_agenda || 'Sem próxima pauta'}</p></div>
+              </div>
+            </div>
+            <Button asChild className='rounded-full'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro <ArrowRight className='ml-2 h-4 w-4' /></Link></Button>
+          </div>;
         })()}
       </CardContent></Card>
       <div className='space-y-5'>{monthlyMeetingGroups.map((group) => <section key={`${group.year}-${group.month}`} className='space-y-3 print:break-inside-avoid'>
         <div className='print:mb-3'>
-          <h3 className='text-lg font-semibold capitalize print:break-after-avoid print:mb-1'>{group.label}</h3>
-          <div className='grid gap-3'>{group.meetings.map((m, index) => {
+          <div className='flex items-center justify-between gap-3 print:break-after-avoid print:mb-1'><h3 className='text-lg font-semibold capitalize'>{group.label}</h3><span className='text-xs text-muted-foreground'>{group.meetings.length} encontros</span></div>
+          <div className='grid gap-2'>{group.meetings.map((m, index) => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
         const health = filteredMeetingHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
         const statusTone = health?.status === 'Crítico' ? 'destructive' : health?.status === 'Atenção' ? 'secondary' : 'outline';
         const dimCount = progressCountByMeeting[m.id] || 0;
         const criticalBadge = health?.overdue && health?.blocked ? 'Atrasadas + travadas' : health?.blocked ? 'Ações travadas' : health?.overdue ? 'Ações atrasadas' : '';
-        const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', criticalBadge, dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 3);
-        return <Card key={m.id} className={`executive-panel border-l-2 border-l-primary/50 ${index === 0 ? 'print:break-inside-avoid' : ''}`}><CardHeader className='pb-2'><CardTitle className='flex flex-wrap items-start justify-between gap-2'><span className='leading-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2 pt-0'>
-          <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill font-semibold'>{formatDateOnlyBR(m.meeting_date)}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
-          <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {completedCount}/{am.length}</p>
-          <p><strong>Dimensões avaliadas:</strong> {dimCount}</p>
-          <p className='line-clamp-1 text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
-          <div className='flex flex-wrap gap-2'>{badges.map((badge) => <Badge key={badge} variant='outline'>{badge}</Badge>)}</div>
-          <Button asChild size='sm' variant='outline' className='w-fit'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button>
+        const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', criticalBadge, dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 2);
+        const parsedDate = getDateParts(m.meeting_date);
+        return <Card key={m.id} className={`executive-panel border-l-2 border-l-primary/40 ${index === 0 ? 'print:break-inside-avoid' : ''}`}><CardContent className='p-3 sm:p-4'>
+          <div className='grid gap-3 sm:grid-cols-[72px_1fr_auto] sm:items-center'>
+            <div className='w-fit rounded-2xl border border-border/70 bg-muted/30 px-3 py-2 text-center sm:w-full'><p className='text-2xl font-extrabold leading-none'>{parsedDate ? String(parsedDate.day).padStart(2, '0') : '—'}</p><p className='mt-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground'>{parsedDate ? monthNamesPtBr[parsedDate.month - 1].slice(0, 3) : 'data'}</p></div>
+            <div className='min-w-0 space-y-2'>
+              <div className='flex flex-wrap items-center gap-2'><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge>{badges.map((badge) => <Badge key={badge} variant='outline' className='executive-pill'>{badge}</Badge>)}</div>
+              <div><h4 className='line-clamp-1 font-semibold leading-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</h4><p className='line-clamp-1 text-xs text-muted-foreground'>Tema: {m.main_topic || '—'}</p></div>
+              <div className='flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground'><span><strong className='text-foreground'>{completedCount}/{am.length}</strong> ações</span><span><strong className='text-foreground'>{dimCount}</strong> dimensões avaliadas</span><span className='min-w-0 sm:max-w-[360px] line-clamp-1'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</span></div>
+            </div>
+            <div className='flex items-center gap-2 sm:flex-col sm:items-end'><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge><Button asChild size='sm' variant='outline' className='rounded-full'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button></div>
+          </div>
         </CardContent></Card>;
       })}</div>
         </div>
       </section>)}</div>
-      <Card className='executive-panel print:hidden'><CardHeader><CardTitle>Foco recente do conselho</CardTitle></CardHeader><CardContent className='space-y-3 text-sm'>
-        {focusRecentSummary.topDimensions.length === 0 ? <p className='text-muted-foreground'>Sem foco recente.</p> : <div><p className='font-medium mb-1'>Dimensões oficiais</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary'>{item.dimension} · {item.count}x</Badge>)}</div></div>}
-        {focusRecentSummary.topTopics.length === 0 ? <p className='text-muted-foreground'>Sem temas frequentes.</p> : <div><p className='font-medium mb-1'>Temas frequentes</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline'>{item.label} · {item.count}x</Badge>)}</div></div>}
-        <p className='text-muted-foreground'>{focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p>
-        <Button asChild variant='outline' size='sm'><Link to='/app/counselor'>Ver Central do Conselheiro</Link></Button>
+      <Card className='executive-panel print:hidden'><CardContent className='p-4'>
+        <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+          <div className='space-y-2'>
+            <div className='flex items-center gap-2'><p className='text-sm font-semibold'>Foco recente do conselho</p><Badge variant='outline' className='executive-pill'>Top 3 + insight</Badge></div>
+            <div className='flex flex-wrap gap-2 text-sm'>
+              {focusRecentSummary.topDimensions.length === 0 ? <Badge variant='secondary'>Sem dimensões recentes</Badge> : focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary'>{item.dimension} · {item.count}x</Badge>)}
+              {focusRecentSummary.topTopics.length === 0 ? <Badge variant='outline'>Sem temas frequentes</Badge> : focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline'>{item.label} · {item.count}x</Badge>)}
+            </div>
+            <p className='text-sm text-muted-foreground'><strong className='text-foreground'>Insight:</strong> {focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p>
+          </div>
+          <Button asChild variant='outline' size='sm' className='rounded-full shrink-0'><Link to='/app/counselor'>Ver Central do Conselheiro</Link></Button>
+        </div>
       </CardContent></Card>
       </>}
     <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setCreationMode('manual'); resetDraftFlow(); } }}><DialogContent className='max-w-5xl max-h-[90vh] overflow-y-auto'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
