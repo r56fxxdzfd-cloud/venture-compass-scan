@@ -50,6 +50,7 @@ export default function AgendaPage() {
   const [companyId, setCompanyId] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [actionStatus, setActionStatus] = useState<string>('all');
+  const [meetingStatus, setMeetingStatus] = useState<'all' | 'critical' | 'attention' | 'healthy'>('all');
   const [open, setOpen] = useState(false);
   const [creationMode, setCreationMode] = useState<'manual' | 'transcript'>('manual');
   const [form, setForm] = useState<any>({ meeting_type: 'collective', related_dimensions: [] as string[], main_topic: '' });
@@ -91,6 +92,19 @@ export default function AgendaPage() {
   };
   useEffect(() => { load(); }, []);
 
+  const meetingsHealth = useMemo(() => {
+    return meetings.map((m) => {
+      const am = actions.filter((a) => a.meeting_id === m.id);
+      const overdue = am.filter((a) => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+      const blocked = am.filter((a) => a.status === 'blocked').length;
+      const critical = overdue + blocked > 0;
+      const noAgenda = !m.next_agenda;
+      const noEvolution = (progressCountByMeeting[m.id] || 0) === 0;
+      const status: 'Crítico' | 'Atenção' | 'Saudável' = critical ? 'Crítico' : (noAgenda || noEvolution ? 'Atenção' : 'Saudável');
+      return { id: m.id, critical, noAgenda, noEvolution, status, overdue, blocked };
+    });
+  }, [meetings, actions, progressCountByMeeting, today]);
+
   const filtered = useMemo(() => meetings.filter(m => {
     if (companyId !== 'all' && m.company_id !== companyId) return false;
     if (typeFilter !== 'all' && m.meeting_type !== typeFilter) return false;
@@ -98,8 +112,14 @@ export default function AgendaPage() {
       const meetingActions = actions.filter(a => a.meeting_id === m.id);
       if (!meetingActions.some(a => a.status === actionStatus)) return false;
     }
+    if (meetingStatus !== 'all') {
+      const status = meetingsHealth.find((h) => h.id === m.id)?.status;
+      if (meetingStatus === 'critical' && status !== 'Crítico') return false;
+      if (meetingStatus === 'attention' && status !== 'Atenção') return false;
+      if (meetingStatus === 'healthy' && status !== 'Saudável') return false;
+    }
     return true;
-  }), [meetings, companyId, typeFilter, actionStatus, actions]);
+  }), [meetings, companyId, typeFilter, actionStatus, actions, meetingStatus, meetingsHealth]);
 
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -137,26 +157,17 @@ export default function AgendaPage() {
     return Object.values(groups).sort((a, b) => b.year - a.year || b.month - a.month);
   }, [filtered]);
 
-  const meetingsHealth = useMemo(() => {
-    return filtered.map((m) => {
-      const am = actions.filter((a) => a.meeting_id === m.id);
-      const overdue = am.filter((a) => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
-      const blocked = am.filter((a) => a.status === 'blocked').length;
-      const critical = overdue + blocked > 0;
-      const noAgenda = !m.next_agenda;
-      const noEvolution = (progressCountByMeeting[m.id] || 0) === 0;
-      const completion = am.length ? am.filter((a) => a.status === 'completed').length / am.length : 0;
-      const status = critical ? 'Crítico' : (noAgenda || noEvolution || completion < 0.4 ? 'Atenção' : 'Saudável');
-      return { id: m.id, critical, noAgenda, noEvolution, status, overdue, blocked };
-    });
-  }, [filtered, actions, progressCountByMeeting, today]);
+  const filteredMeetingHealth = useMemo(
+    () => meetingsHealth.filter((item) => filtered.some((m) => m.id === item.id)),
+    [meetingsHealth, filtered]
+  );
 
   const cycleAlerts = useMemo(() => {
-    const noAgenda = meetingsHealth.filter((item) => item.noAgenda).length;
-    const critical = meetingsHealth.filter((item) => item.critical).length;
-    const noEvolution = meetingsHealth.filter((item) => item.noEvolution).length;
+    const noAgenda = filteredMeetingHealth.filter((item) => item.noAgenda).length;
+    const critical = filteredMeetingHealth.filter((item) => item.critical).length;
+    const noEvolution = filteredMeetingHealth.filter((item) => item.noEvolution).length;
     return { noAgenda, critical, noEvolution };
-  }, [meetingsHealth]);
+  }, [filteredMeetingHealth]);
 
   const focusRecentSummary = useMemo(() => {
     const dimensionSortMap = new Map(dimensionCatalog.map((dim, idx) => [dim.id, dim.sort_order ?? idx + 1]));
@@ -377,23 +388,25 @@ export default function AgendaPage() {
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Agenda de Evolução</h1>
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            Organize encontros, decisões e execução contínua do conselho a partir de uma visão única dos ritos.
+            Organize encontros, decisões e execução contínua do conselho.
           </p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <Button size="sm" className="rounded-full" onClick={() => setOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" /> Registrar encontro
+            <Plus className="h-4 w-4 mr-2" /> Registrar novo encontro
           </Button>
           <Button asChild size="sm" variant="outline" className="rounded-full">
-            <Link to="/app/agenda/templates"><FileStack className="h-4 w-4 mr-2" /> Templates de Pauta</Link>
+            <Link to="/app/agenda/templates"><FileStack className="h-4 w-4 mr-2" /> Consultar templates de pauta</Link>
           </Button>
         </div>
       </div>
     </section>
-    <Card className='executive-panel'><CardContent className='pt-6 grid md:grid-cols-3 gap-3'>
+    <Card className='executive-panel print:hidden'><CardContent className='pt-6 grid md:grid-cols-5 gap-3'>
       <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
       <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
       <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
+      <Select value={meetingStatus} onValueChange={(v) => setMeetingStatus(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos encontros</SelectItem><SelectItem value='critical'>Crítico</SelectItem><SelectItem value='attention'>Atenção</SelectItem><SelectItem value='healthy'>Saudável</SelectItem></SelectContent></Select>
+      <Button variant='ghost' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>
     </CardContent></Card>
     {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
       <>
@@ -408,14 +421,14 @@ export default function AgendaPage() {
         <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Com ações críticas: <strong>{cycleAlerts.critical}</strong></div>
         <div className='rounded-lg border border-border/70 bg-background/40 p-3'>Sem evolução registrada: <strong>{cycleAlerts.noEvolution}</strong></div>
       </CardContent></Card>
-      <Card className='executive-panel'><CardHeader><CardTitle>Próxima reunião a preparar</CardTitle></CardHeader><CardContent>
+      <Card className='executive-panel'><CardHeader><CardTitle>Próximo rito a preparar</CardTitle></CardHeader><CardContent>
         {filtered.length === 0 ? <p className='text-sm text-muted-foreground'>Sem próxima reunião a preparar.</p> : (() => {
           const sorted = [...filtered].sort((a, b) => new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime());
-          const prioritized = sorted.find((m) => meetingsHealth.find((h) => h.id === m.id)?.critical)
-            || sorted.find((m) => meetingsHealth.find((h) => h.id === m.id)?.noAgenda)
+          const prioritized = sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.critical)
+            || sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.noAgenda)
             || sorted[0];
           const comp = companies.find((c) => c.id === prioritized.company_id)?.name || '—';
-          const health = meetingsHealth.find((h) => h.id === prioritized.id);
+          const health = filteredMeetingHealth.find((h) => h.id === prioritized.id);
           const reason = health?.critical ? 'Existem ações críticas no encontro.' : health?.noAgenda ? 'Encontro sem próxima pauta definida.' : 'Encontro mais recente do ciclo.';
           return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {new Date(prioritized.meeting_date).toLocaleDateString('pt-BR')}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
         })()}
@@ -424,7 +437,7 @@ export default function AgendaPage() {
         <h3 className='text-lg font-semibold capitalize'>{group.label}</h3>
         <div className='grid gap-3'>{group.meetings.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
-        const health = meetingsHealth.find((h) => h.id === m.id);
+        const health = filteredMeetingHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
         const statusTone = health?.status === 'Crítico' ? 'destructive' : health?.status === 'Atenção' ? 'secondary' : 'outline';
         const dimCount = progressCountByMeeting[m.id] || 0;
@@ -439,7 +452,7 @@ export default function AgendaPage() {
         </CardContent></Card>;
       })}</div>
       </section>)}</div>
-      <Card className='executive-panel'><CardHeader><CardTitle>Foco recente do conselho</CardTitle></CardHeader><CardContent className='space-y-3 text-sm'>
+      <Card className='executive-panel print:hidden'><CardHeader><CardTitle>Foco recente do conselho</CardTitle></CardHeader><CardContent className='space-y-3 text-sm'>
         {focusRecentSummary.topDimensions.length === 0 ? <p className='text-muted-foreground'>Sem foco recente.</p> : <div><p className='font-medium mb-1'>Dimensões oficiais</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary'>{item.dimension} · {item.count}x</Badge>)}</div></div>}
         {focusRecentSummary.topTopics.length === 0 ? <p className='text-muted-foreground'>Sem temas frequentes.</p> : <div><p className='font-medium mb-1'>Temas frequentes</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline'>{item.label} · {item.count}x</Badge>)}</div></div>}
         <p className='text-muted-foreground'>{focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p>
