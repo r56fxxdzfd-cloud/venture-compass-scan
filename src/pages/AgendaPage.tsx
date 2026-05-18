@@ -37,13 +37,47 @@ const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
   sem_trend: 'text-muted-foreground',
 };
 const officialDimensions = new Set<string>(officialDimensionOrder);
-const parseIsoDate = (value?: string | null) => {
-  if (!value) return new Date(0);
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) return new Date(value);
-  return new Date(year, month - 1, day);
+const monthNamesPtBr = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] as const;
+
+const parseDateOnly = (dateString?: string | null) => {
+  if (!dateString) return null;
+  const [yearStr, monthStr, dayStr] = dateString.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return { year, month, day };
 };
-const formatDatePtBr = (value?: string | null) => parseIsoDate(value).toLocaleDateString('pt-BR');
+
+const formatDateOnly = (dateString?: string | null) => {
+  const parsed = parseDateOnly(dateString);
+  if (!parsed) return '—';
+  return `${String(parsed.day).padStart(2, '0')}/${String(parsed.month).padStart(2, '0')}/${parsed.year}`;
+};
+
+const getMonthKeyFromDateOnly = (dateString?: string | null) => {
+  const parsed = parseDateOnly(dateString);
+  if (!parsed) return null;
+  return `${parsed.year}-${String(parsed.month).padStart(2, '0')}`;
+};
+
+const getMonthLabelFromDateOnly = (dateString?: string | null) => {
+  const parsed = parseDateOnly(dateString);
+  if (!parsed) return 'Mês inválido';
+  return `${monthNamesPtBr[parsed.month - 1]} de ${parsed.year}`;
+};
+
+const isDateOnlyBefore = (
+  dateString: string | null | undefined,
+  reference: { year: number; month: number; day: number }
+) => {
+  const parsed = parseDateOnly(dateString);
+  if (!parsed) return false;
+  if (parsed.year !== reference.year) return parsed.year < reference.year;
+  if (parsed.month !== reference.month) return parsed.month < reference.month;
+  return parsed.day < reference.day;
+};
 
 export default function AgendaPage() {
   const navigate = useNavigate();
@@ -68,8 +102,9 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true);
   const MIN_TRANSCRIPT_CHARS = 200;
   const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const todayYear = today.getFullYear();
+  const todayMonth = today.getMonth() + 1;
+  const todayDay = today.getDate();
 
   const load = async () => {
     setLoading(true);
@@ -105,7 +140,7 @@ export default function AgendaPage() {
   const meetingsHealth = useMemo(() => {
     return meetings.map((m) => {
       const am = actions.filter((a) => a.meeting_id === m.id);
-      const overdue = am.filter((a) => a.due_date && parseIsoDate(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+      const overdue = am.filter((a) => isDateOnlyBefore(a.due_date, { year: todayYear, month: todayMonth, day: todayDay }) && !['completed', 'cancelled'].includes(a.status)).length;
       const blocked = am.filter((a) => a.status === 'blocked').length;
       const critical = overdue + blocked > 0;
       const noAgenda = !m.next_agenda;
@@ -113,7 +148,7 @@ export default function AgendaPage() {
       const status: 'Crítico' | 'Atenção' | 'Saudável' = critical ? 'Crítico' : (noAgenda || noEvolution ? 'Atenção' : 'Saudável');
       return { id: m.id, critical, noAgenda, noEvolution, status, overdue, blocked };
     });
-  }, [meetings, actions, progressCountByMeeting, today]);
+  }, [meetings, actions, progressCountByMeeting, todayYear, todayMonth, todayDay]);
 
   const filtered = useMemo(() => meetings.filter(m => {
     if (companyId !== 'all' && m.company_id !== companyId) return false;
@@ -139,25 +174,25 @@ export default function AgendaPage() {
   const executiveKpis = useMemo(() => {
     const totalMeetings = filtered.length;
     const meetingsThisMonth = filtered.filter(m => {
-      const d = parseIsoDate(m.meeting_date);
-      return d >= monthStart && d <= monthEnd;
+      const d = parseDateOnly(m.meeting_date);
+      return !!d && d.year === todayYear && d.month === todayMonth;
     }).length;
     const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
-    const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => a.due_date && parseIsoDate(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
+    const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => isDateOnlyBefore(a.due_date, { year: todayYear, month: todayMonth, day: todayDay }) && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
     const blockedActionIds = new Set(actionsForFilteredMeetings.filter(a => a.status === 'blocked').map((a) => a.id));
     const criticalActionIds = new Set([...lateActionIds, ...blockedActionIds]);
     const nonCancelledActions = actionsForFilteredMeetings.filter(a => a.status !== 'cancelled');
     const completed = nonCancelledActions.filter(a => a.status === 'completed').length;
     const completionRate = nonCancelledActions.length ? Math.round((completed / nonCancelledActions.length) * 100) : 0;
     return { totalMeetings, meetingsThisMonth, openActions, criticalActions: criticalActionIds.size, lateActions: lateActionIds.size, blockedActions: blockedActionIds.size, completed, nonCancelledTotal: nonCancelledActions.length, completionRate };
-  }, [filtered, actionsForFilteredMeetings]);
+  }, [filtered, actionsForFilteredMeetings, todayYear, todayMonth, todayDay]);
 
   const monthlyMeetingGroups = useMemo(() => {
     const groups = filtered.reduce((acc, meeting) => {
-      const d = parseIsoDate(meeting.meeting_date);
-      if (Number.isNaN(d.getTime())) return acc;
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      if (!acc[key]) acc[key] = { label: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), meetings: [] as CouncilMeeting[], year: d.getFullYear(), month: d.getMonth() };
+      const parsed = parseDateOnly(meeting.meeting_date);
+      const key = getMonthKeyFromDateOnly(meeting.meeting_date);
+      if (!parsed || !key) return acc;
+      if (!acc[key]) acc[key] = { label: getMonthLabelFromDateOnly(meeting.meeting_date), meetings: [] as CouncilMeeting[], year: parsed.year, month: parsed.month };
       acc[key].meetings.push(meeting);
       return acc;
     }, {} as Record<string, { label: string; meetings: CouncilMeeting[]; year: number; month: number }>);
@@ -433,19 +468,20 @@ export default function AgendaPage() {
       </CardContent></Card>
       <Card className='executive-panel'><CardHeader><CardTitle>Próximo rito a preparar</CardTitle></CardHeader><CardContent>
         {filtered.length === 0 ? <p className='text-sm text-muted-foreground'>Sem próxima reunião a preparar.</p> : (() => {
-          const sorted = [...filtered].sort((a, b) => parseIsoDate(b.meeting_date).getTime() - parseIsoDate(a.meeting_date).getTime());
+          const sorted = [...filtered].sort((a, b) => b.meeting_date.localeCompare(a.meeting_date));
           const prioritized = sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.critical)
             || sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.noAgenda)
             || sorted[0];
           const comp = companies.find((c) => c.id === prioritized.company_id)?.name || '—';
           const health = filteredMeetingHealth.find((h) => h.id === prioritized.id);
           const reason = health?.critical ? 'Existem ações críticas no encontro.' : health?.noAgenda ? 'Encontro sem próxima pauta definida.' : 'Encontro mais recente do ciclo.';
-          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {formatDatePtBr(prioritized.meeting_date)}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
+          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {formatDateOnly(prioritized.meeting_date)}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
         })()}
       </CardContent></Card>
       <div className='space-y-5'>{monthlyMeetingGroups.map((group) => <section key={`${group.year}-${group.month}`} className='space-y-3'>
-        <h3 className='text-lg font-semibold capitalize print:break-after-avoid print:mb-1'>{group.label}</h3>
-        <div className='grid gap-3'>{group.meetings.map(m => {
+        <div className='print:break-inside-avoid print:mb-3'>
+          <h3 className='text-lg font-semibold capitalize print:break-after-avoid print:mb-1'>{group.label}</h3>
+          <div className='grid gap-3'>{group.meetings.map((m, index) => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
         const health = filteredMeetingHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
@@ -453,8 +489,8 @@ export default function AgendaPage() {
         const dimCount = progressCountByMeeting[m.id] || 0;
         const criticalBadge = health?.overdue && health?.blocked ? 'Atrasadas + travadas' : health?.blocked ? 'Ações travadas' : health?.overdue ? 'Ações atrasadas' : '';
         const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', criticalBadge, dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 3);
-        return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader className='pb-2'><CardTitle className='flex flex-wrap items-start justify-between gap-2'><span className='leading-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2 pt-0'>
-          <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill font-semibold'>{formatDatePtBr(m.meeting_date)}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
+        return <Card key={m.id} className={`executive-panel border-l-2 border-l-primary/50 ${index === 0 ? 'print:break-inside-avoid' : ''}`}><CardHeader className='pb-2'><CardTitle className='flex flex-wrap items-start justify-between gap-2'><span className='leading-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2 pt-0'>
+          <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill font-semibold'>{formatDateOnly(m.meeting_date)}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
           <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {completedCount}/{am.length}</p>
           <p><strong>Dimensões avaliadas:</strong> {dimCount}</p>
           <p className='line-clamp-1 text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
@@ -462,6 +498,7 @@ export default function AgendaPage() {
           <Button asChild size='sm' variant='outline' className='w-fit'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button>
         </CardContent></Card>;
       })}</div>
+        </div>
       </section>)}</div>
       <Card className='executive-panel print:hidden'><CardHeader><CardTitle>Foco recente do conselho</CardTitle></CardHeader><CardContent className='space-y-3 text-sm'>
         {focusRecentSummary.topDimensions.length === 0 ? <p className='text-muted-foreground'>Sem foco recente.</p> : <div><p className='font-medium mb-1'>Dimensões oficiais</p><div className='flex flex-wrap gap-2'>{focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary'>{item.dimension} · {item.count}x</Badge>)}</div></div>}
