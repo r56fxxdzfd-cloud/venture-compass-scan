@@ -45,7 +45,7 @@ export default function StartupsPage() {
     if (error) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: `Startup '${form.name}' criada com sucesso.` });
+      toast({ title: `Organização '${form.name}' criada com sucesso.` });
       setOpen(false);
       setForm({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
       fetchCompanies();
@@ -72,19 +72,19 @@ export default function StartupsPage() {
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
               <Sparkles className="h-3 w-3" /> Portfolio
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central de Startups</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central de Organizações</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{companies.length} organizações cadastradas no portfólio do conselho.</p>
           </div>
           {canWrite && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="rounded-full">
-                  <Plus className="mr-2 h-4 w-4" /> Nova Startup
+                  <Plus className="mr-2 h-4 w-4" /> Nova Organização
                 </Button>
               </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Nova Startup</DialogTitle>
+                <DialogTitle>Nova Organização</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -151,7 +151,7 @@ export default function StartupsPage() {
                   </div>
                 </div>
                 <Button onClick={handleCreate} className="w-full" disabled={!form.name}>
-                  Criar Startup
+                  Criar Organização
                 </Button>
               </div>
             </DialogContent>
@@ -164,7 +164,7 @@ export default function StartupsPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar startup..."
+            placeholder="Buscar organização..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -175,10 +175,10 @@ export default function StartupsPage() {
       {companies.length === 0 ? (
         <div className="executive-surface rounded-xl text-center py-16">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground mb-4">Nenhuma startup cadastrada ainda</p>
+          <p className="text-muted-foreground mb-4">Nenhuma organização cadastrada ainda</p>
           {canWrite && (
             <Button onClick={() => setOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Startup
+              <Plus className="mr-2 h-4 w-4" /> Nova Organização
             </Button>
           )}
         </div>
@@ -221,7 +221,7 @@ export default function StartupsPage() {
           {filtered.length === 0 && companies.length > 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Search className="mx-auto h-12 w-12 mb-3 opacity-30" />
-              <p>Nenhuma startup encontrada para "{search}"</p>
+              <p>Nenhuma organização encontrada para "{search}"</p>
             </div>
           )}
         </>

@@ -123,7 +123,7 @@ export default function FounderListPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Voltar para startup</TooltipContent>
+            <TooltipContent>Voltar para organização</TooltipContent>
           </Tooltip>
         </TooltipProvider>
         <div className="flex-1">

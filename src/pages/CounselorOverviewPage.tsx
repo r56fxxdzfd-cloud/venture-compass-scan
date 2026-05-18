@@ -638,10 +638,10 @@ export default function CounselorOverviewPage() {
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-black text-primary">#{index + 1}</span>
                           <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
-                          <p className="font-semibold text-foreground truncate">{row.company.name}</p>
+                          <p className="font-semibold leading-snug text-foreground break-words">{row.company.name}</p>
                           <span className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${tone.pill}`}>{row.level}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                        <p className="text-xs text-muted-foreground mt-2 leading-relaxed break-words">
                           {row.motives.length ? row.motives.slice(0, 3).join(' · ') : 'Sem alertas críticos ou relevantes.'}
                         </p>
                       </div>
@@ -653,7 +653,7 @@ export default function CounselorOverviewPage() {
                     </div>
                     <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs text-foreground/95">
                       <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-primary" />
-                      <p className="leading-relaxed"><span className="font-black text-primary">Próxima melhor ação: </span><span className="font-semibold">{row.nextBestAction}</span></p>
+                      <p className="leading-relaxed break-words"><span className="font-black text-primary">Próxima melhor ação: </span><span className="font-semibold">{row.nextBestAction}</span></p>
                     </div>
                   </div>
                 );
@@ -694,8 +694,8 @@ export default function CounselorOverviewPage() {
                   <div key={company.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm text-foreground truncate">{company.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">
+                        <p className="font-semibold text-sm leading-snug text-foreground break-words">{company.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                           Última reunião: {formatDate(lastMeeting?.meeting_date)} · {meetingType}
                         </p>
                       </div>
@@ -705,7 +705,7 @@ export default function CounselorOverviewPage() {
                         </Link>
                       </Button>
                     </div>
-                    <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
+                    <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed break-words ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
                       <span className="font-semibold">Próxima pauta: </span>{lastMeeting?.next_agenda || 'Definir antes do próximo encontro.'}
                     </div>
                     <div className="mt-3 rounded-xl border border-white/10 bg-background/35 px-3 py-2">
@@ -714,7 +714,7 @@ export default function CounselorOverviewPage() {
                         {checklist.map((point) => (
                           <div key={point.label} className="flex items-start gap-2 text-xs">
                             <CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                            <p className="leading-snug"><span className="font-semibold text-foreground/90">{point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
+                            <p className="leading-snug break-words"><span className="font-semibold text-foreground/90">{point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
                           </div>
                         ))}
                       </div>
@@ -837,9 +837,9 @@ export default function CounselorOverviewPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-extrabold tabular-nums text-foreground">{dimension.affected}</p>
-                    <p className="text-[10px] uppercase tracking-[0.12em] font-semibold">orgs afetadas</p>
+                    <p className="text-[11px] uppercase tracking-[0.12em] font-semibold">orgs afetadas</p>
                     <p className="mt-1 text-[11px] font-medium capitalize">{dimension.status}</p>
-                    <p className="text-[10px] text-muted-foreground">Tendência: {dimension.predominantTrend}</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">Tendência: {dimension.predominantTrend}</p>
                   </div>
                 </div>
               );

@@ -206,7 +206,7 @@ export default function StartupDetailPage() {
     if (!error) {
       setCompany({ ...company, ...editForm, legal_name: editForm.legal_name || null, cnpj: editForm.cnpj || null, sector: editForm.sector || null, stage: (editForm.stage || null) as any, business_model: editForm.business_model || null });
       setEditDialogOpen(false);
-      toast({ title: 'Startup atualizada' });
+      toast({ title: 'Organização atualizada' });
     } else {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
     }
@@ -607,7 +607,7 @@ export default function StartupDetailPage() {
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Editar Startup</DialogTitle>
+            <DialogTitle>Editar Organização</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">

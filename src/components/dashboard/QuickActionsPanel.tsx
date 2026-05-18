@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, ClipboardList, SlidersHorizontal, BookOpen, Settings2, ChevronRight, UserCheck } from 'lucide-react';
 
 const baseActions = [
-  { label: 'Nova Startup', desc: 'Cadastrar nova organização no portfólio', icon: Plus, href: '/app/startups' },
+  { label: 'Nova Organização', desc: 'Cadastrar nova organização no portfólio', icon: Plus, href: '/app/startups' },
   { label: 'Novo Diagnóstico', desc: 'Iniciar coleta para leitura de maturidade', icon: ClipboardList, href: '/app/startups' },
   { label: 'Avaliação de Founder', desc: 'Registrar evolução semestral de liderança', icon: UserCheck, href: '/app/founder-assessments/new' },
   { label: 'Simulador', desc: 'Projetar cenários de desenvolvimento', icon: SlidersHorizontal, href: '/app/simulator' },

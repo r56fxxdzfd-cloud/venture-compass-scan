@@ -6,7 +6,7 @@ import {
 
 const routeLabels: Record<string, string> = {
   dashboard: 'Dashboard',
-  startups: 'Startups',
+  startups: 'Organizações',
   simulator: 'Simulador',
   agenda: 'Agenda de Evolução',
   templates: 'Templates de Pauta',

@@ -282,7 +282,7 @@ export default function FounderAssessmentFormPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Startup</Label>
+                    <Label className="text-xs text-muted-foreground">Organização</Label>
                     <p className="font-medium">{company?.name}</p>
                   </div>
                   <div>
@@ -519,7 +519,7 @@ export default function FounderAssessmentFormPage() {
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium">Score Composto da Startup</p>
+                          <p className="text-sm font-medium">Score Composto da Organização</p>
                           <p className={`text-xs ${stage.color}`}>{stage.label}</p>
                         </div>
                         <p className="text-3xl font-bold">{composite.toFixed(1)}</p>
