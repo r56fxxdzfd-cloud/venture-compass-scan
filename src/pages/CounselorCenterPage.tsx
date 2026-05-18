@@ -38,7 +38,9 @@ const toneStyles: Record<KpiTone, { wrap: string; text: string }> = {
 
 function formatDate(d?: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const [year, month, day] = d.split('-');
+  if (!year || !month || !day) return '—';
+  return `${day}/${month}/${year}`;
 }
 
 function SectionHeader({ icon: Icon, iconClass, title, subtitle, trailing }: { icon: typeof Target; iconClass: string; title: string; subtitle?: string; trailing?: React.ReactNode }) {

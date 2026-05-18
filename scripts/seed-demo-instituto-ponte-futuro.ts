@@ -72,10 +72,11 @@ async function main() {
     }
   }
 
+  // meeting_date is a date-only field; never persist via Date.toISOString().
   const meetings = [
-    { date: '2026-03-15', title: 'Conselho Março - Eficiência Operacional' },
-    { date: '2026-04-19', title: 'Conselho Abril - Escala Comercial' },
-    { date: '2026-05-03', title: 'Conselho Maio - Governança de Dados' },
+    { date: '2026-03-14', title: 'Conselho Março - Eficiência Operacional' },
+    { date: '2026-04-18', title: 'Conselho Abril - Escala Comercial' },
+    { date: '2026-05-02', title: 'Conselho Maio - Governança de Dados' },
   ];
   const meetingMap = new Map<string, string>();
   for (const m of meetings) {
@@ -86,9 +87,9 @@ async function main() {
   }
 
   for (const [d, t, owner, due] of [
-    ['2026-03-15', 'Padronizar onboarding em 3 trilhas', 'Carla Menezes', '2026-04-05'],
-    ['2026-04-19', 'Rodar piloto em 2 novas redes escolares', 'Rafael Duarte', '2026-05-10'],
-    ['2026-05-03', 'Publicar painel de coorte semanal', 'Time de Dados', '2026-05-20'],
+    ['2026-03-14', 'Padronizar onboarding em 3 trilhas', 'Carla Menezes', '2026-04-05'],
+    ['2026-04-18', 'Rodar piloto em 2 novas redes escolares', 'Rafael Duarte', '2026-05-10'],
+    ['2026-05-02', 'Publicar painel de coorte semanal', 'Time de Dados', '2026-05-20'],
   ] as const) {
     const mid = meetingMap.get(d);
     if (!mid) continue;
@@ -104,7 +105,7 @@ async function main() {
       ['data', 'Dados', 5.8, 7.0],
     ] as const) {
       const { data: existing } = await supabase.from('council_dimension_progress').select('id').eq('company_id', companyId!).eq('meeting_id', meetingId).eq('dimension_id', id).maybeSingle();
-      if (!existing) await supabase.from('council_dimension_progress').insert({ company_id: companyId!, meeting_id: meetingId, dimension_id: id, dimension_label: label, initial_score: initial, current_perceived_score: current + (meetingDate === '2026-03-15' ? 0 : meetingDate === '2026-04-19' ? 0.2 : 0.4), trend: 'up', evidence_note: 'Evidências em atas e KPIs semanais.', counselor_comment: 'Progressão consistente.' });
+      if (!existing) await supabase.from('council_dimension_progress').insert({ company_id: companyId!, meeting_id: meetingId, dimension_id: id, dimension_label: label, initial_score: initial, current_perceived_score: current + (meetingDate === '2026-03-14' ? 0 : meetingDate === '2026-04-18' ? 0.2 : 0.4), trend: 'up', evidence_note: 'Evidências em atas e KPIs semanais.', counselor_comment: 'Progressão consistente.' });
     }
   }
 
