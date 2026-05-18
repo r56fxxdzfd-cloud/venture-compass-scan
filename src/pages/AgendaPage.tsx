@@ -37,6 +37,13 @@ const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
   sem_trend: 'text-muted-foreground',
 };
 const officialDimensions = new Set<string>(officialDimensionOrder);
+const parseIsoDate = (value?: string | null) => {
+  if (!value) return new Date(0);
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return new Date(value);
+  return new Date(year, month - 1, day);
+};
+const formatDatePtBr = (value?: string | null) => parseIsoDate(value).toLocaleDateString('pt-BR');
 
 export default function AgendaPage() {
   const navigate = useNavigate();
@@ -98,7 +105,7 @@ export default function AgendaPage() {
   const meetingsHealth = useMemo(() => {
     return meetings.map((m) => {
       const am = actions.filter((a) => a.meeting_id === m.id);
-      const overdue = am.filter((a) => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+      const overdue = am.filter((a) => a.due_date && parseIsoDate(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
       const blocked = am.filter((a) => a.status === 'blocked').length;
       const critical = overdue + blocked > 0;
       const noAgenda = !m.next_agenda;
@@ -132,11 +139,11 @@ export default function AgendaPage() {
   const executiveKpis = useMemo(() => {
     const totalMeetings = filtered.length;
     const meetingsThisMonth = filtered.filter(m => {
-      const d = new Date(m.meeting_date);
+      const d = parseIsoDate(m.meeting_date);
       return d >= monthStart && d <= monthEnd;
     }).length;
     const openActions = actionsForFilteredMeetings.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
-    const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
+    const lateActionIds = new Set(actionsForFilteredMeetings.filter(a => a.due_date && parseIsoDate(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).map((a) => a.id));
     const blockedActionIds = new Set(actionsForFilteredMeetings.filter(a => a.status === 'blocked').map((a) => a.id));
     const criticalActionIds = new Set([...lateActionIds, ...blockedActionIds]);
     const nonCancelledActions = actionsForFilteredMeetings.filter(a => a.status !== 'cancelled');
@@ -147,7 +154,7 @@ export default function AgendaPage() {
 
   const monthlyMeetingGroups = useMemo(() => {
     const groups = filtered.reduce((acc, meeting) => {
-      const d = meeting.meeting_date ? new Date(meeting.meeting_date) : new Date(0);
+      const d = parseIsoDate(meeting.meeting_date);
       if (Number.isNaN(d.getTime())) return acc;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       if (!acc[key]) acc[key] = { label: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), meetings: [] as CouncilMeeting[], year: d.getFullYear(), month: d.getMonth() };
@@ -426,32 +433,33 @@ export default function AgendaPage() {
       </CardContent></Card>
       <Card className='executive-panel'><CardHeader><CardTitle>Próximo rito a preparar</CardTitle></CardHeader><CardContent>
         {filtered.length === 0 ? <p className='text-sm text-muted-foreground'>Sem próxima reunião a preparar.</p> : (() => {
-          const sorted = [...filtered].sort((a, b) => new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime());
+          const sorted = [...filtered].sort((a, b) => parseIsoDate(b.meeting_date).getTime() - parseIsoDate(a.meeting_date).getTime());
           const prioritized = sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.critical)
             || sorted.find((m) => filteredMeetingHealth.find((h) => h.id === m.id)?.noAgenda)
             || sorted[0];
           const comp = companies.find((c) => c.id === prioritized.company_id)?.name || '—';
           const health = filteredMeetingHealth.find((h) => h.id === prioritized.id);
           const reason = health?.critical ? 'Existem ações críticas no encontro.' : health?.noAgenda ? 'Encontro sem próxima pauta definida.' : 'Encontro mais recente do ciclo.';
-          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {new Date(prioritized.meeting_date).toLocaleDateString('pt-BR')}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
+          return <div className='space-y-2 text-sm'><p><strong>{comp}</strong> · {formatDatePtBr(prioritized.meeting_date)}</p><p>{reason}</p><p className='text-muted-foreground'>{prioritized.next_agenda || 'Sem próxima pauta'}</p><Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro</Link></Button></div>;
         })()}
       </CardContent></Card>
       <div className='space-y-5'>{monthlyMeetingGroups.map((group) => <section key={`${group.year}-${group.month}`} className='space-y-3'>
-        <h3 className='text-lg font-semibold capitalize'>{group.label}</h3>
+        <h3 className='text-lg font-semibold capitalize print:break-after-avoid print:mb-1'>{group.label}</h3>
         <div className='grid gap-3'>{group.meetings.map(m => {
         const comp = companies.find(c => c.id === m.company_id)?.name || '—'; const am = actions.filter(a => a.meeting_id === m.id);
         const health = filteredMeetingHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
         const statusTone = health?.status === 'Crítico' ? 'destructive' : health?.status === 'Atenção' ? 'secondary' : 'outline';
         const dimCount = progressCountByMeeting[m.id] || 0;
-        const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', health?.critical ? 'Ações críticas' : '', dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 2);
-        return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader><CardTitle className='flex flex-wrap justify-between gap-2'><span>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2'>
-          <div className='flex flex-wrap gap-2'><Badge variant='outline' className='executive-pill'>{new Date(m.meeting_date).toLocaleDateString('pt-BR')}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
+        const criticalBadge = health?.overdue && health?.blocked ? 'Atrasadas + travadas' : health?.blocked ? 'Ações travadas' : health?.overdue ? 'Ações atrasadas' : '';
+        const badges = [!m.next_agenda ? 'Sem próxima pauta' : '', criticalBadge, dimCount === 0 ? 'Sem evolução' : ''].filter(Boolean).slice(0, 3);
+        return <Card key={m.id} className='executive-panel border-l-2 border-l-primary/50'><CardHeader className='pb-2'><CardTitle className='flex flex-wrap items-start justify-between gap-2'><span className='leading-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</span><Badge className='executive-pill'>{mt[m.meeting_type as MeetingType]}</Badge></CardTitle></CardHeader><CardContent className='text-sm space-y-2 pt-0'>
+          <div className='flex flex-wrap items-center gap-2'><Badge variant='outline' className='executive-pill font-semibold'>{formatDatePtBr(m.meeting_date)}</Badge><Badge variant='secondary' className='executive-pill'>{comp}</Badge><Badge variant={statusTone as any}>{health?.status || 'Atenção'}</Badge></div>
           <p><strong>Tema:</strong> {m.main_topic || '—'}</p><p><strong>Ações:</strong> {completedCount}/{am.length}</p>
           <p><strong>Dimensões avaliadas:</strong> {dimCount}</p>
-          <p className='line-clamp-1'><strong>Próxima pauta:</strong> {m.next_agenda || 'Sem próxima pauta'}</p>
+          <p className='line-clamp-1 text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
           <div className='flex flex-wrap gap-2'>{badges.map((badge) => <Badge key={badge} variant='outline'>{badge}</Badge>)}</div>
-          <Button asChild size='sm' variant='outline'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button>
+          <Button asChild size='sm' variant='outline' className='w-fit'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button>
         </CardContent></Card>;
       })}</div>
       </section>)}</div>
