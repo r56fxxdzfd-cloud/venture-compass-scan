@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Gauge,
   ClipboardList,
+  CircleCheck,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -125,6 +126,22 @@ function plural(count: number, singular: string, pluralText: string) {
 
 function isOverdue(action: CouncilAction, todayKey: string) {
   return !!action.due_date && action.due_date < todayKey && !closedStatuses.has(action.status);
+}
+
+function getCriticalReason(action: CouncilAction, todayKey: string) {
+  if (action.status === 'blocked') {
+    return { label: 'Travada', tone: 'critical' as KpiTone, helper: 'Precisa de desbloqueio para voltar a andar.' };
+  }
+  if (isOverdue(action, todayKey)) {
+    return { label: 'Atrasada', tone: 'critical' as KpiTone, helper: 'Prazo vencido; repactue responsável e data.' };
+  }
+  if (action.priority === 'high') {
+    return { label: 'Alta prioridade', tone: 'attention' as KpiTone, helper: 'Prioridade alta aberta para acompanhamento.' };
+  }
+  if (action.impact === 'high' && action.effort === 'low') {
+    return { label: 'Quick win', tone: 'healthy' as KpiTone, helper: 'Alto impacto com baixo esforço estimado.' };
+  }
+  return { label: 'Aberta', tone: 'neutral' as KpiTone, helper: 'Ação aberta para acompanhamento.' };
 }
 
 function companyStatusTone(level: CompanyStatus) {
@@ -480,7 +497,7 @@ export default function CounselorOverviewPage() {
                 <Card key={card.label} className="executive-card rounded-2xl transition-all duration-300 hover:-translate-y-0.5">
                   <CardContent className="p-5">
                     <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tone.wrap} ${tone.text}`}>
-                      <card.icon className="h-4.5 w-4.5" />
+                      <card.icon className="h-4 w-4" />
                     </div>
                     <p className="text-3xl font-extrabold tracking-tight tabular-nums text-foreground">{card.value}</p>
                     <p className="mt-1 text-[11px] tracking-[0.14em] font-semibold text-muted-foreground uppercase">{card.label}</p>
@@ -500,7 +517,7 @@ export default function CounselorOverviewPage() {
                 <Card key={card.label} className="executive-card rounded-2xl transition-all duration-300 hover:-translate-y-0.5">
                   <CardContent className="p-5">
                     <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tone.wrap} ${tone.text}`}>
-                      <card.icon className="h-4.5 w-4.5" />
+                      <card.icon className="h-4 w-4" />
                     </div>
                     <p className="text-3xl font-extrabold tracking-tight tabular-nums text-foreground">{card.value}</p>
                     <p className="mt-1 text-[11px] tracking-[0.14em] font-semibold text-muted-foreground uppercase">{card.label}</p>
@@ -513,26 +530,30 @@ export default function CounselorOverviewPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <Card className="executive-panel rounded-3xl border-primary/30 relative overflow-hidden">
-          <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-          <CardContent className="p-6 sm:p-7 relative">
+      <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+        <Card className="executive-panel rounded-3xl border-primary/40 relative overflow-hidden shadow-lg shadow-primary/5">
+          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+          <CardContent className="p-6 sm:p-8 relative">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 border border-primary/30 text-primary shrink-0">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 border border-primary/35 text-primary shrink-0">
                 <Gauge className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="executive-section-title text-xs">Próxima ação recomendada</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="executive-section-title text-xs">Próxima ação recomendada</p>
+                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">Fazer agora</span>
+                </div>
                 {nextRecommendedAction ? (
-                  <div className="mt-2 space-y-3">
-                    <div>
-                      <h2 className="text-lg font-bold tracking-tight text-foreground">{nextRecommendedAction.title}</h2>
-                      <p className="text-sm text-muted-foreground mt-1">{nextRecommendedAction.company} · {nextRecommendedAction.reason}</p>
+                  <div className="mt-3 space-y-4">
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                      <p className="text-xs font-semibold text-primary">{nextRecommendedAction.company}</p>
+                      <h2 className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-foreground leading-tight">{nextRecommendedAction.title}</h2>
+                      <p className="text-sm text-muted-foreground mt-2">Por quê: {nextRecommendedAction.reason}</p>
                       {nextRecommendedAction.meta && <p className="text-xs text-muted-foreground/80 mt-1">{nextRecommendedAction.meta}</p>}
                     </div>
-                    <Button asChild className="rounded-full">
+                    <Button asChild size="lg" className="rounded-full font-semibold shadow-sm">
                       <Link to={nextRecommendedAction.cta}>
-                        {nextRecommendedAction.ctaText} <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+                        {nextRecommendedAction.ctaText} <ArrowUpRight className="h-4 w-4 ml-1" />
                       </Link>
                     </Button>
                   </div>
@@ -547,23 +568,23 @@ export default function CounselorOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="executive-panel rounded-3xl border-primary/20 relative overflow-hidden">
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-          <CardContent className="p-6 sm:p-7 relative">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/15 border border-primary/30 text-primary shrink-0">
-                <FileText className="h-5 w-5" />
+        <Card className="executive-panel rounded-3xl border-border/70 relative overflow-hidden bg-muted/10">
+          <CardContent className="p-5 sm:p-6 relative">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/40 border border-border/60 text-muted-foreground shrink-0">
+                <FileText className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-bold tracking-tight">Assistente de Ata do Conselho</h2>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Transforme transcrições em pré-atas revisáveis, ações e evolução por dimensão.
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Ferramenta operacional</p>
+                <h2 className="mt-1 text-base font-bold tracking-tight">Assistente de Ata do Conselho</h2>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Apoio complementar para transformar transcrições em pré-atas revisáveis.
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild className="rounded-full">
+                  <Button asChild size="sm" variant="secondary" className="rounded-full">
                     <Link to="/app/agenda">Criar encontro a partir de transcrição</Link>
                   </Button>
-                  <Button asChild variant="outline" className="rounded-full bg-background/60">
+                  <Button asChild size="sm" variant="outline" className="rounded-full bg-background/60">
                     <Link to="/app/agenda">Ver Agenda de Evolução</Link>
                   </Button>
                 </div>
@@ -583,7 +604,7 @@ export default function CounselorOverviewPage() {
               <p className="text-xs text-muted-foreground mt-1">Ranking operacional por organização para decidir onde entrar primeiro.</p>
             </div>
             <span className="executive-pill inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-[11px] font-medium text-muted-foreground">
-              {companies.length} organizações
+              Top 4 de {companies.length} organizações
             </span>
           </header>
 
@@ -595,7 +616,7 @@ export default function CounselorOverviewPage() {
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {companyPriorities.map((row) => {
+              {companyPriorities.slice(0, 4).map((row, index) => {
                 const tone = companyStatusTone(row.level);
                 return (
                   <div
@@ -605,6 +626,7 @@ export default function CounselorOverviewPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-xs font-black text-primary">#{index + 1}</span>
                           <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
                           <p className="font-semibold text-foreground truncate">{row.company.name}</p>
                           <span className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 ${tone.pill}`}>{row.level}</span>
@@ -651,32 +673,36 @@ export default function CounselorOverviewPage() {
                 </div>
               ) : meetingPreparation.map(({ company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions }) => {
                 const hasAgenda = !!lastMeeting?.next_agenda;
-                const reviewPoints = [
-                  `${criticalCount} ações críticas`,
-                  `${dimensionsCount} dimensões em atenção`,
-                  hasRecentDecisions ? 'decisões/recomendações recentes' : 'sem decisões recentes registradas',
+                const checklist = [
+                  { label: 'Ações críticas', value: criticalCount > 0 ? `${criticalCount} para destravar/revisar` : 'sem bloqueios críticos' },
+                  { label: 'Dimensões em atenção', value: dimensionsCount > 0 ? `${dimensionsCount} para discutir` : 'sem dimensão crítica' },
+                  { label: 'Decisões/recomendações recentes', value: hasRecentDecisions ? 'revisar encaminhamentos' : 'sem registro recente' },
                 ];
                 return (
                   <div key={company.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm text-foreground truncate">{company.name}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Checklist de preparação</p>
+                        <p className="mt-1 font-semibold text-sm text-foreground truncate">{company.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-1">
                           Última reunião: {formatDate(lastMeeting?.meeting_date)} · Tipo: {lastMeeting ? meetingTypeLabel[lastMeeting.meeting_type] || lastMeeting.meeting_type : '—'}
                         </p>
                       </div>
                       <Button asChild variant="ghost" size="sm" className="rounded-full shrink-0 -mr-2 hover:bg-primary/10 hover:text-primary">
                         <Link to={lastMeeting ? `/app/agenda/${lastMeeting.id}` : `/app/startups/${company.id}/counselor`}>
-                          {lastMeeting ? 'Abrir encontro' : 'Abrir Central'} <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+                          {lastMeeting ? 'Preparar' : 'Abrir Central'} <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
                         </Link>
                       </Button>
                     </div>
-                    <div className={`mt-2.5 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
+                    <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
                       <span className="font-semibold">Próxima pauta: </span>{lastMeeting?.next_agenda || 'Não registrada — defina antes do próximo encontro.'}
                     </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {reviewPoints.map((point) => (
-                        <span key={point} className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">{point}</span>
+                    <div className="mt-3 grid gap-2">
+                      {checklist.map((point) => (
+                        <div key={point.label} className="flex items-start gap-2 rounded-xl border border-border/50 bg-background/35 px-3 py-2 text-xs">
+                          <CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                          <p className="leading-relaxed"><span className="font-semibold text-foreground/90">Preparar/revisar {point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -720,14 +746,21 @@ export default function CounselorOverviewPage() {
               ) : criticalActions.map((action) => {
                 const companyName = companyNameById.get(action.company_id) || '—';
                 const overdue = isOverdue(action, todayKey);
-                const priorityTone = action.priority === 'high' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-muted/40 text-muted-foreground border-border/60';
+                const reason = getCriticalReason(action, todayKey);
+                const reasonTone = toneStyles[reason.tone];
                 return (
                   <div key={action.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-semibold text-foreground leading-snug">{action.title}</p>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border whitespace-nowrap ${priorityTone}`}>
-                        {priorityLabel[action.priority] || action.priority}
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${reasonTone.pill}`}>
+                        {reason.label}
                       </span>
+                      <span className="text-[10px] font-semibold text-muted-foreground">{priorityLabel[action.priority] || action.priority}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground leading-snug">{action.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{reason.helper}</p>
+                      </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-1.5">
                       {companyName} · Responsável: {action.owner_name || 'Sem responsável'}
@@ -767,6 +800,13 @@ export default function CounselorOverviewPage() {
               <span className="rounded-full border border-border/60 bg-muted/30 px-3 py-1 text-[11px] text-muted-foreground">Registre evolução nos encontros para colorir o mapa.</span>
             )}
           </header>
+
+          <div className="flex flex-wrap gap-1.5 text-[10px] font-semibold text-muted-foreground">
+            <span className="rounded-full border border-destructive/25 bg-destructive/10 px-2 py-0.5 text-destructive">Piorando</span>
+            <span className="rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-primary">Estável baixo</span>
+            <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">Melhorando</span>
+            <span className="rounded-full border border-border/60 bg-muted/20 px-2 py-0.5">Sem sinal</span>
+          </div>
 
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-9">
             {focusHeatmap.map((dimension) => {
