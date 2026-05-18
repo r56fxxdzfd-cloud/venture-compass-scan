@@ -58,6 +58,13 @@ const statusDotClasses = (status?: 'Crítico' | 'Atenção' | 'Saudável') => {
   return 'bg-emerald-500 shadow-[0_0_0_3px_rgb(16_185_129/0.10)]';
 };
 
+const timelineAlertBadgeClasses = (alertBadge: string) => {
+  if (alertBadge === 'Atrasadas + travadas') return 'border-destructive/35 bg-destructive/10 text-destructive';
+  if (alertBadge === 'Ações travadas') return 'border-destructive/30 bg-destructive/10 text-destructive';
+  if (alertBadge === 'Ações atrasadas') return 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300';
+  return 'border-primary/25 bg-primary/10 text-primary';
+};
+
 // meeting_date is a date-only field; never persist via Date.toISOString().
 const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -537,19 +544,19 @@ export default function AgendaPage() {
         const health = filteredMeetingHealth.find((h) => h.id === m.id);
         const completedCount = am.filter(a => a.status === 'completed').length;
         const dimCount = progressCountByMeeting[m.id] || 0;
-        const alertBadge = health?.overdue && health?.blocked ? 'Atrasadas + travadas' : health?.blocked ? 'Ações travadas' : health?.overdue ? 'Ações atrasadas' : !m.next_agenda ? 'Sem próxima pauta' : dimCount === 0 ? 'Sem evolução' : '';
+        const alertBadge = health?.overdue && health?.blocked ? 'Atrasadas + travadas' : health?.blocked ? 'Ações travadas' : health?.overdue ? 'Ações atrasadas' : health?.noAgenda ? 'Sem próxima pauta' : health?.noEvolution ? 'Sem evolução' : '';
 
         const parsedDate = getDateParts(m.meeting_date);
-        return <Card key={m.id} className={cn('executive-panel overflow-hidden border-l-4 hover:-translate-y-0.5 hover:shadow-primary/10 print:break-inside-avoid', statusAccentClasses(health?.status), index === 0 ? 'print:break-inside-avoid' : '')}><CardContent className='p-3.5 sm:p-4 print:p-3'>
-          <div className='grid gap-3.5 sm:grid-cols-[76px_1fr_116px] sm:items-center print:gap-2'>
-            <div className='w-fit rounded-2xl border border-border/70 bg-background/75 px-3 py-2 text-center shadow-sm sm:w-full'><p className='text-2xl font-extrabold leading-none'>{parsedDate ? String(parsedDate.day).padStart(2, '0') : '—'}</p><p className='mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground'>{parsedDate ? monthNamesPtBr[parsedDate.month - 1].slice(0, 3) : 'data'}</p><p className='mt-0.5 text-[10px] text-muted-foreground'>{parsedDate?.year || ''}</p></div>
+        return <Card key={m.id} className={cn('executive-panel overflow-hidden border-l-4 hover:-translate-y-0.5 hover:shadow-primary/10 print:break-inside-avoid', statusAccentClasses(health?.status), index === 0 ? 'print:break-inside-avoid' : '')}><CardContent className='px-3.5 py-4 sm:p-4 print:p-2.5'>
+          <div className='grid gap-4 sm:grid-cols-[76px_1fr_124px] sm:items-center print:gap-2'>
+            <div className='w-fit rounded-2xl border border-border/70 bg-background/75 px-3 py-2.5 text-center shadow-sm sm:w-full print:py-2'><p className='text-2xl font-extrabold leading-none'>{parsedDate ? String(parsedDate.day).padStart(2, '0') : '—'}</p><p className='mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground'>{parsedDate ? monthNamesPtBr[parsedDate.month - 1].slice(0, 3) : 'data'}</p><p className='mt-0.5 text-[10px] text-muted-foreground'>{parsedDate?.year || ''}</p></div>
             <div className='min-w-0 space-y-2'>
-              <div className='flex flex-wrap items-center gap-1.5'><Badge variant='secondary' className='executive-pill bg-background/70'>{comp}</Badge><Badge variant='outline' className='executive-pill border-primary/25 bg-primary/10 text-primary'>{mt[m.meeting_type as MeetingType]}</Badge>{alertBadge && <Badge variant='outline' className='executive-pill border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'>{alertBadge}</Badge>}</div>
+              <div className='flex flex-wrap items-center gap-1.5'><Badge variant='secondary' className='executive-pill bg-background/70'>{comp}</Badge><Badge variant='outline' className='executive-pill border-primary/25 bg-primary/10 text-primary'>{mt[m.meeting_type as MeetingType]}</Badge>{alertBadge && <Badge variant='outline' className={cn('executive-pill font-semibold', timelineAlertBadgeClasses(alertBadge))}>{alertBadge}</Badge>}</div>
               <div className='grid gap-1 md:grid-cols-[minmax(0,1fr)_220px] md:items-end'><div><h4 className='line-clamp-1 font-bold leading-tight tracking-tight'>{m.title || m.main_topic || 'Encontro de conselho'}</h4><p className='line-clamp-1 text-xs text-muted-foreground'>Tema: {m.main_topic || '—'}</p></div><div className='hidden text-right text-xs text-muted-foreground md:block'><span className='font-semibold text-foreground'>{completedCount}/{am.length}</span> ações · <span className='font-semibold text-foreground'>{dimCount}</span> dimensões</div></div>
               <div className='flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden'><span><strong className='text-foreground'>{completedCount}/{am.length}</strong> ações</span><span><strong className='text-foreground'>{dimCount}</strong> dimensões avaliadas</span></div>
               <p className='line-clamp-1 text-xs text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
             </div>
-            <div className='flex items-center gap-2 sm:flex-col sm:items-end sm:justify-center'><Badge variant='outline' className={cn('executive-pill min-w-[92px] justify-center font-bold', statusBadgeClasses(health?.status))}><span className={cn('mr-1.5 h-2 w-2 rounded-full', statusDotClasses(health?.status))} />{health?.status || 'Atenção'}</Badge><Button asChild size='sm' variant='outline' className='h-9 rounded-full border-primary/30 bg-primary/10 px-4 font-semibold text-primary hover:bg-primary hover:text-primary-foreground print:h-8 print:px-3'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button></div>
+            <div className='flex items-center gap-2 sm:flex-col sm:items-end sm:justify-center'><Badge variant='outline' className={cn('executive-pill min-w-[92px] justify-center font-bold', statusBadgeClasses(health?.status))}><span className={cn('mr-1.5 h-2 w-2 rounded-full', statusDotClasses(health?.status))} />{health?.status || 'Atenção'}</Badge><Button asChild size='sm' variant='outline' className='h-10 rounded-full border-primary/40 bg-primary/10 px-5 font-bold text-primary shadow-sm shadow-primary/10 hover:bg-primary hover:text-primary-foreground print:h-8 print:px-3'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button></div>
           </div>
         </CardContent></Card>;
       })}</div>
@@ -557,11 +564,11 @@ export default function AgendaPage() {
       </section>)}</div>
       <Card className='executive-panel print:hidden'><CardContent className='p-4'>
         <div className='space-y-3'>
-          <div className='flex flex-wrap items-center justify-between gap-3'><div className='flex flex-wrap items-center gap-2'><p className='text-sm font-bold'>Foco recente do conselho</p><Badge variant='outline' className='executive-pill border-primary/25 bg-primary/10 text-primary'>Top 3 + insight</Badge></div><Button asChild variant='outline' size='sm' className='rounded-full shrink-0'><Link to='/app/counselor'>Ver Central do Conselheiro</Link></Button></div>
-          <div className='grid gap-3 lg:grid-cols-3'>
-            <div className='rounded-2xl border border-border/70 bg-background/60 p-3'><p className='mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Dimensões em foco</p><div className='flex flex-wrap gap-1.5'>{focusRecentSummary.topDimensions.length === 0 ? <Badge variant='secondary' className='executive-pill'>Sem dimensões recentes</Badge> : focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary' className='executive-pill'>{item.dimension} · {item.count}x</Badge>)}</div></div>
-            <div className='rounded-2xl border border-border/70 bg-background/60 p-3'><p className='mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Temas frequentes</p><div className='flex flex-wrap gap-1.5'>{focusRecentSummary.topTopics.length === 0 ? <Badge variant='outline' className='executive-pill'>Sem temas frequentes</Badge> : focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline' className='executive-pill bg-background/70'>{item.label} · {item.count}x</Badge>)}</div></div>
-            <div className='rounded-2xl border border-primary/20 bg-primary/10 p-3'><p className='mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>Insight principal</p><p className='line-clamp-3 text-sm text-muted-foreground'>{focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p></div>
+          <div className='flex flex-wrap items-center justify-between gap-3'><div className='min-w-0'><p className='text-sm font-bold'>Foco recente do conselho</p><p className='text-xs text-muted-foreground'>Síntese compacta dos filtros atuais.</p></div><Button asChild variant='outline' size='sm' className='ml-auto shrink-0 rounded-full border-primary/25 bg-background/70 px-4 font-semibold text-primary hover:bg-primary hover:text-primary-foreground'><Link to='/app/counselor'>Ver Central do Conselheiro</Link></Button></div>
+          <div className='grid gap-2.5 lg:grid-cols-3'>
+            <div className='rounded-2xl border border-border/70 bg-background/60 p-3 shadow-sm'><p className='mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Dimensões em foco</p><div className='flex flex-wrap gap-1.5'>{focusRecentSummary.topDimensions.length === 0 ? <Badge variant='secondary' className='executive-pill'>Sem dimensões recentes</Badge> : focusRecentSummary.topDimensions.map((item) => <Badge key={item.dimension} variant='secondary' className='executive-pill'>{item.dimension} · {item.count}x</Badge>)}</div></div>
+            <div className='rounded-2xl border border-border/70 bg-background/60 p-3 shadow-sm'><p className='mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground'>Temas frequentes</p><div className='flex flex-wrap gap-1.5'>{focusRecentSummary.topTopics.length === 0 ? <Badge variant='outline' className='executive-pill'>Sem temas frequentes</Badge> : focusRecentSummary.topTopics.map((item) => <Badge key={item.label} variant='outline' className='executive-pill bg-background/70'>{item.label} · {item.count}x</Badge>)}</div></div>
+            <div className='rounded-2xl border border-primary/25 bg-primary/10 p-3 shadow-sm'><p className='mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>Insight principal</p><p className='line-clamp-2 text-sm font-medium text-foreground'>{focusRecentSummary.insight || 'Sem insight de atenção neste ciclo.'}</p></div>
           </div>
         </div>
       </CardContent></Card>
