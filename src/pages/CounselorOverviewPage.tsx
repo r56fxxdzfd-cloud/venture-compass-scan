@@ -306,7 +306,8 @@ export default function CounselorOverviewPage() {
   }).sort((a, b) => b.weight - a.weight || a.company.name.localeCompare(b.company.name)), [actionsByCompany, companies, latestMeetingByCompany, progressByCompany, todayKey]);
 
   const criticalActions = useMemo(() => actions
-    .filter((action) => openStatuses.has(action.status))
+    .filter((action) => openStatuses.has(action.status)
+      && (action.status === 'blocked' || isOverdue(action, todayKey) || action.priority === 'high' || (action.impact === 'high' && action.effort === 'low')))
     .sort((a, b) => {
       const score = (item: CouncilAction) => {
         if (item.status === 'blocked') return 400;
@@ -399,15 +400,24 @@ export default function CounselorOverviewPage() {
     const lastMeeting = latestMeetingByCompany.get(company.id);
     const companyActions = actionsByCompany.get(company.id) || [];
     const companyProgress = progressByCompany.get(company.id) || [];
+    const priority = companyPriorities.find((row) => row.company.id === company.id);
     const criticalCount = companyActions.filter((action) => action.status === 'blocked' || isOverdue(action, todayKey) || action.priority === 'high').length;
     const dimensionsCount = companyProgress.filter((item) => item.trend === 'worsening' || (item.trend === 'stable' && (item.current_perceived_score ?? 999) <= 2.5)).length;
     const hasRecentDecisions = !!(lastMeeting?.decisions || lastMeeting?.recommendations);
-    return { company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions };
+    const isCritical = priority?.level === 'Crítico';
+    const needsAgenda = !lastMeeting?.next_agenda;
+    return { company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions, isCritical, needsAgenda };
   }).sort((a, b) => {
-    const aNeedsAgenda = a.lastMeeting && !a.lastMeeting.next_agenda ? 1 : 0;
-    const bNeedsAgenda = b.lastMeeting && !b.lastMeeting.next_agenda ? 1 : 0;
-    return bNeedsAgenda - aNeedsAgenda || b.criticalCount - a.criticalCount;
-  }), [actionsByCompany, companies, latestMeetingByCompany, progressByCompany, todayKey]);
+    const aDate = a.lastMeeting?.meeting_date || '0000-00-00';
+    const bDate = b.lastMeeting?.meeting_date || '0000-00-00';
+    return Number(b.isCritical) - Number(a.isCritical)
+      || Number(b.needsAgenda) - Number(a.needsAgenda)
+      || b.criticalCount - a.criticalCount
+      || bDate.localeCompare(aDate);
+  }), [actionsByCompany, companies, companyPriorities, latestMeetingByCompany, progressByCompany, todayKey]);
+
+  const topMeetingPreparation = meetingPreparation.slice(0, 3);
+  const topCriticalActions = criticalActions.slice(0, 5);
 
   const focusHeatmap = useMemo(() => officialDimensions.map((dimension) => {
     const rows = latestProgressByCompanyAndDimension.filter((item) => item.dimension_id === dimension.code);
@@ -531,7 +541,7 @@ export default function CounselorOverviewPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
-        <Card className="executive-panel rounded-3xl border-primary/40 relative overflow-hidden shadow-lg shadow-primary/5">
+        <Card className="executive-panel rounded-3xl border-primary/50 relative overflow-hidden shadow-xl shadow-primary/10 ring-1 ring-primary/10">
           <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
           <CardContent className="p-6 sm:p-8 relative">
             <div className="flex items-start gap-4">
@@ -568,10 +578,10 @@ export default function CounselorOverviewPage() {
           </CardContent>
         </Card>
 
-        <Card className="executive-panel rounded-3xl border-border/70 relative overflow-hidden bg-muted/10">
-          <CardContent className="p-5 sm:p-6 relative">
+        <Card className="executive-panel rounded-3xl border-border/60 relative overflow-hidden bg-muted/5 shadow-none">
+          <CardContent className="p-4 sm:p-5 relative">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/40 border border-border/60 text-muted-foreground shrink-0">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/30 border border-border/50 text-muted-foreground shrink-0">
                 <FileText className="h-4 w-4" />
               </div>
               <div className="min-w-0">
@@ -580,8 +590,8 @@ export default function CounselorOverviewPage() {
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Apoio complementar para transformar transcrições em pré-atas revisáveis.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="secondary" className="rounded-full">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline" className="rounded-full bg-background/60">
                     <Link to="/app/agenda">Criar encontro a partir de transcrição</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="rounded-full bg-background/60">
@@ -641,8 +651,9 @@ export default function CounselorOverviewPage() {
                         </Link>
                       </Button>
                     </div>
-                    <div className="mt-3 rounded-xl border border-border/50 bg-background/45 px-3 py-2 text-xs text-foreground/90">
-                      <span className="font-semibold">Próxima melhor ação: </span>{row.nextBestAction}
+                    <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs text-foreground/95">
+                      <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <p className="leading-relaxed"><span className="font-black text-primary">Próxima melhor ação: </span><span className="font-semibold">{row.nextBestAction}</span></p>
                     </div>
                   </div>
                 );
@@ -659,19 +670,19 @@ export default function CounselorOverviewPage() {
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-muted-foreground" /> Preparação da próxima reunião
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">Pautas, lacunas e pontos de revisão por organização.</p>
+              <p className="text-xs text-muted-foreground mt-1">Top 3 organizações para preparar com foco executivo.</p>
             </header>
 
-            <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
+            <div className="space-y-2.5">
               {companies.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-5 text-sm text-muted-foreground">
                   Cadastre organizações e registre encontros para montar a preparação da próxima reunião.
                 </div>
-              ) : meetingPreparation.length === 0 ? (
+              ) : topMeetingPreparation.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-5 text-sm text-muted-foreground">
                   Nenhuma reunião registrada. Crie um encontro na Agenda de Evolução para iniciar a cadência.
                 </div>
-              ) : meetingPreparation.map(({ company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions }) => {
+              ) : topMeetingPreparation.map(({ company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions }) => {
                 const hasAgenda = !!lastMeeting?.next_agenda;
                 const checklist = [
                   { label: 'Ações críticas', value: criticalCount > 0 ? `${criticalCount} para destravar/revisar` : 'sem bloqueios críticos' },
@@ -682,7 +693,7 @@ export default function CounselorOverviewPage() {
                   <div key={company.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Checklist de preparação</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Preparação executiva</p>
                         <p className="mt-1 font-semibold text-sm text-foreground truncate">{company.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-1">
                           Última reunião: {formatDate(lastMeeting?.meeting_date)} · Tipo: {lastMeeting ? meetingTypeLabel[lastMeeting.meeting_type] || lastMeeting.meeting_type : '—'}
@@ -697,17 +708,22 @@ export default function CounselorOverviewPage() {
                     <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
                       <span className="font-semibold">Próxima pauta: </span>{lastMeeting?.next_agenda || 'Não registrada — defina antes do próximo encontro.'}
                     </div>
-                    <div className="mt-3 grid gap-2">
+                    <div className="mt-3 grid gap-1.5">
                       {checklist.map((point) => (
-                        <div key={point.label} className="flex items-start gap-2 rounded-xl border border-border/50 bg-background/35 px-3 py-2 text-xs">
-                          <CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
-                          <p className="leading-relaxed"><span className="font-semibold text-foreground/90">Preparar/revisar {point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
+                        <div key={point.label} className="flex items-center gap-2 text-xs">
+                          <CircleCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
+                          <p className="leading-relaxed"><span className="font-semibold text-foreground/90">{point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
                         </div>
                       ))}
                     </div>
                   </div>
                 );
               })}
+            </div>
+            <div className="border-t border-border/50 pt-3 text-right">
+              <Button asChild variant="ghost" size="sm" className="rounded-full text-xs text-muted-foreground hover:text-primary">
+                <Link to="/app/agenda">Ver Agenda de Evolução <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -723,7 +739,7 @@ export default function CounselorOverviewPage() {
                   <p className="text-xs text-muted-foreground mt-1">Ordenadas por travadas, atrasadas, alta prioridade e quick wins.</p>
                 </div>
                 <span className="inline-flex items-center rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-bold text-foreground/80">
-                  {criticalActions.length}
+                  {topCriticalActions.length} de {criticalActions.length}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -737,19 +753,19 @@ export default function CounselorOverviewPage() {
                 })}
               </div>
             </header>
-            <div className="space-y-2.5 max-h-[620px] overflow-y-auto pr-1">
+            <div className="space-y-2.5">
               {criticalActions.length === 0 ? (
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-center">
                   <p className="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">Sem ações críticas em aberto.</p>
                   <p className="text-xs text-muted-foreground mt-1">Mantenha a rotina de revisão para evitar novos bloqueios.</p>
                 </div>
-              ) : criticalActions.map((action) => {
+              ) : topCriticalActions.map((action) => {
                 const companyName = companyNameById.get(action.company_id) || '—';
                 const overdue = isOverdue(action, todayKey);
                 const reason = getCriticalReason(action, todayKey);
                 const reasonTone = toneStyles[reason.tone];
                 return (
-                  <div key={action.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
+                  <div key={action.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 hover:bg-white/[0.06] transition-colors">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${reasonTone.pill}`}>
                         {reason.label}
@@ -782,6 +798,11 @@ export default function CounselorOverviewPage() {
                   </div>
                 );
               })}
+            </div>
+            <div className="border-t border-border/50 pt-3 text-right">
+              <Button asChild variant="ghost" size="sm" className="rounded-full text-xs text-muted-foreground hover:text-primary">
+                <Link to="/app/agenda">Ver Agenda de Evolução <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
