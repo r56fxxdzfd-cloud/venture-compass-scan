@@ -60,6 +60,9 @@ export default function AgendaPage() {
   const [creatingFromDraft, setCreatingFromDraft] = useState(false);
   const [loading, setLoading] = useState(true);
   const MIN_TRANSCRIPT_CHARS = 200;
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
   const load = async () => {
     setLoading(true);
@@ -121,10 +124,6 @@ export default function AgendaPage() {
     return true;
   }), [meetings, companyId, typeFilter, actionStatus, actions, meetingStatus, meetingsHealth]);
 
-  const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
   const actionsForFilteredMeetings = useMemo(() => {
     const ids = new Set(filtered.map(m => m.id));
     return actions.filter(a => ids.has(a.meeting_id));
@@ -148,7 +147,8 @@ export default function AgendaPage() {
 
   const monthlyMeetingGroups = useMemo(() => {
     const groups = filtered.reduce((acc, meeting) => {
-      const d = new Date(meeting.meeting_date);
+      const d = meeting.meeting_date ? new Date(meeting.meeting_date) : new Date(0);
+      if (Number.isNaN(d.getTime())) return acc;
       const key = `${d.getFullYear()}-${d.getMonth()}`;
       if (!acc[key]) acc[key] = { label: d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }), meetings: [] as CouncilMeeting[], year: d.getFullYear(), month: d.getMonth() };
       acc[key].meetings.push(meeting);
@@ -168,6 +168,7 @@ export default function AgendaPage() {
     const noEvolution = filteredMeetingHealth.filter((item) => item.noEvolution).length;
     return { noAgenda, critical, noEvolution };
   }, [filteredMeetingHealth]);
+  const hasActiveFilters = companyId !== 'all' || typeFilter !== 'all' || actionStatus !== 'all' || meetingStatus !== 'all';
 
   const focusRecentSummary = useMemo(() => {
     const dimensionSortMap = new Map(dimensionCatalog.map((dim, idx) => [dim.id, dim.sort_order ?? idx + 1]));
@@ -408,7 +409,9 @@ export default function AgendaPage() {
       <Select value={meetingStatus} onValueChange={(v) => setMeetingStatus(v as any)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos encontros</SelectItem><SelectItem value='critical'>Crítico</SelectItem><SelectItem value='attention'>Atenção</SelectItem><SelectItem value='healthy'>Saudável</SelectItem></SelectContent></Select>
       <Button variant='ghost' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>
     </CardContent></Card>
-    {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></CardContent></Card> :
+    {loading ? <Card className='executive-panel'><CardContent className='py-10 text-center'>Carregando agenda...</CardContent></Card> : filtered.length === 0 ? <Card className='executive-panel'><CardContent className='py-10 text-center'>
+      {meetings.length > 0 ? <>Nenhum encontro encontrado com os filtros atuais.<div className='mt-3'>{hasActiveFilters && <Button variant='outline' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>}</div></> : <>Nenhum encontro registrado ainda. Sem encontros, não há histórico de decisões, evolução e ações acompanháveis.<div className='mt-2 text-sm text-muted-foreground'>Próximo passo: registre o primeiro encontro para iniciar acompanhamento de pautas e execução.</div><div className='mt-3'><Button onClick={() => setOpen(true)}>Registrar novo encontro</Button></div></>}
+    </CardContent></Card> :
       <>
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-4'>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{executiveKpis.totalMeetings}</p><p className='text-xs text-muted-foreground'>Total de encontros</p></CardContent></Card>
