@@ -49,7 +49,9 @@ const toneStyles: Record<KpiTone, { wrap: string; text: string; pill: string }> 
 
 function formatDate(d?: string | null) {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const [year, month, day] = d.split('-');
+  if (!year || !month || !day) return '—';
+  return `${day}/${month}/${year}`;
 }
 
 const dimensionOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'];

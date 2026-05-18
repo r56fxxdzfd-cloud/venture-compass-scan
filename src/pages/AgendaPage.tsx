@@ -39,7 +39,9 @@ const trendToneClasses: Record<DimensionTrend | 'sem_trend', string> = {
 const officialDimensions = new Set<string>(officialDimensionOrder);
 const monthNamesPtBr = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'] as const;
 
-// meeting_date is a date-only field; do not parse with new Date(dateString).
+// meeting_date is a date-only field; never persist via Date.toISOString().
+const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
+
 const getDateParts = (dateString: string) => {
   const [yearStr, monthStr, dayStr] = dateString.split('-');
   const year = Number(yearStr);
@@ -111,8 +113,7 @@ export default function AgendaPage() {
   const MIN_TRANSCRIPT_CHARS = 200;
   const todayDateOnly = useMemo(() => {
     const now = new Date();
-    const localOffsetMs = now.getTimezoneOffset() * 60 * 1000;
-    return new Date(now.getTime() - localOffsetMs).toISOString().slice(0, 10);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   }, []);
   const todayParts = useMemo(() => getDateParts(todayDateOnly), [todayDateOnly]);
 
@@ -277,9 +278,11 @@ export default function AgendaPage() {
   }, [filtered, dimensionCatalog, dimensionProgressRows]);
 
   const saveMeeting = async () => {
-    if (!form.company_id || !form.meeting_date || !form.meeting_type) return toast({ title: 'Preencha empresa, data e tipo', variant: 'destructive' });
+    const meetingDate = typeof form.meeting_date === 'string' && dateOnlyPattern.test(form.meeting_date) ? form.meeting_date : '';
+    if (!form.company_id || !meetingDate || !form.meeting_type) return toast({ title: 'Preencha empresa, data e tipo', variant: 'destructive' });
     const payload = {
       ...form,
+      meeting_date: meetingDate,
       related_dimensions: form.related_dimensions?.length ? form.related_dimensions : null,
       attendees_counselors: form.attendees_counselors?.split(',').map((s: string) => s.trim()).filter(Boolean) || null,
       attendees_founders: form.attendees_founders?.split(',').map((s: string) => s.trim()).filter(Boolean) || null,
@@ -296,10 +299,11 @@ export default function AgendaPage() {
     setCreatingFromDraft(false);
   };
 
-  const canGenerateDraft = !!form.company_id && !!form.meeting_date && !!form.meeting_type && transcriptText.trim().length >= MIN_TRANSCRIPT_CHARS;
+  const canGenerateDraft = !!form.company_id && typeof form.meeting_date === 'string' && dateOnlyPattern.test(form.meeting_date) && !!form.meeting_type && transcriptText.trim().length >= MIN_TRANSCRIPT_CHARS;
 
   const generateDraftFromTranscript = async () => {
     if (!canGenerateDraft || generatingDraft) return;
+    const meetingDate = typeof form.meeting_date === 'string' && dateOnlyPattern.test(form.meeting_date) ? form.meeting_date : '';
     const companyName = companies.find((c) => c.id === form.company_id)?.name || '';
     setGeneratingDraft(true);
     const { data: agendaTemplates } = await supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order');
@@ -310,7 +314,7 @@ export default function AgendaPage() {
         transcript_text: transcriptText.trim(),
         context: {
           company_name: companyName,
-          meeting_date: form.meeting_date,
+          meeting_date: meetingDate,
           meeting_type: form.meeting_type,
           selected_topic: form.main_topic || '',
           selected_dimensions: form.related_dimensions || [],
@@ -331,7 +335,8 @@ export default function AgendaPage() {
 
     const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
     const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
-    if (!form.company_id || !form.meeting_date || !form.meeting_type) {
+    const meetingDate = typeof form.meeting_date === 'string' && dateOnlyPattern.test(form.meeting_date) ? form.meeting_date : '';
+    if (!form.company_id || !meetingDate || !form.meeting_type) {
       return toast({ title: 'Dados incompletos para criar encontro', description: 'Preencha empresa, data e tipo antes de criar o encontro com pré-ata.', variant: 'destructive' });
     }
 
@@ -370,7 +375,7 @@ export default function AgendaPage() {
     setCreatingFromDraft(true);
     const { data: inserted, error: meetingError } = await supabase.from('council_meetings').insert({
       company_id: form.company_id,
-      meeting_date: form.meeting_date,
+      meeting_date: meetingDate,
       meeting_type: form.meeting_type,
       main_topic: form.main_topic || null,
       related_dimensions: draft.related_dimensions?.length ? draft.related_dimensions : (form.related_dimensions?.length ? form.related_dimensions : null),

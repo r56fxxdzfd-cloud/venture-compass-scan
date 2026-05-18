@@ -47,6 +47,13 @@ const dimensionCodeToLabel: Record<string, string> = {
 };
 const dimensionCodeOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'] as const;
 
+function formatDateOnlyBR(dateString?: string | null) {
+  if (!dateString) return '—';
+  const [year, month, day] = dateString.split('-');
+  if (!year || !month || !day) return '—';
+  return `${day}/${month}/${year}`;
+}
+
 export default function ProgressReportPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -151,8 +158,8 @@ export default function ProgressReportPage() {
       </div>
       <div className='grid md:grid-cols-3 gap-2 text-sm mt-3'>
         <p><strong>Data do relatório:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
-        <p><strong>Período analisado:</strong> {oldestMeeting?.meeting_date ? new Date(oldestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'} até {latestMeeting?.meeting_date ? new Date(latestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'}</p>
-        <p><strong>Última reunião:</strong> {latestMeeting?.meeting_date ? new Date(latestMeeting.meeting_date).toLocaleDateString('pt-BR') : '—'}</p>
+        <p><strong>Período analisado:</strong> {formatDateOnlyBR(oldestMeeting?.meeting_date)} até {formatDateOnlyBR(latestMeeting?.meeting_date)}</p>
+        <p><strong>Última reunião:</strong> {formatDateOnlyBR(latestMeeting?.meeting_date)}</p>
         <p><strong>Encontros registrados:</strong> {meetings.length}</p>
         <p><strong>Ações totais/abertas:</strong> {actions.length} / {openActions.length}</p>
         <p><strong>Ações concluídas/travadas:</strong> {actionsByStatus.completed.length} / {actionsByStatus.blocked.length}</p>
@@ -222,7 +229,7 @@ export default function ProgressReportPage() {
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='pt-2 space-y-2'>
       {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
-        <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {new Date(meeting.meeting_date).toLocaleDateString('pt-BR')}</p>
+        <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
         <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
         <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
         <p><strong>Principais travas:</strong> {meeting.key_blockers || '—'}</p>

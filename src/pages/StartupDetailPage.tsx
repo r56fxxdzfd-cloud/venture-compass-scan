@@ -27,6 +27,13 @@ import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
+function formatDateOnlyBR(dateString?: string | null) {
+  if (!dateString) return '-';
+  const [year, month, day] = dateString.split('-');
+  if (!year || !month || !day) return '-';
+  return `${day}/${month}/${year}`;
+}
+
 export default function StartupDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -274,7 +281,7 @@ export default function StartupDetailPage() {
         <CardContent className='grid md:grid-cols-5 gap-3 text-sm'>
           <div><p className='text-muted-foreground'>Ações abertas</p><p className='text-xl font-semibold'>{councilStats.open}</p></div>
           <div><p className='text-muted-foreground'>Ações concluídas</p><p className='text-xl font-semibold'>{councilStats.completed}</p></div>
-          <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{councilStats.lastMeeting !== '-' ? new Date(councilStats.lastMeeting).toLocaleDateString('pt-BR') : '-'}</p></div>
+          <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{formatDateOnlyBR(councilStats.lastMeeting)}</p></div>
           <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
           <div className='flex flex-col md:items-end justify-end gap-2'>
             <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
