@@ -471,7 +471,7 @@ export default function CounselorOverviewPage() {
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central do Conselheiro</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Priorize riscos, prepare os próximos encontros e acompanhe a execução das organizações em conselho.
+              Priorize riscos, prepare reuniões e acompanhe a execução do conselho.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-background/65 p-4 shadow-sm min-w-[280px]">
@@ -670,7 +670,7 @@ export default function CounselorOverviewPage() {
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
                 <ClipboardList className="h-4 w-4 text-muted-foreground" /> Preparação da próxima reunião
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">Top 3 organizações para preparar com foco executivo.</p>
+              <p className="text-xs text-muted-foreground mt-1">Top 3 preparações, com pauta e sinais essenciais.</p>
             </header>
 
             <div className="space-y-2.5">
@@ -684,19 +684,19 @@ export default function CounselorOverviewPage() {
                 </div>
               ) : topMeetingPreparation.map(({ company, lastMeeting, criticalCount, dimensionsCount, hasRecentDecisions }) => {
                 const hasAgenda = !!lastMeeting?.next_agenda;
+                const meetingType = lastMeeting ? meetingTypeLabel[lastMeeting.meeting_type] || lastMeeting.meeting_type : '—';
                 const checklist = [
-                  { label: 'Ações críticas', value: criticalCount > 0 ? `${criticalCount} para destravar/revisar` : 'sem bloqueios críticos' },
-                  { label: 'Dimensões em atenção', value: dimensionsCount > 0 ? `${dimensionsCount} para discutir` : 'sem dimensão crítica' },
+                  { label: 'Ações críticas', value: criticalCount > 0 ? `${criticalCount} para destravar` : 'sem bloqueios' },
+                  { label: 'Dimensões em atenção', value: dimensionsCount > 0 ? `${dimensionsCount} para priorizar` : 'sem alerta' },
                   { label: 'Decisões/recomendações recentes', value: hasRecentDecisions ? 'revisar encaminhamentos' : 'sem registro recente' },
                 ];
                 return (
                   <div key={company.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.06] transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Preparação executiva</p>
-                        <p className="mt-1 font-semibold text-sm text-foreground truncate">{company.name}</p>
+                        <p className="font-semibold text-sm text-foreground truncate">{company.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          Última reunião: {formatDate(lastMeeting?.meeting_date)} · Tipo: {lastMeeting ? meetingTypeLabel[lastMeeting.meeting_type] || lastMeeting.meeting_type : '—'}
+                          Última reunião: {formatDate(lastMeeting?.meeting_date)} · {meetingType}
                         </p>
                       </div>
                       <Button asChild variant="ghost" size="sm" className="rounded-full shrink-0 -mr-2 hover:bg-primary/10 hover:text-primary">
@@ -706,15 +706,18 @@ export default function CounselorOverviewPage() {
                       </Button>
                     </div>
                     <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed ${hasAgenda ? 'bg-white/[0.04] border border-white/10 text-foreground/90' : 'bg-destructive/10 border border-destructive/20 text-destructive'}`}>
-                      <span className="font-semibold">Próxima pauta: </span>{lastMeeting?.next_agenda || 'Não registrada — defina antes do próximo encontro.'}
+                      <span className="font-semibold">Próxima pauta: </span>{lastMeeting?.next_agenda || 'Definir antes do próximo encontro.'}
                     </div>
-                    <div className="mt-3 grid gap-1.5">
-                      {checklist.map((point) => (
-                        <div key={point.label} className="flex items-center gap-2 text-xs">
-                          <CircleCheck className="h-3.5 w-3.5 shrink-0 text-primary" />
-                          <p className="leading-relaxed"><span className="font-semibold text-foreground/90">{point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
-                        </div>
-                      ))}
+                    <div className="mt-3 rounded-xl border border-white/10 bg-background/35 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Preparar</p>
+                      <div className="mt-1.5 grid gap-1">
+                        {checklist.map((point) => (
+                          <div key={point.label} className="flex items-start gap-2 text-xs">
+                            <CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                            <p className="leading-snug"><span className="font-semibold text-foreground/90">{point.label}: </span><span className="text-muted-foreground">{point.value}</span></p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
@@ -766,29 +769,17 @@ export default function CounselorOverviewPage() {
                 const reasonTone = toneStyles[reason.tone];
                 return (
                   <div key={action.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5 hover:bg-white/[0.06] transition-colors">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${reasonTone.pill}`}>
-                        {reason.label}
-                      </span>
-                      <span className="text-[10px] font-semibold text-muted-foreground">{priorityLabel[action.priority] || action.priority}</span>
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${reasonTone.pill}`}>
+                      {reason.label}
+                    </span>
+                    <p className="mt-2 text-sm font-semibold text-foreground leading-snug">{action.title}</p>
+                    <div className="mt-2 grid gap-1.5 text-[11px] text-muted-foreground sm:grid-cols-2">
+                      <div><span className="font-semibold text-foreground/80">Organização: </span>{companyName}</div>
+                      <div><span className="font-semibold text-foreground/80">Responsável: </span>{action.owner_name || 'Sem responsável'}</div>
+                      <div className={overdue ? 'text-destructive' : undefined}><span className="font-semibold text-foreground/80">Prazo: </span>{formatDate(action.due_date)}</div>
+                      <div className="flex items-center gap-1.5"><span className="font-semibold text-foreground/80">Dimensão: </span>{action.related_dimension ? <DimensionBadge code={action.related_dimension} size="sm" /> : 'Sem dimensão'}</div>
                     </div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground leading-snug">{action.title}</p>
-                        <p className="text-[11px] text-muted-foreground mt-1">{reason.helper}</p>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5">
-                      {companyName} · Responsável: {action.owner_name || 'Sem responsável'}
-                    </p>
-                    <div className="mt-2.5 flex items-center justify-between gap-3 flex-wrap">
-                      <div className="flex items-center gap-2 text-[11px] flex-wrap">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${overdue ? 'bg-destructive/10 text-destructive' : 'bg-muted/40 text-muted-foreground'}`}>
-                          <CalendarClock className="h-3 w-3" /> {formatDate(action.due_date)}
-                        </span>
-                        <span className="rounded-full bg-muted/40 px-2 py-0.5 text-muted-foreground">{statusLabel[action.status] || action.status}</span>
-                        {action.related_dimension ? <DimensionBadge code={action.related_dimension} /> : <span className="text-muted-foreground">Sem dimensão</span>}
-                      </div>
+                    <div className="mt-2.5 flex justify-end">
                       <Button asChild size="sm" variant="ghost" className="rounded-full -mr-2 hover:bg-primary/10 hover:text-primary">
                         <Link to={`/app/startups/${action.company_id}/counselor`}>
                           Abrir Central <ArrowUpRight className="h-3.5 w-3.5 ml-1" />

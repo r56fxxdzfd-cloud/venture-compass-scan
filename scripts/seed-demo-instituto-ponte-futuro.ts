@@ -11,9 +11,22 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
 const COMPANY_NAME = 'Instituto Ponte Futuro';
+const DEMO_COMPANY_RENAMES: Record<string, string> = {
+  'Teste 1': 'Instituto Horizonte Vivo',
+  'Teste 2': 'BioNova Educação',
+  'Super tech': 'Supertech',
+};
+
+async function normalizeDemoCompanyNames() {
+  for (const [fromName, toName] of Object.entries(DEMO_COMPANY_RENAMES)) {
+    const { error } = await supabase.from('companies').update({ name: toName }).eq('name', fromName);
+    if (error) throw error;
+  }
+}
 
 async function main() {
   await supabase.from('companies').select('id', { head: true, count: 'exact' });
+  await normalizeDemoCompanyNames();
 
   const { data: existingCompany } = await supabase.from('companies').select('*').eq('name', COMPANY_NAME).maybeSingle();
   let companyId = existingCompany?.id;
