@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +18,6 @@ interface ConfigStats {
 }
 
 export default function DashboardHeader({ configVersion }: DashboardHeaderProps) {
-  const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<ConfigStats | null>(null);
 
@@ -50,12 +48,12 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
             variant="outline"
             className="executive-pill w-fit border-white/35 bg-white/10 text-white/95 dark:border-primary/35 dark:bg-primary/10 dark:text-primary"
           >
-            Painel executivo
+            Painel Executivo
           </Badge>
           <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white dark:text-foreground/95">Conselho OS</h1>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white dark:text-foreground/95">Painel Executivo</h1>
             <p className="text-sm sm:text-base text-slate-200 dark:text-muted-foreground max-w-2xl">
-              Governança, diagnóstico e evolução das organizações acompanhadas pela JV.
+              Visão geral do portfólio, ritos do conselho e prioridades de acompanhamento.
             </p>
           </div>
         </div>
