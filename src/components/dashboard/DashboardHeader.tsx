@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateBR } from '@/lib/dateOnly';
@@ -26,6 +27,7 @@ interface ConfigStats {
 
 export default function DashboardHeader({ configVersion }: DashboardHeaderProps) {
   const navigate = useNavigate();
+  const { canOperatePlatform } = useAuth();
   const [stats, setStats] = useState<ConfigStats | null>(null);
   const methodologyLabel = getMethodologyLabel(configVersion?.name);
 
@@ -67,7 +69,7 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-          {configVersion && methodologyLabel && (
+          {configVersion && methodologyLabel && canOperatePlatform && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>

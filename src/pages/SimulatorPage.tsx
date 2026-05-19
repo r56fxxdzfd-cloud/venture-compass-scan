@@ -24,7 +24,7 @@ import { QuickWinsSection, MeetingAgendaSection, RiskImpactMatrixSection } from 
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 export default function SimulatorPage() {
-  const { user } = useAuth();
+  const { user, canOperatePlatform } = useAuth();
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [configId, setConfigId] = useState('');
   const [sliders, setSliders] = useState<Record<string, number>>({});
@@ -129,9 +129,11 @@ export default function SimulatorPage() {
       <div className="text-center py-16">
         <Settings className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
         <p className="text-muted-foreground mb-4">Nenhuma configuração publicada. Acesse Configuração para importar e publicar uma versão.</p>
-        <Button asChild variant="outline">
-          <Link to="/app/admin/config">Ir para Configuração</Link>
-        </Button>
+        {canOperatePlatform && (
+          <Button asChild variant="outline">
+            <Link to="/app/admin/config">Ir para Configuração</Link>
+          </Button>
+        )}
       </div>
     );
   }
