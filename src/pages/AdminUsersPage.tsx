@@ -98,10 +98,10 @@ export default function AdminUsersPage() {
 
     // Then set user role
     await supabase.from('user_roles').delete().eq('user_id', approveModal.userId);
-    const { error: roleError } = await supabase.from('user_roles').insert({
+    const { error: roleError } = await supabase.from('user_roles').insert([{
       user_id: approveModal.userId,
       role: selectedRole,
-    });
+    }]);
 
     if (roleError) {
       toast({ title: 'Erro ao definir role', description: roleError.message, variant: 'destructive' });
@@ -174,6 +174,7 @@ export default function AdminUsersPage() {
     jv_admin: 'Admin',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
+    demo_user: 'Demo',
   };
 
   const statusBadge = (status: string) => {

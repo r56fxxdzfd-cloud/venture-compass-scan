@@ -163,6 +163,7 @@ export type Database = {
           cnpj: string | null
           created_at: string | null
           id: string
+          is_demo: boolean
           legal_name: string | null
           name: string
           sector: string | null
@@ -173,6 +174,7 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           id?: string
+          is_demo?: boolean
           legal_name?: string | null
           name: string
           sector?: string | null
@@ -183,6 +185,7 @@ export type Database = {
           cnpj?: string | null
           created_at?: string | null
           id?: string
+          is_demo?: boolean
           legal_name?: string | null
           name?: string
           sector?: string | null
@@ -1018,7 +1021,12 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "jv_admin" | "jv_analyst" | "jv_viewer" | "super_admin"
+      app_role:
+        | "jv_admin"
+        | "jv_analyst"
+        | "jv_viewer"
+        | "super_admin"
+        | "demo_user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1146,7 +1154,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["jv_admin", "jv_analyst", "jv_viewer", "super_admin"],
+      app_role: [
+        "jv_admin",
+        "jv_analyst",
+        "jv_viewer",
+        "super_admin",
+        "demo_user",
+      ],
     },
   },
 } as const
