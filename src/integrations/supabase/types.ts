@@ -1001,6 +1001,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_operate_company: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_unconfirmed_user_ids: {
         Args: never
         Returns: {
@@ -1017,6 +1025,8 @@ export type Database = {
       }
       is_admin_or_analyst: { Args: { _user_id: string }; Returns: boolean }
       is_approved_member: { Args: { _user_id: string }; Returns: boolean }
+      is_demo_user: { Args: { _user_id: string }; Returns: boolean }
+      is_jv_admin: { Args: { _user_id: string }; Returns: boolean }
       is_jv_member: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
