@@ -15,7 +15,7 @@ import { AppBreadcrumbs } from '@/components/AppBreadcrumbs';
 
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
-{ label: 'Startups', icon: Building2, href: '/app/startups' },
+{ label: 'Organizações', icon: Building2, href: '/app/startups' },
 { label: 'Central do Conselheiro', icon: Scale, href: '/app/counselor' },
 { label: 'Agenda de Evolução', icon: CalendarRange, href: '/app/agenda' },
 { label: 'Simulador', icon: SlidersHorizontal, href: '/app/simulator' },
@@ -79,7 +79,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           </div>
           <div>
             <p className="text-sm font-bold tracking-tight">Darwin</p>
-            <p className="text-[10px] text-sidebar-muted">Startup Readiness</p>
+            <p className="text-[10px] text-sidebar-muted">Conselho OS</p>
           </div>
         </div>
 

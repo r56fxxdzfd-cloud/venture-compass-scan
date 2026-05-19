@@ -87,11 +87,11 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white">Darwin</h1>
-              <p className="text-sm text-white/60">Startup Readiness</p>
+              <p className="text-sm text-white/60">Conselho OS</p>
             </div>
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
-            Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para Startups
+            Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para organizações
           </h2>
           <p className="text-white/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
@@ -129,7 +129,7 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold">Darwin</h1>
-              <p className="text-xs text-muted-foreground">Startup Readiness</p>
+              <p className="text-xs text-muted-foreground">Conselho OS</p>
             </div>
           </div>
 

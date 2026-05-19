@@ -687,7 +687,7 @@ export default function MethodologyPage() {
                 <p className="text-xs text-muted-foreground">Apenas pilares 1 a 5 entram no cálculo (pilar 0 excluído).</p>
               </div>
               <div className="p-3 rounded-lg bg-secondary/50 space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score Composto da Startup</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Score Composto da Organização</p>
                 <p className="text-sm font-mono">composto = média_simples(scores_individuais)</p>
                 <p className="text-xs text-muted-foreground">Média de todos os founders ativos com avaliação no semestre vigente.</p>
               </div>

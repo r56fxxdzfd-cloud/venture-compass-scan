@@ -160,7 +160,7 @@ export default function DashboardPage() {
           }
           return {
             id: a.id,
-            companyName: a.company?.name || 'Startup',
+            companyName: a.company?.name || 'Organização',
             stage: a.stage,
             status: a.status,
             answeredCount,
@@ -184,7 +184,7 @@ export default function DashboardPage() {
           if (!a) return;
           attention.push({
             id: `rf-${assessmentId}`,
-            companyName: a.company?.name || 'Startup',
+            companyName: a.company?.name || 'Organização',
             type: 'high_red_flag',
             detail: codes.map(c => redFlagLabelMap[c] || c).join(', '),
             href: a.status === 'completed'
@@ -209,7 +209,7 @@ export default function DashboardPage() {
 
               attention.push({
                 id: a.id,
-                companyName: a.company?.name || 'Startup',
+                companyName: a.company?.name || 'Organização',
                 type: 'low_progress',
                 detail: `Progresso: ${answered}/45 (${pct}%)`,
                 href: `/app/assessments/${a.id}/questionnaire`,
@@ -250,7 +250,7 @@ export default function DashboardPage() {
           const fAssessments = assessmentsArr.filter(a => a.founder_id === f.id);
           const currentAss = fAssessments.find(a => a.semester === currentSemester);
           const prevAss = fAssessments.find(a => a.semester === prevSemester);
-          const companyName = f.company?.name || 'Startup';
+          const companyName = f.company?.name || 'Organização';
 
           // Rule 1: score < 50
           if (currentAss && currentAss.score_used != null && currentAss.score_used < 50) {
