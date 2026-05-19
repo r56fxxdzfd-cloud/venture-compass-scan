@@ -60,6 +60,35 @@ const actionStatusGroupLabels = {
   cancelled: 'Canceladas',
 } as const;
 
+const actionPriorityLabel: Record<string, string> = {
+  high: 'Alta',
+  medium: 'Média',
+  low: 'Baixa',
+};
+
+const dimensionLabelByCode: Record<string, string> = {
+  IC: 'Identidade & Cultura',
+  PL: 'Pessoas & Liderança',
+  GR: 'Governança & Riscos',
+  EE: 'Estratégia & Execução',
+  PM: 'Processos & Métricas',
+  FS: 'Finanças & Sustentabilidade',
+  MN: 'Modelo de Negócio',
+  GT: 'Go-to-market & Tração',
+  PT: 'Produto & Tecnologia',
+};
+
+function dimensionDisplayLabel(value?: string | null): string {
+  if (!value) return '—';
+  const cleaned = value.trim();
+  if (!cleaned) return '—';
+  const upper = cleaned.toUpperCase();
+  if (dimensionLabelByCode[upper]) return `${dimensionLabelByCode[upper]} (${upper})`;
+  const matchedCode = Object.entries(dimensionLabelByCode).find(([, fullLabel]) => fullLabel.toLowerCase() === cleaned.toLowerCase());
+  if (matchedCode) return `${matchedCode[1]} (${matchedCode[0]})`;
+  return cleaned;
+}
+
 const MIN_TRANSCRIPT_CHARS = 80;
 
 function safeJsonClone<T>(value: T): T | null {
@@ -494,7 +523,7 @@ export default function MeetingDetailPage() {
     <div className='pt-1'><Link to='/app/agenda/templates' className='text-sm text-primary underline'>Consultar Templates de Pauta</Link></div></CardContent></Card>
 
 
-    <Card className='executive-panel'><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className={`executive-panel ${suggestedTemplates.length === 0 ? 'print:hidden' : ''}`}><CardHeader><CardTitle>Pautas sugeridas para este encontro</CardTitle></CardHeader><CardContent className='space-y-3'>
       {suggestedTemplates.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhum template relacionado às dimensões deste encontro. Consulte a biblioteca de templates para qualificar a pauta.</p> :
       suggestedTemplates.map(t => <div key={t.id} className='executive-card rounded-lg p-3 space-y-2'>
         <p className='font-medium flex items-center gap-2'><DimensionBadge code={t.dimension_id} label={t.dimension_label} /><span>{t.title}</span></p>
@@ -565,12 +594,12 @@ export default function MeetingDetailPage() {
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação vinculada. Sem ações fica impossível monitorar execução do encontro. Próximo passo: registre ao menos uma ação com responsável e prazo.</p> :
       <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>{Object.entries(actionsByStatus).map(([status, rows]) => <div key={status} className='executive-card rounded p-2 space-y-2 print:break-inside-avoid'>
         <p className='text-sm font-semibold'>{actionStatusGroupLabels[status as keyof typeof actionStatusGroupLabels]}</p>
-        {rows.length === 0 ? <p className='text-xs text-muted-foreground'>Sem itens</p> : rows.map(a => <div key={a.id} className='rounded border border-border/50 p-2 space-y-1'>
+        {rows.length === 0 ? <p className='text-xs text-muted-foreground'>Sem itens</p> : rows.map(a => <div key={a.id} className='rounded border border-border/50 p-2 space-y-1 print:break-inside-avoid'>
           <p className='text-sm font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>
-          <p className='text-xs text-muted-foreground'>Prioridade: {a.priority || '—'} · Dimensão: {a.related_dimension || '—'}</p>
+          <p className='text-xs text-muted-foreground'>Prioridade: {actionPriorityLabel[a.priority || ''] || a.priority || '—'} · Dimensão: {dimensionDisplayLabel(a.related_dimension)}</p>
           {a.expected_evidence ? <p className='text-xs'><strong>Evidência esperada:</strong> {a.expected_evidence}</p> : null}
           {a.impact === 'high' && a.effort === 'low' && ['not_started', 'in_progress', 'blocked'].includes(a.status) && <Badge className='mt-1'>Prioridade imediata</Badge>}
-          <p className='hidden print:block text-xs font-medium'>{actionStatusLabel[a.status] || a.status}</p>
+          <p className='text-xs font-medium print:hidden'>Status: {actionStatusLabel[a.status] || a.status}</p>
           <div className='print:hidden'><Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-full h-8'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select></div>
         </div>)}
       </div>)}</div>}
