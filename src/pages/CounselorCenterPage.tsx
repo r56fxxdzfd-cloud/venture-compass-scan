@@ -156,6 +156,9 @@ export default function CounselorCenterPage() {
             <Button asChild size="sm" className="rounded-full">
               <Link to="/app/agenda"><Plus className="h-4 w-4 mr-2" /> Novo encontro</Link>
             </Button>
+            <Button asChild size="sm" variant="secondary" className="rounded-full">
+              <Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link>
+            </Button>
             <Button asChild size="sm" variant="outline" className="rounded-full">
               <Link to={`/app/startups/${company.id}`}><ArrowLeft className="h-4 w-4 mr-2" /> Voltar à organização</Link>
             </Button>

@@ -254,6 +254,7 @@ export default function StartupDetailPage() {
   const criticalActionsCount = actions.filter((a) => a.status === 'blocked' || a.priority === 'high').length;
   const upcomingAgenda = councilStats.nextAgenda && councilStats.nextAgenda !== '-' ? councilStats.nextAgenda : 'Sem pauta definida até o momento';
   const progressReportLink = lastResult ? `/app/assessments/${lastResult.assessmentId}/report` : `/app/startups/${company.id}/progress`;
+  const companyProgressLink = `/app/startups/${company.id}/progress`;
   const overdueActions = actions.filter((a) => a.due_date && new Date(a.due_date) < new Date() && !['completed', 'cancelled'].includes(a.status || ''));
   const relevantActions = actions
     .filter((a) => openActionStatuses.has(a.status || ''))
@@ -326,7 +327,7 @@ export default function StartupDetailPage() {
           {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
-          <Button asChild variant='secondary'><Link to={progressReportLink}>Ver Relatório de Progresso</Link></Button>
+          <Button asChild variant='secondary'><Link to={companyProgressLink}>Relatório de Progresso</Link></Button>
         </div>
       </div>
 
