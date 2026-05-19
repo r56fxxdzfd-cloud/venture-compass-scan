@@ -185,12 +185,17 @@ export default function ProgressReportPage() {
       <p>{summary.text1}</p><p>{summary.text2}</p><p>{summary.text3}</p><p>{summary.text4}</p>
     </CardContent></Card>
 
-    <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
+    <Card className='executive-surface print-safe'>
+      <CardHeader className='pb-2'><CardTitle>Indicadores do acompanhamento</CardTitle></CardHeader>
+      <CardContent className='pt-2'>
+        <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
       {topMetrics.map((metric) => <Card key={metric.label} className='executive-surface print-safe'><CardContent className='py-4'>
         <p className='text-xs text-muted-foreground'>{metric.label}</p>
         <p className='text-2xl font-bold'>{metric.value}</p>
       </CardContent></Card>)}
-    </div>
+        </div>
+      </CardContent>
+    </Card>
 
 
     <Card className='executive-surface print-safe print:hidden'><CardContent className='pt-6'>

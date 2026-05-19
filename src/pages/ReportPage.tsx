@@ -25,15 +25,15 @@ import { FounderLeadershipSection } from '@/components/report/FounderLeadershipS
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const anchorLinks = [
-  { label: 'Score Geral', id: 'section-overall' },
-  { label: 'Blocos', id: 'section-blocks' },
-  { label: 'Radar', id: 'section-radar' },
-  { label: 'Gaps', id: 'section-gaps' },
+  { label: 'Sumário executivo', id: 'section-summary' },
+  { label: 'Score e blocos', id: 'section-overall' },
   { label: 'Red Flags', id: 'section-redflags' },
   { label: 'Quick Wins', id: 'section-quickwins' },
-  { label: 'Liderança', id: 'section-leadership' },
-  { label: 'Roadmap', id: 'section-roadmap' },
+  { label: 'Roadmap 6 meses', id: 'section-roadmap' },
+  { label: 'Pauta próximo conselho', id: 'section-next-council' },
   { label: 'Deep Dive', id: 'section-deepdive' },
+  { label: 'Matriz risco x impacto', id: 'section-matrix' },
+  { label: 'Análise por dimensão', id: 'section-gaps' },
 ];
 
 export default function ReportPage() {
@@ -244,7 +244,7 @@ export default function ReportPage() {
             </Tooltip>
           </TooltipProvider>
           <div>
-            <h1 className="text-xl font-bold">Relatório — {startupName}</h1>
+            <h1 className="text-xl font-bold">Relatório de Diagnóstico — {startupName}</h1>
             <p className="text-sm text-muted-foreground">
               {new Date(assessment.created_at).toLocaleDateString('pt-BR')} •{' '}
               <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
@@ -291,7 +291,9 @@ export default function ReportPage() {
         ))}
       </div>
 
-      <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
+      <div id="section-summary">
+        <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
+      </div>
 
       <div id="section-overall">
         <OverallScoreCard result={result} config={config} stage={stage} answers={answers} />
@@ -327,7 +329,7 @@ export default function ReportPage() {
           </p>
         </div>
 
-        <div id="section-roadmap">
+        <div id="section-next-council">
           <MeetingAgendaSection config={config} result={result} stage={stage} answers={answers} />
         </div>
 
@@ -338,14 +340,18 @@ export default function ReportPage() {
           })} />
         </div>
 
-        <RoadmapSection result={result} config={config} stage={stage} />
+        <div id="section-roadmap">
+          <RoadmapSection result={result} config={config} stage={stage} />
+        </div>
       </div>
 
       <div id="section-quickwins">
         <QuickWinsSection config={config} result={result} stage={stage} />
       </div>
 
-      <RiskImpactMatrixSection config={config} result={result} stage={stage} />
+      <div id="section-matrix">
+        <RiskImpactMatrixSection config={config} result={result} stage={stage} />
+      </div>
 
       {completeness.confidence === 'low' && (
         <div className="text-center py-4 text-xs text-muted-foreground italic">
