@@ -222,7 +222,7 @@ export default function ProgressReportPage() {
         return <div key={dim.id} className='print-dimension-card'>
           <div className='flex items-center justify-between gap-2'>
             <p className='font-semibold text-[11px]'>{dim.label} ({safeCode})</p>
-            <Badge className='executive-pill h-5 text-[10px]'>{trendLabel[progress!.trend]}</Badge>
+            <Badge className='executive-pill h-5 text-[10px]'>{progress ? trendLabel[progress.trend] : 'Sem evidência'}</Badge>
           </div>
           <p className='text-[11px] mt-1'><strong>Baseline:</strong> {initial ?? '—'} • <strong>Última leitura:</strong> {current ?? '—'} • <strong>Variação:</strong> {variation === null ? '—' : `${variation > 0 ? '+' : ''}${variation.toFixed(1)}`}</p>
           <div className='print-mini-bar'>
