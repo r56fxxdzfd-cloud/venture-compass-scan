@@ -12,8 +12,8 @@ const baseActions = [
 ];
 
 export default function QuickActionsPanel() {
-  const { isAdmin } = useAuth();
-  const actions = isAdmin ? [...baseActions, { label: 'Configuração', desc: 'Ajustar parâmetros e versão ativa', icon: Settings2, href: '/app/admin/config' }] : baseActions;
+  const { canManageSensitiveParameters } = useAuth();
+  const actions = canManageSensitiveParameters ? [...baseActions, { label: 'Configuração', desc: 'Ajustar parâmetros e versão ativa', icon: Settings2, href: '/app/admin/config' }] : baseActions;
 
   return (
     <Card className="executive-panel h-full">

@@ -17,6 +17,10 @@ interface AuthContextType {
   isSuperAdmin: boolean;
   isAnalyst: boolean;
   isViewer: boolean;
+  isJVAdmin: boolean;
+  isDemoUser: boolean;
+  canManageSensitiveParameters: boolean;
+  canOperatePlatform: boolean;
   refreshProfile: () => Promise<void>;
 }
 
@@ -141,6 +145,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasRole,
         isAdmin: hasRole('jv_admin') || hasRole('super_admin'),
         isSuperAdmin: hasRole('super_admin'),
+        isJVAdmin: hasRole('jv_admin') || hasRole('super_admin'),
+        isDemoUser: hasRole('demo_user'),
+        canManageSensitiveParameters: hasRole('super_admin'),
+        canOperatePlatform: hasRole('jv_admin') || hasRole('super_admin'),
         isAnalyst: hasRole('jv_analyst'),
         isViewer: hasRole('jv_viewer'),
         refreshProfile,
