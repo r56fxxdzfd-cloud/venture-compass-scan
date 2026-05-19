@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, DimensionTrend } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { DimensionEvolutionRadar } from '@/components/DimensionEvolutionRadar';
+import { formatDateOnlyBR as formatDateOnlyBRHelper, getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 
 type CompanyLite = { id: string; name: string };
 type DimensionOption = { id: string; label: string };
@@ -47,12 +48,7 @@ const dimensionCodeToLabel: Record<string, string> = {
 };
 const dimensionCodeOrder = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'] as const;
 
-function formatDateOnlyBR(dateString?: string | null) {
-  if (!dateString) return '—';
-  const [year, month, day] = dateString.split('-');
-  if (!year || !month || !day) return '—';
-  return `${day}/${month}/${year}`;
-}
+const formatDateOnlyBR = (value?: string | null) => formatDateOnlyBRHelper(value, '—');
 
 export default function ProgressReportPage() {
   const { id } = useParams();
@@ -124,10 +120,13 @@ export default function ProgressReportPage() {
     })
     .sort((a, b) => dimensionCodeOrder.indexOf(a.safeCode as typeof dimensionCodeOrder[number]) - dimensionCodeOrder.indexOf(b.safeCode as typeof dimensionCodeOrder[number])), [dimensionRows]);
 
+  const todayDateOnly = getTodayDateOnly();
+  const openActions = useMemo(() => actions.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked'), [actions]);
+
   const summary = useMemo(() => {
     const positive = dimensionRows.filter(r => r.progress?.trend === 'improving').map(r => r.dim.label);
     const pending = actions.filter(a => a.status === 'blocked' || a.status === 'not_started').slice(0, 4).map(a => a.title);
-    const nextFocus = buildNextFocuses(dimensionRows.map(r => r.progress!).filter(Boolean), actions, dimensions);
+    const nextFocus = buildNextFocuses(dimensionRows.map(r => r.progress!).filter(Boolean), actions, dimensions, meetings, todayDateOnly);
 
     const normalizeSentence = (value: string) => value.replace(/\.{2,}/g, '.').replace(/\s+\./g, '.').trim();
 
@@ -138,10 +137,22 @@ export default function ProgressReportPage() {
       text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
       nextFocus,
     };
-  }, [meetings.length, actionsByStatus.completed.length, dimensionRows, actions, dimensions]);
+  }, [meetings, actionsByStatus.completed.length, dimensionRows, actions, dimensions, todayDateOnly]);
 
+  const overdueActions = useMemo(() => actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)), [actions, todayDateOnly]);
+  const improvingCount = dimensionRows.filter((r) => r.progress?.trend === 'improving').length;
+  const worseningCount = dimensionRows.filter((r) => r.progress?.trend === 'worsening').length;
+  const attentionCount = dimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').length;
 
-  const openActions = useMemo(() => actions.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked'), [actions]);
+  const topMetrics = [
+    { label: 'Encontros registrados', value: meetings.length },
+    { label: 'Ações concluídas', value: actionsByStatus.completed.length },
+    { label: 'Ações abertas', value: openActions.length },
+    { label: 'Ações críticas', value: actionsByStatus.blocked.length + overdueActions.length },
+    { label: 'Dimensões melhorando', value: improvingCount },
+    { label: 'Dimensões em atenção', value: attentionCount },
+  ];
+
 
   const latestMeeting = meetings[0];
   const oldestMeeting = meetings[meetings.length - 1];
@@ -157,7 +168,7 @@ export default function ProgressReportPage() {
         <Button variant='outline' className='print:hidden' onClick={() => window.print()}>Imprimir / Exportar PDF</Button>
       </div>
       <div className='grid md:grid-cols-3 gap-2 text-sm mt-3'>
-        <p><strong>Data do relatório:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
+        <p><strong>Data do relatório:</strong> {formatDateOnlyBR(todayDateOnly)}</p>
         <p><strong>Período analisado:</strong> {formatDateOnlyBR(oldestMeeting?.meeting_date)} até {formatDateOnlyBR(latestMeeting?.meeting_date)}</p>
         <p><strong>Última reunião:</strong> {formatDateOnlyBR(latestMeeting?.meeting_date)}</p>
         <p><strong>Encontros registrados:</strong> {meetings.length}</p>
@@ -173,6 +184,13 @@ export default function ProgressReportPage() {
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <p>{summary.text1}</p><p>{summary.text2}</p><p>{summary.text3}</p><p>{summary.text4}</p>
     </CardContent></Card>
+
+    <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
+      {topMetrics.map((metric) => <Card key={metric.label} className='executive-surface print-safe'><CardContent className='py-4'>
+        <p className='text-xs text-muted-foreground'>{metric.label}</p>
+        <p className='text-2xl font-bold'>{metric.value}</p>
+      </CardContent></Card>)}
+    </div>
 
 
     <Card className='executive-surface print-safe print:hidden'><CardContent className='pt-6'>
@@ -207,11 +225,16 @@ export default function ProgressReportPage() {
       {dimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada. Abra o detalhe do encontro para registrar evidências e tendência por dimensão.</p> :
       <div className='space-y-2'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
         <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p><Badge className='executive-pill'>{trendLabel[progress!.trend]}</Badge></div>
-        <p><strong>Score inicial:</strong> {progress?.initial_score ?? '—'} | <strong>Score percebido atual:</strong> {progress?.current_perceived_score ?? '—'}</p>
+        <p><strong>Baseline:</strong> {progress?.initial_score ?? 'não disponível'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'não disponível'}</p>
+        <p><strong>Variação:</strong> {(progress?.initial_score !== null && progress?.initial_score !== undefined && progress?.current_perceived_score !== null && progress?.current_perceived_score !== undefined) ? `${(progress.current_perceived_score - progress.initial_score) > 0 ? '+' : ''}${(progress.current_perceived_score - progress.initial_score).toFixed(1)}` : 'não disponível'}</p>
         <p><strong>Evidência:</strong> {progress?.evidence_note || '—'}</p>
         <p><strong>Comentário do conselheiro:</strong> {progress?.counselor_comment || '—'}</p>
         <p className='text-xs text-muted-foreground'>Última atualização: {progress?.updated_at ? new Date(progress.updated_at).toLocaleString('pt-BR') : '—'}</p>
       </div>)}</div>}
+    </CardContent></Card>
+
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Leitura executiva da evolução</CardTitle></CardHeader><CardContent className='pt-2 text-sm'>
+      <p>{`${improvingCount} dimens${improvingCount === 1 ? 'ão' : 'ões'} melhorando; ${worseningCount === 0 ? 'nenhuma dimensão piorando' : `${worseningCount} em piora`}.`}</p>
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações de conselho</CardTitle></CardHeader><CardContent className='pt-2'>
@@ -220,7 +243,7 @@ export default function ProgressReportPage() {
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
         {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm'>
           <p className='font-medium'>{action.title}</p>
-          <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {action.due_date ? new Date(action.due_date).toLocaleDateString('pt-BR') : '—'}</p>
+          <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {formatDateOnlyBR(action.due_date)}</p>
           <p>Prioridade: {valueLabels.priority[action.priority as keyof typeof valueLabels.priority] || action.priority} | Impacto: {action.impact ? (valueLabels.impact[action.impact as keyof typeof valueLabels.impact] || action.impact) : '—'} | Esforço: {action.effort ? (valueLabels.effort[action.effort as keyof typeof valueLabels.effort] || action.effort) : '—'} | Status: {actionStatusLabel[action.status]}</p>
           <p><strong>Evidência esperada:</strong> {action.expected_evidence || '—'}</p>
         </div>)}
@@ -230,10 +253,10 @@ export default function ProgressReportPage() {
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='pt-2 space-y-2'>
       {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
         <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
-        <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
-        <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
+        <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
+        <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
         <p><strong>Principais travas:</strong> {meeting.key_blockers || '—'}</p>
-        <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+        <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'não disponível'}</p>
       </div>)}
       {meetings.length === 0 && <p className='text-sm text-muted-foreground'>Sem encontros para extrair decisões e recomendações.</p>}
     </CardContent></Card>
@@ -247,14 +270,16 @@ export default function ProgressReportPage() {
   </div>;
 }
 
-function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: CouncilAction[], dimensions: DimensionOption[]) {
-  const dimensionName = (id: string) => dimensions.find(d => d.id === id)?.label || id;
+function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: CouncilAction[], dimensions: DimensionOption[], meetings: CouncilMeeting[], todayDateOnly: string) {
+  const dimensionName = (id: string) => dimensions.find((d) => d.id === id)?.label || id;
   const items: string[] = [];
 
-  progressRows.filter(d => d.trend === 'worsening').forEach(d => items.push(`Reverter tendência de queda em ${dimensionName(d.dimension_id)}.`));
-  progressRows.filter(d => d.trend === 'stable' && (d.current_perceived_score ?? 999) <= 2.5).forEach(d => items.push(`Elevar score percebido (estável e baixo) em ${dimensionName(d.dimension_id)}.`));
-  actions.filter(a => a.status === 'blocked' && a.priority === 'high').forEach(a => items.push(`Destravar ação crítica: ${a.title}.`));
-  actions.filter(a => (a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked') && a.impact === 'high' && a.effort === 'low').forEach(a => items.push(`Executar quick win de alto impacto: ${a.title}.`));
+  progressRows.filter((d) => d.trend === 'worsening').forEach((d) => items.push(`Reverter tendência de queda em ${dimensionName(d.dimension_id)}.`));
+  progressRows.filter((d) => !d.evidence_note).forEach((d) => items.push(`Consolidar evidências de evolução em ${dimensionName(d.dimension_id)}.`));
+  actions.filter((a) => a.status === 'blocked').forEach((a) => items.push(`Destravar ação: ${a.title}.`));
+  actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)).forEach((a) => items.push(`Tratar atraso da ação ${a.title} e redefinir plano de execução.`));
+  const hasNextAgenda = meetings.some((m) => !!m.next_agenda?.trim());
+  if (!hasNextAgenda) items.push('Definir próxima pauta do conselho.');
 
-  return Array.from(new Set(items)).slice(0, 8);
+  return Array.from(new Set(items)).slice(0, 5);
 }
