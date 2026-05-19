@@ -421,6 +421,12 @@ export default function AdminUsersPage() {
                     <p className="text-xs text-muted-foreground">Acesso ao ambiente demo com dados fictícios</p>
                   </div>
                 </SelectItem>
+                <SelectItem value="demo_admin">
+                  <div>
+                    <p className="font-medium">Demo Admin</p>
+                    <p className="text-xs text-muted-foreground">Cria e edita dados apenas no ambiente demo</p>
+                  </div>
+                </SelectItem>
                 <SelectItem value="user">
                   <div>
                     <p className="font-medium">User</p>
