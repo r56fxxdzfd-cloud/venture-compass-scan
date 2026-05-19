@@ -100,3 +100,23 @@ Liberar somente após:
 1. validação manual autenticada de rotas diretas críticas com `demo_user`;
 2. confirmação de policies de Storage sem vazamento para `demo_user`;
 3. revisão de roles da conta demo (somente `demo_user`).
+
+
+## Fase 1.1.1 — Modelo operacional de demo (2026-05-19)
+
+Realinhamento operacional definido para uso externo controlado:
+- Victor permanece como único `super_admin`.
+- Todos os demais usuários atualmente cadastrados passam para `demo_user`.
+- `demo_user` acessa somente dados fictícios (`companies.is_demo = true`).
+- Empresas demo atuais: `Supertech`, `Learn Loop`, `BioNova`, `Domain IA`.
+- Novas empresas/dados reais devem permanecer com `companies.is_demo = false` (default mantido).
+
+Script operacional idempotente:
+- `supabase/migrations/20260519160000_phase1_1_demo_role_realignment.sql`
+
+Regras de segurança do script:
+- aborta automaticamente se Victor não for identificado com segurança;
+- não cria usuários e não altera `user_id`;
+- não cria empresas faltantes automaticamente;
+- não altera `company_id`;
+- não remove dados de diagnóstico, reuniões, ações ou relatórios.
