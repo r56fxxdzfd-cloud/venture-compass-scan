@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateBR, getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import KpiCards, { KpiData } from '@/components/dashboard/KpiCards';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
@@ -33,7 +34,7 @@ const quickAccessCards = [
   { label: 'Central do Conselheiro', description: 'Abrir cockpit operacional', href: '/app/counselor', icon: Users },
   { label: 'Agenda de Evolução', description: 'Preparar ritos e encontros', href: '/app/agenda', icon: CalendarRange },
   { label: 'Novo Diagnóstico', description: 'Iniciar fluxo em uma organização', href: '/app/startups', icon: ClipboardList },
-  { label: 'Registrar Encontro', description: 'Criar rito na agenda', href: '/app/agenda', icon: Plus },
+  { label: 'Registrar Encontro', description: 'Registrar reunião de conselho', href: '/app/agenda', icon: Plus },
   { label: 'Templates de Pauta', description: 'Usar pautas recomendadas', href: '/app/agenda/templates', icon: FileStack },
   { label: 'Metodologia', description: 'Consultar método Conselho OS', href: '/app/methodology', icon: BookOpen },
 ];
@@ -109,19 +110,22 @@ type PortfolioSummary = {
 type CriticalAction = CouncilAction & { reason: string; priorityScore: number };
 type RecentActivity = { id: string; label: string; detail: string; date: string | null; href: string; icon: LucideIcon };
 
-const formatDate = (value: string | null | undefined) => {
-  if (!value) return 'Sem data';
-  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+const actionStatusLabels: Record<string, string> = {
+  blocked: 'Travada',
+  in_progress: 'Em andamento',
+  not_started: 'Não iniciada',
+  completed: 'Concluída',
+  cancelled: 'Cancelada',
 };
+
+const formatDate = (value: string | null | undefined) => formatDateBR(value);
+const getActionStatusLabel = (status: string | null | undefined) => (status ? actionStatusLabels[status] || status : '—');
 
 const isOpenAction = (status: string | null | undefined) => OPEN_ACTION_STATUSES.has(status || '');
 const isBlocked = (action: CouncilAction) => action.status === 'blocked';
 const isOverdue = (action: CouncilAction) => {
   if (!action.due_date || !isOpenAction(action.status)) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dueDate = new Date(`${action.due_date}T00:00:00`);
-  return dueDate < today;
+  return isDateOnlyBefore(action.due_date, getTodayDateOnly());
 };
 const hasHighLeverage = (action: CouncilAction) => action.impact === 'high' && action.effort === 'low';
 const isCriticalAction = (action: CouncilAction) =>
@@ -156,7 +160,7 @@ const statusCopy: Record<PortfolioStatus, { label: string; description: string; 
   },
   Crítico: {
     label: 'Portfólio crítico',
-    description: 'Existem bloqueios, atrasos ou riscos críticos que exigem ação executiva.',
+    description: 'Existem bloqueios, atrasos ou red flags críticas que exigem ação executiva.',
     className: 'border-red-500/35 bg-red-500/10 text-red-700 dark:text-red-300',
   },
 };
@@ -291,7 +295,7 @@ export default function DashboardPage() {
       microtext: buildMicrotext([
         [overdueActions, 'ação atrasada', 'ações atrasadas'],
         [blockedActions, 'travada', 'travadas'],
-        [criticalRisks, 'organização com risco crítico', 'organizações com riscos críticos'],
+        [criticalRisks, 'organização com red flag alta', 'organizações com red flags altas'],
         [pendingDiagnostics, 'diagnóstico pendente', 'diagnósticos pendentes'],
         [meetingsWithoutAgenda.length, 'encontro sem próxima pauta', 'encontros sem próxima pauta'],
         [openActions.length, 'ação aberta', 'ações abertas'],
@@ -321,7 +325,7 @@ export default function DashboardPage() {
       const aWithoutAgenda = !a.next_agenda || a.next_agenda.trim().length === 0 ? 1 : 0;
       const bWithoutAgenda = !b.next_agenda || b.next_agenda.trim().length === 0 ? 1 : 0;
       if (aWithoutAgenda !== bWithoutAgenda) return bWithoutAgenda - aWithoutAgenda;
-      return new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime();
+      return b.meeting_date.localeCompare(a.meeting_date);
     })[0];
   }, [criticalActions, data.meetings]);
 
@@ -435,7 +439,7 @@ export default function DashboardPage() {
                     ['Sem pauta', portfolioSummary.meetingsWithoutAgenda],
                     ['Abertas', portfolioSummary.openActions],
                     ['Diagnósticos', portfolioSummary.pendingDiagnostics],
-                    ['Riscos', portfolioSummary.criticalRisks],
+                    ['Red flags', portfolioSummary.criticalRisks],
                   ].map(([label, value]) => (
                     <div key={label} className="executive-card rounded-2xl p-3">
                       <p className="text-2xl font-bold tabular-nums">{value}</p>
@@ -519,10 +523,10 @@ export default function DashboardPage() {
                           <span className="text-xs text-muted-foreground">Prazo: {formatDate(action.due_date)}</span>
                         </div>
                         <p className="font-semibold line-clamp-1">{action.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{action.company?.name || 'Organização'} · status: {action.status || '—'}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{action.company?.name || 'Organização'} · status: {getActionStatusLabel(action.status)}</p>
                       </div>
                       <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
-                        <Link to={`/app/startups/${action.company_id}/counselor`}>Abrir central</Link>
+                        <Link to={`/app/startups/${action.company_id}/counselor`}>Abrir Central</Link>
                       </Button>
                     </div>
                   </div>

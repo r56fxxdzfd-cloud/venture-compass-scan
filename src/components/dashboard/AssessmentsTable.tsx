@@ -17,7 +17,13 @@ import { Search, ArrowRight, Inbox, ArrowUpDown } from 'lucide-react';
 export interface AssessmentRow { id: string; companyName: string; stage: string | null; status: string | null; answeredCount: number; score: number | null; updatedAt: string; hasHighRedFlags?: boolean; }
 interface AssessmentsTableProps { rows: AssessmentRow[]; loading: boolean; }
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
-const statusLabels: Record<string, string> = { in_progress: 'Em andamento', completed: 'Concluído' };
+const statusLabels: Record<string, string> = {
+  blocked: 'Travada',
+  in_progress: 'Em andamento',
+  not_started: 'Não iniciada',
+  completed: 'Concluída',
+  cancelled: 'Cancelada',
+};
 const TOTAL_QUESTIONS = 45;
 function scoreLabel(score: number): string { if (score < 35) return 'Inicial'; if (score < 55) return 'Em evolução'; if (score < 75) return 'Estruturado'; return 'Avançado'; }
 type SortField = 'updatedAt' | 'score' | 'progress';
@@ -86,7 +92,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full md:w-[150px] h-9 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Status: Todos</SelectItem><SelectItem value="in_progress">Em andamento</SelectItem><SelectItem value="completed">Concluído</SelectItem>
+              <SelectItem value="all">Status: Todos</SelectItem><SelectItem value="in_progress">Em andamento</SelectItem><SelectItem value="completed">Concluída</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -113,7 +119,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
                   <TableRow key={row.id} className="group hover:bg-muted/25">
                     <TableCell className="py-3"><p className="text-sm font-semibold leading-tight">{row.companyName}</p></TableCell>
                     <TableCell className="hidden md:table-cell py-3">{row.stage ? <Badge variant="outline" className="text-[10px] font-normal">{stageLabels[row.stage] || row.stage}</Badge> : <span className="text-[10px] text-muted-foreground">—</span>}</TableCell>
-                    <TableCell className="py-3"><Badge variant={row.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">{statusLabels[row.status || ''] || row.status}</Badge></TableCell>
+                    <TableCell className="py-3"><Badge variant={row.status === 'completed' ? 'default' : 'secondary'} className="text-[10px]">{statusLabels[row.status || ''] || 'Status não mapeado'}</Badge></TableCell>
                     <TableCell className="py-3"><div className="flex items-center gap-2 min-w-[110px]"><Progress value={progressPct} className="h-1.5 flex-1" /><span className="text-[10px] text-muted-foreground w-9 text-right font-mono">{row.answeredCount}/{TOTAL_QUESTIONS}</span></div></TableCell>
                     <TableCell className="hidden sm:table-cell py-3">{row.status === 'completed' && row.score != null ? <Badge variant="outline" className={`text-[10px] font-medium ${getScoreBadge(row.score)}`}>{row.score}/100 · {scoreLabel(row.score)}</Badge> : <span className="text-[10px] text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="hidden lg:table-cell py-3"><span className="text-[10px] text-muted-foreground">{new Date(row.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</span></TableCell>

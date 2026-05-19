@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDateBR } from '@/lib/dateOnly';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -9,6 +10,12 @@ import { Plus, Settings2 } from 'lucide-react';
 interface DashboardHeaderProps {
   configVersion: { name: string; publishedAt: string; id?: string } | null;
 }
+
+const getMethodologyLabel = (configName?: string | null) => {
+  if (!configName) return null;
+  if (configName.toLowerCase().includes('darwin')) return 'Darwin Readiness';
+  return null;
+};
 
 interface ConfigStats {
   dimensions: number;
@@ -20,6 +27,7 @@ interface ConfigStats {
 export default function DashboardHeader({ configVersion }: DashboardHeaderProps) {
   const navigate = useNavigate();
   const [stats, setStats] = useState<ConfigStats | null>(null);
+  const methodologyLabel = getMethodologyLabel(configVersion?.name);
 
   useEffect(() => {
     if (!configVersion?.id) return;
@@ -59,7 +67,7 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-          {configVersion && (
+          {configVersion && methodologyLabel && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -69,15 +77,15 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
                       className="executive-pill gap-1.5 text-[11px] font-medium cursor-pointer border-white/35 bg-white/10 text-white hover:bg-white/20 transition-colors dark:border-border/70 dark:bg-secondary/30 dark:text-foreground dark:hover:bg-secondary/70"
                     >
                       <Settings2 className="h-3 w-3" />
-                      Config ativa: {configVersion.name}
+                      Metodologia ativa: {methodologyLabel}
                     </Badge>
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs space-y-1 max-w-[220px]">
-                  <p className="font-medium">Config publicada: {configVersion.name}</p>
+                  <p className="font-medium">Metodologia publicada: {methodologyLabel}</p>
                   {configVersion.publishedAt && (
                     <p className="text-muted-foreground">
-                      Publicada em {new Date(configVersion.publishedAt).toLocaleDateString('pt-BR')}
+                      Publicada em {formatDateBR(configVersion.publishedAt)}
                     </p>
                   )}
                   {stats && (
