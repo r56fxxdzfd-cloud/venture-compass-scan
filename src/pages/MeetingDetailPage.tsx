@@ -573,8 +573,10 @@ export default function MeetingDetailPage() {
         <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
         <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
       </>}
-      {!isDemoUser && <div className='print:hidden'><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
-      <div className='print:hidden'><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>}
+      {!isDemoUser && <>
+        <div className='print:hidden'><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
+        <div className='print:hidden'><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>
+      </>}
       <div className='flex flex-wrap gap-2'>
         {!meeting.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
         {totalActions === 0 && <Badge variant='outline'>Sem ações</Badge>}
