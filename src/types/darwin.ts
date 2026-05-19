@@ -1,4 +1,4 @@
-export type AppRole = 'super_admin' | 'jv_admin' | 'demo_user' | 'user' | 'jv_analyst' | 'jv_viewer';
+export type AppRole = 'super_admin' | 'jv_admin' | 'demo_user' | 'jv_analyst' | 'jv_viewer';
 
 export type ProfileStatus = 'pending' | 'approved' | 'rejected';
 
