@@ -52,18 +52,18 @@ function AnimatedRoutes() {
         <Route path="/app/counselor" element={<ProtectedRoute><AppLayout><AnimatedPage><CounselorOverviewPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/counselor" element={<ProtectedRoute><AppLayout><AnimatedPage><CounselorCenterPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/founders" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderListPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']} blockDemo><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/:id/pdf" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentPdfPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']}><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']} blockDemo><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/report" element={<ProtectedRoute><AppLayout><AnimatedPage><ReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/agenda" element={<ProtectedRoute><AppLayout><AnimatedPage><AgendaPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/agenda/templates" element={<ProtectedRoute><AppLayout><AnimatedPage><AgendaTemplatesPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/agenda/templates" element={<ProtectedRoute blockDemo><AppLayout><AnimatedPage><AgendaTemplatesPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/agenda/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><MeetingDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/simulator" element={<ProtectedRoute><AppLayout><AnimatedPage><SimulatorPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/methodology" element={<ProtectedRoute><AppLayout><AnimatedPage><MethodologyPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/admin/config" element={<ProtectedRoute requiredRoles={['jv_admin']}><AppLayout><AnimatedPage><AdminConfigPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/admin/users" element={<ProtectedRoute requiredRoles={['jv_admin', 'super_admin']}><AppLayout><AnimatedPage><AdminUsersPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/simulator" element={<ProtectedRoute blockDemo><AppLayout><AnimatedPage><SimulatorPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/methodology" element={<ProtectedRoute blockDemo><AppLayout><AnimatedPage><MethodologyPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/admin/config" element={<ProtectedRoute requiredRoles={['jv_admin']} blockDemo><AppLayout><AnimatedPage><AdminConfigPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/admin/users" element={<ProtectedRoute requiredRoles={['jv_admin', 'super_admin']} blockDemo><AppLayout><AnimatedPage><AdminUsersPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
 
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
       </Routes>

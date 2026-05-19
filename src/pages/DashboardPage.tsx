@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDateBR, getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import KpiCards, { KpiData } from '@/components/dashboard/KpiCards';
@@ -176,6 +177,7 @@ function buildMicrotext(parts: Array<[number, string, string]>) {
 }
 
 export default function DashboardPage() {
+  const { isDemoUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ExecutiveData>({
     companies: [],
@@ -387,6 +389,9 @@ export default function DashboardPage() {
   };
 
   const hasNoOperatingData = !loading && data.companies.length === 0;
+  const visibleQuickAccessCards = isDemoUser
+    ? quickAccessCards.filter((card) => !['Novo Diagnóstico', 'Registrar Encontro', 'Templates de Pauta', 'Metodologia'].includes(card.label))
+    : quickAccessCards;
   const hasNoDiagnostics = !loading && data.companies.length > 0 && data.assessments.length === 0;
   const hasNoMeetings = !loading && data.meetings.length === 0;
   const hasNoActions = !loading && data.actions.length === 0;
@@ -402,7 +407,7 @@ export default function DashboardPage() {
               <p className="executive-section-title text-sm">Comece pelo portfólio</p>
               <p className="mt-1 text-sm text-muted-foreground">Nenhuma organização cadastrada. Cadastre uma organização para liberar diagnósticos, ritos e ações.</p>
             </div>
-            <Button asChild className="rounded-full"><Link to="/app/startups">Adicionar organização</Link></Button>
+            {!isDemoUser && <Button asChild className="rounded-full"><Link to="/app/startups">Adicionar organização</Link></Button>}
           </CardContent>
         </Card>
       )}
@@ -490,7 +495,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <EmptyBlock icon={CalendarRange} title="Nenhum encontro registrado" description="Registre o primeiro rito para acompanhar pauta, decisões e ações do conselho." cta="Registrar encontro" href="/app/agenda" />
+              <EmptyBlock icon={CalendarRange} title="Nenhum encontro registrado" description="Ainda não há encontros registrados no ambiente demo." cta="Ver Agenda" href="/app/agenda" />
             )}
           </CardContent>
         </Card>
@@ -533,7 +538,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : hasNoActions ? (
-              <EmptyBlock icon={ListChecks} title="Nenhuma ação registrada" description="Registre encontros na Agenda de Evolução para criar ações e acompanhar responsáveis." cta="Registrar encontro" href="/app/agenda" />
+              <EmptyBlock icon={ListChecks} title="Nenhuma ação registrada" description="Ainda não há ações registradas para este portfólio." cta="Ver Agenda" href="/app/agenda" />
             ) : (
               <EmptyBlock icon={CheckCircle2} title="Sem pendências críticas" description="Existem ações no sistema, mas nenhuma está travada, atrasada, em alta prioridade ou com alto impacto/baixo esforço." cta="Ver ações" href="/app/counselor" />
             )}
@@ -572,8 +577,8 @@ export default function DashboardPage() {
 
       {(hasNoDiagnostics || hasNoMeetings) && (
         <section className="grid gap-3 md:grid-cols-2">
-          {hasNoDiagnostics && <GuidanceCard title="Sem diagnósticos" description="Inicie um diagnóstico a partir da página de organizações para gerar leitura executiva." href="/app/startups" cta="Novo diagnóstico" icon={ClipboardList} />}
-          {hasNoMeetings && <GuidanceCard title="Sem encontros" description="Registre ritos na Agenda de Evolução para ativar pautas, atas e ações." href="/app/agenda" cta="Registrar encontro" icon={CalendarRange} />}
+          {hasNoDiagnostics && !isDemoUser && <GuidanceCard title="Sem diagnósticos" description="Inicie um diagnóstico a partir da página de organizações para gerar leitura executiva." href="/app/startups" cta="Novo diagnóstico" icon={ClipboardList} />}
+          {hasNoMeetings && !isDemoUser && <GuidanceCard title="Sem encontros" description="Registre ritos na Agenda de Evolução para ativar pautas, atas e ações." href="/app/agenda" cta="Registrar encontro" icon={CalendarRange} />}
         </section>
       )}
 
@@ -584,7 +589,7 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-            {quickAccessCards.map((shortcut) => (
+            {visibleQuickAccessCards.map((shortcut) => (
               <Link key={shortcut.label} to={shortcut.href} className="executive-card rounded-2xl p-3 transition-all hover:-translate-y-0.5 hover:border-primary/35">
                 <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                   <shortcut.icon className="h-4 w-4" />
