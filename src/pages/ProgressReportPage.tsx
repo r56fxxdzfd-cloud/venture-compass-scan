@@ -27,7 +27,7 @@ const actionStatusLabel: Record<CouncilAction['status'], string> = {
   cancelled: 'Cancelada',
 };
 
-const statusOrder: CouncilAction['status'][] = ['completed', 'in_progress', 'blocked', 'not_started'];
+const statusOrder: CouncilAction['status'][] = ['completed', 'in_progress', 'blocked', 'not_started', 'cancelled'];
 
 const valueLabels = {
   priority: { low: 'Baixa', medium: 'Média', high: 'Alta' },
@@ -106,9 +106,7 @@ export default function ProgressReportPage() {
     return map;
   }, [progressRows]);
 
-  const dimensionRows = useMemo(() => dimensions
-    .map((d) => ({ dim: d, progress: latestProgressByDimension.get(d.id) }))
-    .filter((r) => !!r.progress), [dimensions, latestProgressByDimension]);
+  const dimensionRows = useMemo(() => dimensions.map((d) => ({ dim: d, progress: latestProgressByDimension.get(d.id) })), [dimensions, latestProgressByDimension]);
   const printDimensionRows = useMemo(() => dimensionRows
     .map(({ dim, progress }) => {
       const shortCodeRaw = dim.label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() || dim.label.split(/[\s&/-]+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
@@ -125,14 +123,16 @@ export default function ProgressReportPage() {
 
   const summary = useMemo(() => {
     const positive = dimensionRows.filter(r => r.progress?.trend === 'improving').map(r => r.dim.label);
+    const attentionDimensions = dimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').map((r) => r.dim.label);
     const pending = actions.filter(a => a.status === 'blocked' || a.status === 'not_started').slice(0, 4).map(a => a.title);
     const nextFocus = buildNextFocuses(dimensionRows.map(r => r.progress!).filter(Boolean), actions, dimensions, meetings, todayDateOnly);
 
     const normalizeSentence = (value: string) => value.replace(/\.{2,}/g, '.').replace(/\s+\./g, '.').trim();
 
     return {
-      text1: normalizeSentence(`Desde o início do acompanhamento, a empresa teve ${meetings.length} encontros, ${actionsByStatus.completed.length} ações concluídas e ${dimensionRows.length} dimensões avaliadas.`),
-      text2: normalizeSentence(`As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'nenhuma registrada até o momento'}.`),
+      text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros, ${actionsByStatus.completed.length} ações concluídas e ${dimensionRows.filter((r) => !!r.progress).length} dimensões avaliadas.`),
+      text2: normalizeSentence(`As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'sem evidência registrada'}.`),
+      text25: normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.length ? attentionDimensions.join(', ') : 'sem evidência registrada'}.`),
       text3: normalizeSentence(`As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`),
       text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
       nextFocus,
@@ -163,9 +163,15 @@ export default function ProgressReportPage() {
   return <div className='space-y-4 print-safe'>
     <div className='executive-surface rounded-xl p-5 print-safe'>
       <p className='executive-header'>Relatório de Progresso</p>
+      <p className='text-sm text-muted-foreground mt-1'>Evolução da organização ao longo dos encontros do conselho.</p>
       <div className='flex items-center justify-between gap-3 mt-2'>
         <h1 className='executive-section-title text-2xl font-bold'>{company.name}</h1>
-        <Button variant='outline' className='print:hidden' onClick={() => window.print()}>Imprimir / Exportar PDF</Button>
+        <div className='flex items-center gap-2 print:hidden'>
+          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}`}>Voltar para organização</Link></Button>
+          <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
+          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
+          <Button variant='outline' onClick={() => window.print()}>Imprimir / Exportar PDF</Button>
+        </div>
       </div>
       <div className='grid md:grid-cols-3 gap-2 text-sm mt-3'>
         <p><strong>Data do relatório:</strong> {formatDateOnlyBR(todayDateOnly)}</p>
@@ -183,6 +189,7 @@ export default function ProgressReportPage() {
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <p>{summary.text1}</p><p>{summary.text2}</p><p>{summary.text3}</p><p>{summary.text4}</p>
+      <p>{summary.text25}</p>
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'>
@@ -227,13 +234,13 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
-      {dimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada. Abra o detalhe do encontro para registrar evidências e tendência por dimensão.</p> :
+      {dimensionRows.filter((r) => !!r.progress).length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma evolução por dimensão registrada até o momento.</p> :
       <div className='space-y-2'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
-        <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p><Badge className='executive-pill'>{trendLabel[progress!.trend]}</Badge></div>
-        <p><strong>Baseline:</strong> {progress?.initial_score ?? 'não disponível'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'não disponível'}</p>
+        <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p>{progress ? <Badge className='executive-pill'>{trendLabel[progress.trend]}</Badge> : <Badge variant='outline'>Sem evidência</Badge>}</div>
+        <p><strong>Baseline:</strong> {progress?.initial_score ?? 'sem evidência'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'sem evidência'}</p>
         <p><strong>Variação:</strong> {(progress?.initial_score !== null && progress?.initial_score !== undefined && progress?.current_perceived_score !== null && progress?.current_perceived_score !== undefined) ? `${(progress.current_perceived_score - progress.initial_score) > 0 ? '+' : ''}${(progress.current_perceived_score - progress.initial_score).toFixed(1)}` : 'não disponível'}</p>
-        <p><strong>Evidência:</strong> {progress?.evidence_note || '—'}</p>
-        <p><strong>Comentário do conselheiro:</strong> {progress?.counselor_comment || '—'}</p>
+        <p><strong>Evidência:</strong> {progress?.evidence_note || 'sem evidência registrada'}</p>
+        <p><strong>Comentário do conselheiro:</strong> {progress?.counselor_comment || 'sem evidência registrada'}</p>
         <p className='text-xs text-muted-foreground'>Última atualização: {progress?.updated_at ? new Date(progress.updated_at).toLocaleString('pt-BR') : '—'}</p>
       </div>)}</div>}
     </CardContent></Card>
@@ -242,7 +249,7 @@ export default function ProgressReportPage() {
       <p>{`${improvingCount} dimens${improvingCount === 1 ? 'ão' : 'ões'} melhorando; ${worseningCount === 0 ? 'nenhuma dimensão piorando' : `${worseningCount} em piora`}.`}</p>
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações de conselho</CardTitle></CardHeader><CardContent className='pt-2'>
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações do conselho</CardTitle></CardHeader><CardContent className='pt-2'>
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
       <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className='space-y-1.5'>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
@@ -250,7 +257,7 @@ export default function ProgressReportPage() {
           <p className='font-medium'>{action.title}</p>
           <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {formatDateOnlyBR(action.due_date)}</p>
           <p>Prioridade: {valueLabels.priority[action.priority as keyof typeof valueLabels.priority] || action.priority} | Impacto: {action.impact ? (valueLabels.impact[action.impact as keyof typeof valueLabels.impact] || action.impact) : '—'} | Esforço: {action.effort ? (valueLabels.effort[action.effort as keyof typeof valueLabels.effort] || action.effort) : '—'} | Status: {actionStatusLabel[action.status]}</p>
-          <p><strong>Evidência esperada:</strong> {action.expected_evidence || '—'}</p>
+          <p><strong>Evidência esperada/registrada:</strong> {action.expected_evidence || 'sem evidência registrada'}</p>
         </div>)}
       </div>)}</div>}
     </CardContent></Card>
@@ -258,10 +265,12 @@ export default function ProgressReportPage() {
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='pt-2 space-y-2'>
       {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
         <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
-        <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
-        <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
-        <p><strong>Principais travas:</strong> {meeting.key_blockers || '—'}</p>
-        <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'não disponível'}</p>
+        {meeting.decisions || meeting.recommendations || meeting.key_blockers || meeting.next_agenda ? <>
+          <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
+          <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
+          <p><strong>Principais travas:</strong> {meeting.key_blockers || 'sem evidência registrada'}</p>
+          <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'sem evidência registrada'}</p>
+        </> : <p className='text-muted-foreground'>Ata ainda não estruturada.</p>}
       </div>)}
       {meetings.length === 0 && <p className='text-sm text-muted-foreground'>Sem encontros para extrair decisões e recomendações.</p>}
     </CardContent></Card>
@@ -283,6 +292,7 @@ function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: Cou
   progressRows.filter((d) => !d.evidence_note).forEach((d) => items.push(`Consolidar evidências de evolução em ${dimensionName(d.dimension_id)}.`));
   actions.filter((a) => a.status === 'blocked').forEach((a) => items.push(`Destravar ação: ${a.title}.`));
   actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)).forEach((a) => items.push(`Tratar atraso da ação ${a.title} e redefinir plano de execução.`));
+  progressRows.filter((d) => d.trend === 'stable' && (d.current_perceived_score ?? 99) <= 2.5).forEach((d) => items.push(`Acelerar evolução em ${dimensionName(d.dimension_id)} para sair de estabilidade baixa.`));
   const hasNextAgenda = meetings.some((m) => !!m.next_agenda?.trim());
   if (!hasNextAgenda) items.push('Definir próxima pauta do conselho.');
 
