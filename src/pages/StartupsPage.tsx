@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Building2, Sparkles } from 'lucide-react';
+import { Plus, Search, Building2, Sparkles, ArrowRight } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 export default function StartupsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, { diagnostics: number; lastAssessmentStatus: string; lastAssessmentDate: string; meetings: number; openActions: number; criticalActions: number }>>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
@@ -28,7 +29,65 @@ export default function StartupsPage() {
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false });
-    if (data) setCompanies(data as Company[]);
+    if (!data) return;
+    const companiesData = data as Company[];
+    setCompanies(companiesData);
+
+    const companyIds = companiesData.map((c) => c.id);
+    if (companyIds.length === 0) {
+      setPortfolioMetrics({});
+      return;
+    }
+
+    const [{ data: assessmentsData }, { data: meetingsData }] = await Promise.all([
+      supabase.from('assessments').select('id,company_id,status,created_at').in('company_id', companyIds).order('created_at', { ascending: false }),
+      supabase.from('council_meetings').select('id,company_id').in('company_id', companyIds),
+    ]);
+
+    const meetingIds = (meetingsData || []).map((m: any) => m.id);
+    const { data: actionsData } = meetingIds.length
+      ? await supabase.from('council_actions').select('meeting_id,status,due_date').in('meeting_id', meetingIds)
+      : { data: [] as any[] };
+
+    const meetingsByCompany = new Map<string, any[]>();
+    (meetingsData || []).forEach((m: any) => {
+      const list = meetingsByCompany.get(m.company_id) || [];
+      list.push(m);
+      meetingsByCompany.set(m.company_id, list);
+    });
+
+    const actionsByMeeting = new Map<string, any[]>();
+    (actionsData || []).forEach((a: any) => {
+      const list = actionsByMeeting.get(a.meeting_id) || [];
+      list.push(a);
+      actionsByMeeting.set(a.meeting_id, list);
+    });
+
+    const assessmentsByCompany = new Map<string, any[]>();
+    (assessmentsData || []).forEach((a: any) => {
+      const list = assessmentsByCompany.get(a.company_id) || [];
+      list.push(a);
+      assessmentsByCompany.set(a.company_id, list);
+    });
+
+    const metrics: Record<string, { diagnostics: number; lastAssessmentStatus: string; lastAssessmentDate: string; meetings: number; openActions: number; criticalActions: number }> = {};
+    companiesData.forEach((company) => {
+      const compAssess = assessmentsByCompany.get(company.id) || [];
+      const compMeetings = meetingsByCompany.get(company.id) || [];
+      const relatedActions = compMeetings.flatMap((m: any) => actionsByMeeting.get(m.id) || []);
+      const openActions = relatedActions.filter((a: any) => a.status !== 'completed').length;
+      const criticalActions = relatedActions.filter((a: any) => a.status === 'blocked' || a.status === 'overdue').length;
+      metrics[company.id] = {
+        diagnostics: compAssess.length,
+        lastAssessmentStatus: compAssess[0]?.status || 'none',
+        lastAssessmentDate: compAssess[0]?.created_at || '',
+        meetings: compMeetings.length,
+        openActions,
+        criticalActions,
+      };
+    });
+
+    setPortfolioMetrics(metrics);
   };
 
   useEffect(() => { fetchCompanies(); }, []);
@@ -73,7 +132,7 @@ export default function StartupsPage() {
               <Sparkles className="h-3 w-3" /> Portfolio
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{companies.length} organizações cadastradas no portfólio do conselho.</p>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Conselho OS.</p>
           </div>
           {canWrite && (
             <Dialog open={open} onOpenChange={setOpen}>
@@ -175,7 +234,8 @@ export default function StartupsPage() {
       {companies.length === 0 ? (
         <div className="executive-surface rounded-xl text-center py-16">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground mb-4">Nenhuma organização cadastrada ainda</p>
+          <p className="text-muted-foreground mb-2">Seu portfólio ainda está vazio.</p>
+          <p className="text-sm text-muted-foreground mb-4">Comece cadastrando uma organização para iniciar diagnósticos, agenda e acompanhamento executivo.</p>
           {canWrite && (
             <Button onClick={() => setOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova Organização
@@ -193,7 +253,7 @@ export default function StartupsPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Link to={`/app/startups/${company.id}`}>
-                  <Card className="executive-kpi hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                  <Card className="executive-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer rounded-2xl">
                     <CardContent className="pt-6">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -210,6 +270,30 @@ export default function StartupsPage() {
                             )}
                           </div>
                         </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
+                              <p className="text-muted-foreground">Diagnósticos</p>
+                              <p className="font-semibold">{portfolioMetrics[company.id]?.diagnostics ?? 0}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
+                              <p className="text-muted-foreground">Encontros</p>
+                              <p className="font-semibold">{portfolioMetrics[company.id]?.meetings ?? 0}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
+                              <p className="text-muted-foreground">Ações abertas</p>
+                              <p className="font-semibold">{portfolioMetrics[company.id]?.openActions ?? 0}</p>
+                            </div>
+                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
+                              <p className="text-muted-foreground">Críticas</p>
+                              <p className="font-semibold text-destructive">{portfolioMetrics[company.id]?.criticalActions ?? 0}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              Último diagnóstico: {portfolioMetrics[company.id]?.lastAssessmentDate ? new Date(portfolioMetrics[company.id].lastAssessmentDate).toLocaleDateString('pt-BR') : 'Não disponível'}
+                            </p>
+                            <span className="text-xs font-semibold text-primary inline-flex items-center gap-1">Abrir organização <ArrowRight className="h-3.5 w-3.5" /></span>
+                          </div>
                       </div>
                     </CardContent>
                   </Card>

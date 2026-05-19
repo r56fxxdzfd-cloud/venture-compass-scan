@@ -254,7 +254,8 @@ export default function StartupDetailPage() {
         </TooltipProvider>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{company.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
+            <p className="text-sm text-muted-foreground">Perfil executivo da organização</p>
             {canWrite && (
               <TooltipProvider>
                 <Tooltip>
@@ -276,14 +277,24 @@ export default function StartupDetailPage() {
       </div>
 
 
+      <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-6'>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Diagnósticos</p><p className='text-2xl font-bold'>{assessments.length}</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Último score/status</p><p className='text-2xl font-bold'>{lastResult ? `${lastResult.score100}` : '—'}</p><p className='text-xs text-muted-foreground'>{lastResult?.level || 'Sem diagnóstico concluído'}</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Encontros registrados</p><p className='text-2xl font-bold'>{councilStats.meetings}</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações abertas</p><p className='text-2xl font-bold'>{councilStats.open}</p></CardContent></Card>
+        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações críticas</p><p className='text-2xl font-bold text-destructive'>{lastResult?.redFlagCount || 0}</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Dimensões em atenção</p><p className='text-2xl font-bold'>{lastMeetingProgressSummary.worsening + lastMeetingProgressSummary.insufficient_evidence}</p></CardContent></Card>
+      </div>
+
       <Card className='executive-panel'>
-        <CardHeader><CardTitle>Histórico de Conselho</CardTitle></CardHeader>
+        <CardHeader><p className='executive-section-title text-xs'>Histórico de conselho</p><CardTitle>Histórico de Conselho</CardTitle></CardHeader>
         <CardContent className='grid md:grid-cols-5 gap-3 text-sm'>
           <div><p className='text-muted-foreground'>Ações abertas</p><p className='text-xl font-semibold'>{councilStats.open}</p></div>
           <div><p className='text-muted-foreground'>Ações concluídas</p><p className='text-xl font-semibold'>{councilStats.completed}</p></div>
           <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{formatDateOnlyBR(councilStats.lastMeeting)}</p></div>
           <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
           <div className='flex flex-col md:items-end justify-end gap-2'>
+            {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
             <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
             <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link></Button>
             <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
@@ -458,7 +469,7 @@ export default function StartupDetailPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm">Diagnósticos</CardTitle>
+            <p className='executive-section-title text-xs'>Diagnósticos e relatórios</p><CardTitle className="text-sm">Diagnósticos</CardTitle>
             {canWrite && (
               <Button size="sm" onClick={openNewDialog}>
                 <Plus className="mr-1 h-3 w-3" /> Novo
