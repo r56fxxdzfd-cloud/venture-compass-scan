@@ -645,11 +645,16 @@ export default function CounselorOverviewPage() {
                           {row.motives.length ? row.motives.slice(0, 3).join(' · ') : 'Sem alertas críticos ou relevantes.'}
                         </p>
                       </div>
-                      <Button asChild size="sm" variant="ghost" className="rounded-full shrink-0 hover:bg-primary/10 hover:text-primary">
-                        <Link to={`/app/startups/${row.company.id}/counselor`}>
-                          Abrir Central <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
-                        </Link>
-                      </Button>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        <Button asChild size="sm" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary">
+                          <Link to={`/app/startups/${row.company.id}/progress`}>Progresso</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="ghost" className="rounded-full hover:bg-primary/10 hover:text-primary">
+                          <Link to={`/app/startups/${row.company.id}/counselor`}>
+                            Abrir Central <ArrowUpRight className="h-3.5 w-3.5 ml-1" />
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
                     <div className="mt-3 flex items-center gap-2 rounded-xl border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs text-foreground/95">
                       <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-primary" />

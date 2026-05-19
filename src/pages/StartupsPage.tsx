@@ -252,8 +252,8 @@ export default function StartupsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Link to={`/app/startups/${company.id}`} className="block h-full">
-                  <Card className="executive-card executive-panel h-full rounded-2xl border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                <Card className="executive-card executive-panel h-full rounded-2xl border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                  <Link to={`/app/startups/${company.id}`} className="block">
                     <CardContent className="flex h-full flex-col gap-4 p-5">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -302,8 +302,13 @@ export default function StartupsPage() {
                         </span>
                       </div>
                     </CardContent>
-                  </Card>
-                </Link>
+                  </Link>
+                  <div className="px-5 pb-5 -mt-1 flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="secondary">
+                      <Link to={`/app/startups/${company.id}/progress`}>Relatório de Progresso</Link>
+                    </Button>
+                  </div>
+                </Card>
               </motion.div>
             ))}
           </div>
