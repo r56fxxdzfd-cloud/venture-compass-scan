@@ -53,6 +53,8 @@ const formatDateOnlyBR = (value?: string | null) => formatDateOnlyBRHelper(value
 export default function ProgressReportPage() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [company, setCompany] = useState<CompanyLite | null>(null);
   const [meetings, setMeetings] = useState<CouncilMeeting[]>([]);
   const [actions, setActions] = useState<CouncilAction[]>([]);
@@ -63,30 +65,83 @@ export default function ProgressReportPage() {
     const load = async () => {
       if (!id) return;
       setLoading(true);
+      setError(null);
+      setNotFound(false);
 
-      const [{ data: companyData }, { data: meetingsData }, { data: publishedConfig }] = await Promise.all([
-        supabase.from('companies').select('id,name').eq('id', id).single(),
-        supabase.from('council_meetings').select('*').eq('company_id', id).order('meeting_date', { ascending: false }),
-        supabase.from('config_versions').select('id').eq('status', 'published').single(),
-      ]);
+      try {
+        const { data: companyData, error: companyError } = await supabase.from('companies').select('id,name').eq('id', id).maybeSingle();
+        if (companyError) {
+          setError('Não foi possível carregar a organização.');
+          return;
+        }
+        if (!companyData) {
+          setNotFound(true);
+          return;
+        }
+        setCompany(companyData as CompanyLite);
 
-      const dimensionsQuery = supabase.from('dimensions').select('id,label').order('sort_order', { ascending: true });
-      const { data: dimensionsData } = publishedConfig?.id
-        ? await dimensionsQuery.eq('config_version_id', publishedConfig.id)
-        : await dimensionsQuery;
+        const meetingsResult = await supabase.from('council_meetings').select('*').eq('company_id', id).order('meeting_date', { ascending: false });
+        if (meetingsResult.error) console.error('Erro ao carregar council_meetings:', meetingsResult.error);
+        const meetingsData = (meetingsResult.data || []) as CouncilMeeting[];
+        setMeetings(meetingsData);
 
-      const meetingIds = (meetingsData || []).map(m => m.id);
-      const [{ data: actionsData }, { data: progressData }] = await Promise.all([
-        meetingIds.length ? supabase.from('council_actions').select('*').in('meeting_id', meetingIds) : Promise.resolve({ data: [] as any[] }),
-        meetingIds.length ? supabase.from('council_dimension_progress').select('*').in('meeting_id', meetingIds).order('updated_at', { ascending: false }) : Promise.resolve({ data: [] as any[] }),
-      ]);
+        const publishedConfigResult = await supabase.from('config_versions').select('id').eq('status', 'published').maybeSingle();
+        if (publishedConfigResult.error) console.error('Erro ao carregar config_versions:', publishedConfigResult.error);
+        const publishedConfigId = publishedConfigResult.data?.id;
 
-      setCompany((companyData || null) as CompanyLite | null);
-      setMeetings((meetingsData || []) as CouncilMeeting[]);
-      setActions((actionsData || []) as CouncilAction[]);
-      setProgressRows((progressData || []) as CouncilDimensionProgress[]);
-      setDimensions((dimensionsData || []) as DimensionOption[]);
-      setLoading(false);
+        try {
+          const dimensionsQuery = supabase.from('dimensions').select('id,label').order('sort_order', { ascending: true });
+          const dimensionsResult = publishedConfigId
+            ? await dimensionsQuery.eq('config_version_id', publishedConfigId)
+            : await dimensionsQuery;
+          if (dimensionsResult.error) throw dimensionsResult.error;
+          setDimensions((dimensionsResult.data || []) as DimensionOption[]);
+        } catch (dimensionsError) {
+          console.error('Erro ao carregar dimensions:', dimensionsError);
+          setDimensions([]);
+        }
+
+        const meetingIds = meetingsData.map(m => m.id);
+        if (meetingIds.length === 0) {
+          setActions([]);
+          setProgressRows([]);
+          return;
+        }
+
+        const [actionsResult, progressResult] = await Promise.allSettled([
+          supabase.from('council_actions').select('*').in('meeting_id', meetingIds),
+          supabase.from('council_dimension_progress').select('*').in('meeting_id', meetingIds).order('updated_at', { ascending: false }),
+        ]);
+
+        if (actionsResult.status === 'fulfilled') {
+          if (actionsResult.value.error) {
+            console.error('Erro ao carregar council_actions:', actionsResult.value.error);
+            setActions([]);
+          } else {
+            setActions((actionsResult.value.data || []) as CouncilAction[]);
+          }
+        } else {
+          console.error('Erro ao carregar council_actions:', actionsResult.reason);
+          setActions([]);
+        }
+
+        if (progressResult.status === 'fulfilled') {
+          if (progressResult.value.error) {
+            console.error('Erro ao carregar council_dimension_progress:', progressResult.value.error);
+            setProgressRows([]);
+          } else {
+            setProgressRows((progressResult.value.data || []) as CouncilDimensionProgress[]);
+          }
+        } else {
+          console.error('Erro ao carregar council_dimension_progress:', progressResult.reason);
+          setProgressRows([]);
+        }
+      } catch (loadError) {
+        console.error('Erro ao carregar relatório de progresso:', loadError);
+        setError('Não foi possível carregar o relatório de progresso.');
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
@@ -107,42 +162,44 @@ export default function ProgressReportPage() {
   }, [progressRows]);
 
   const dimensionRows = useMemo(() => dimensions.map((d) => ({ dim: d, progress: latestProgressByDimension.get(d.id) })), [dimensions, latestProgressByDimension]);
-  const printDimensionRows = useMemo(() => dimensionRows
+  const progressDimensionRows = useMemo(() => dimensionRows.filter((r) => !!r.progress), [dimensionRows]);
+  const printDimensionRows = useMemo(() => progressDimensionRows
     .map(({ dim, progress }) => {
       const shortCodeRaw = dim.label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() || dim.label.split(/[\s&/-]+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
-      const safeCode = dimensionCodeOrder.includes(shortCodeRaw as any) ? shortCodeRaw : 'MN';
+      const safeCode = dimensionCodeOrder.includes(shortCodeRaw as any) ? shortCodeRaw : dim.label;
       const initial = progress?.initial_score ?? null;
       const current = progress?.current_perceived_score ?? null;
       const variation = initial !== null && current !== null ? current - initial : null;
       return { dim, progress, safeCode, initial, current, variation };
     })
-    .sort((a, b) => dimensionCodeOrder.indexOf(a.safeCode as typeof dimensionCodeOrder[number]) - dimensionCodeOrder.indexOf(b.safeCode as typeof dimensionCodeOrder[number])), [dimensionRows]);
+    .sort((a, b) => dimensionCodeOrder.indexOf(a.safeCode as typeof dimensionCodeOrder[number]) - dimensionCodeOrder.indexOf(b.safeCode as typeof dimensionCodeOrder[number])), [progressDimensionRows]);
 
   const todayDateOnly = getTodayDateOnly();
   const openActions = useMemo(() => actions.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'blocked'), [actions]);
 
   const summary = useMemo(() => {
-    const positive = dimensionRows.filter(r => r.progress?.trend === 'improving').map(r => r.dim.label);
-    const attentionDimensions = dimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').map((r) => r.dim.label);
+    const positive = progressDimensionRows.filter(r => r.progress?.trend === 'improving').map(r => r.dim.label);
+    const attentionDimensions = progressDimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').map((r) => r.dim.label);
     const pending = actions.filter(a => a.status === 'blocked' || a.status === 'not_started').slice(0, 4).map(a => a.title);
     const nextFocus = buildNextFocuses(dimensionRows.map(r => r.progress!).filter(Boolean), actions, dimensions, meetings, todayDateOnly);
 
     const normalizeSentence = (value: string) => value.replace(/\.{2,}/g, '.').replace(/\s+\./g, '.').trim();
 
     return {
-      text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros, ${actionsByStatus.completed.length} ações concluídas e ${dimensionRows.filter((r) => !!r.progress).length} dimensões avaliadas.`),
+      text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros e ${actionsByStatus.completed.length} ações concluídas.`),
+      text15: normalizeSentence(`Foram registradas ${progressDimensionRows.length} dimensões com evolução acompanhada.`),
       text2: normalizeSentence(`As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'sem evidência registrada'}.`),
       text25: normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.length ? attentionDimensions.join(', ') : 'sem evidência registrada'}.`),
       text3: normalizeSentence(`As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`),
       text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
       nextFocus,
     };
-  }, [meetings, actionsByStatus.completed.length, dimensionRows, actions, dimensions, todayDateOnly]);
+  }, [meetings, actionsByStatus.completed.length, progressDimensionRows, actions, dimensions, todayDateOnly]);
 
   const overdueActions = useMemo(() => actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)), [actions, todayDateOnly]);
-  const improvingCount = dimensionRows.filter((r) => r.progress?.trend === 'improving').length;
-  const worseningCount = dimensionRows.filter((r) => r.progress?.trend === 'worsening').length;
-  const attentionCount = dimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').length;
+  const improvingCount = progressDimensionRows.filter((r) => r.progress?.trend === 'improving').length;
+  const worseningCount = progressDimensionRows.filter((r) => r.progress?.trend === 'worsening').length;
+  const attentionCount = progressDimensionRows.filter((r) => r.progress?.trend === 'worsening' || r.progress?.trend === 'insufficient_evidence').length;
 
   const topMetrics = [
     { label: 'Encontros registrados', value: meetings.length },
@@ -158,7 +215,15 @@ export default function ProgressReportPage() {
   const oldestMeeting = meetings[meetings.length - 1];
 
   if (loading) return <div className='text-sm text-muted-foreground'>Carregando relatório de progresso...</div>;
-  if (!company) return <div className='text-sm text-muted-foreground'>Empresa não encontrada.</div>;
+  if (error) return <div className='space-y-3 text-sm text-muted-foreground'>
+    <p>{error}</p>
+    <Button asChild variant='outline'><Link to='/app/startups'>Voltar para Organizações</Link></Button>
+  </div>;
+  if (notFound) return <div className='space-y-3 text-sm text-muted-foreground'>
+    <p>Organização não encontrada ou sem permissão de acesso.</p>
+    <Button asChild variant='outline'><Link to='/app/startups'>Voltar para Organizações</Link></Button>
+  </div>;
+  if (!company) return <div className='text-sm text-muted-foreground'>Organização não encontrada ou sem permissão de acesso.</div>;
 
   return <div className='space-y-4 print-safe'>
     <div className='executive-surface rounded-xl p-5 print-safe'>
@@ -188,8 +253,12 @@ export default function ProgressReportPage() {
     </CardContent></Card>}
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
-      <p>{summary.text1}</p><p>{summary.text2}</p><p>{summary.text3}</p><p>{summary.text4}</p>
+      <p>{summary.text1}</p>
+      <p>{summary.text15}</p>
+      <p>{summary.text2}</p>
       <p>{summary.text25}</p>
+      <p>{summary.text3}</p>
+      <p>{summary.text4}</p>
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'>
@@ -234,8 +303,8 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
-      {dimensionRows.filter((r) => !!r.progress).length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma evolução por dimensão registrada até o momento.</p> :
-      <div className='space-y-2'>{dimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
+      {progressDimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma evolução por dimensão registrada até o momento.</p> :
+      <div className='space-y-2'>{progressDimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
         <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p>{progress ? <Badge className='executive-pill'>{trendLabel[progress.trend]}</Badge> : <Badge variant='outline'>Sem evidência</Badge>}</div>
         <p><strong>Baseline:</strong> {progress?.initial_score ?? 'sem evidência'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'sem evidência'}</p>
         <p><strong>Variação:</strong> {(progress?.initial_score !== null && progress?.initial_score !== undefined && progress?.current_perceived_score !== null && progress?.current_perceived_score !== undefined) ? `${(progress.current_perceived_score - progress.initial_score) > 0 ? '+' : ''}${(progress.current_perceived_score - progress.initial_score).toFixed(1)}` : 'não disponível'}</p>
@@ -253,9 +322,9 @@ export default function ProgressReportPage() {
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
       <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className='space-y-1.5'>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
-        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm'>
+        {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm print:break-inside-avoid'>
           <p className='font-medium'>{action.title}</p>
-          <p className='text-muted-foreground'>{action.related_dimension ? `${dimensionCodeToLabel[action.related_dimension] || 'Dimensão'} (${action.related_dimension})` : 'Sem dimensão'} • {action.owner_name || 'Sem responsável'} • Prazo: {formatDateOnlyBR(action.due_date)}</p>
+          <p className='text-muted-foreground'>{formatDimensionLabel(action.related_dimension)} • {action.owner_name || 'Sem responsável'} • Prazo: {formatDateOnlyBR(action.due_date)}</p>
           <p>Prioridade: {valueLabels.priority[action.priority as keyof typeof valueLabels.priority] || action.priority} | Impacto: {action.impact ? (valueLabels.impact[action.impact as keyof typeof valueLabels.impact] || action.impact) : '—'} | Esforço: {action.effort ? (valueLabels.effort[action.effort as keyof typeof valueLabels.effort] || action.effort) : '—'} | Status: {actionStatusLabel[action.status]}</p>
           <p><strong>Evidência esperada/registrada:</strong> {action.expected_evidence || 'sem evidência registrada'}</p>
         </div>)}
@@ -297,4 +366,24 @@ function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: Cou
   if (!hasNextAgenda) items.push('Definir próxima pauta do conselho.');
 
   return Array.from(new Set(items)).slice(0, 5);
+}
+
+function formatDimensionLabel(value?: string | null) {
+  if (!value) return 'Sem dimensão';
+  const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[_\s]+/g, '_');
+  const aliasMap: Record<string, string> = {
+    ic: 'IC', identidade: 'IC', identidade_cultura: 'IC',
+    pl: 'PL', pessoas: 'PL', lideranca: 'PL', liderança: 'PL',
+    gr: 'GR', governanca: 'GR', governança: 'GR', riscos: 'GR',
+    ee: 'EE', estrategia: 'EE', estratégia: 'EE', execucao: 'EE', execução: 'EE', execution: 'EE',
+    pm: 'PM', processos: 'PM', metricas: 'PM', métricas: 'PM',
+    fs: 'FS', financas: 'FS', finanças: 'FS', sustentabilidade: 'FS',
+    mn: 'MN', modelo: 'MN', negocio: 'MN', negócio: 'MN',
+    gt: 'GT', 'go-to-market': 'GT', tracao: 'GT', tração: 'GT',
+    pt: 'PT', produto: 'PT', tecnologia: 'PT',
+  };
+  const code = aliasMap[normalized] || aliasMap[normalized.replace(/_/g, '-')] || value.toUpperCase();
+  const label = dimensionCodeToLabel[code];
+  if (!label) return value;
+  return `${label} (${code})`;
 }
