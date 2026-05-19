@@ -83,6 +83,7 @@ export default function MeetingDetailPage() {
   const [companyName, setCompanyName] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   const [transcriptText, setTranscriptText] = useState('');
@@ -95,6 +96,7 @@ export default function MeetingDetailPage() {
   const load = async () => {
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     setNotFound(false);
     try {
       if (!id) {
@@ -103,14 +105,27 @@ export default function MeetingDetailPage() {
         return;
       }
       const { data: m, error: meetingError } = await supabase.from('council_meetings').select('*').eq('id', id).maybeSingle();
-      if (meetingError) throw meetingError;
+      if (meetingError) {
+        console.error('[MeetingDetailPage] failed loading meeting', {
+          id,
+          error: meetingError,
+          message: meetingError?.message,
+          details: meetingError?.details,
+          hint: meetingError?.hint,
+          code: meetingError?.code
+        });
+        setError(meetingError.message || 'Falha ao carregar os dados do encontro.');
+        setErrorCode(meetingError.code ?? null);
+        setMeeting(null);
+        return;
+      }
       if (!m) {
         setMeeting(null);
         setNotFound(true);
         return;
       }
 
-      const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }, { data: templates, error: templatesError }] = await Promise.all([
+      const [actionsResult, companyResult, configResult, progressResult, templatesResult] = await Promise.allSettled([
         supabase.from('council_actions').select('*').eq('meeting_id', id),
         supabase.from('companies').select('name').eq('id', m.company_id).single(),
         supabase.from('config_versions').select('id').eq('status', 'published').single(),
@@ -118,19 +133,44 @@ export default function MeetingDetailPage() {
         supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order'),
       ]);
 
-      if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
-      if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
-      if (progressError) toast({ title: 'Erro ao carregar evolução por dimensão', description: progressError.message, variant: 'destructive' });
-      if (templatesError) toast({ title: 'Erro ao carregar templates de pauta', description: templatesError.message, variant: 'destructive' });
+      const actionsPayload = actionsResult.status === 'fulfilled' ? actionsResult.value : null;
+      const companyPayload = companyResult.status === 'fulfilled' ? companyResult.value : null;
+      const configPayload = configResult.status === 'fulfilled' ? configResult.value : null;
+      const progressPayload = progressResult.status === 'fulfilled' ? progressResult.value : null;
+      const templatesPayload = templatesResult.status === 'fulfilled' ? templatesResult.value : null;
+
+      if (actionsResult.status === 'rejected' || actionsPayload?.error) {
+        const actionError = actionsResult.status === 'rejected' ? actionsResult.reason : actionsPayload?.error;
+        console.error('[MeetingDetailPage] failed loading council_actions', { id, error: actionError });
+      }
+      if (companyResult.status === 'rejected' || companyPayload?.error) {
+        const companyError = companyResult.status === 'rejected' ? companyResult.reason : companyPayload?.error;
+        console.error('[MeetingDetailPage] failed loading company', { id, companyId: m.company_id, error: companyError });
+      }
+      if (progressResult.status === 'rejected' || progressPayload?.error) {
+        const progressError = progressResult.status === 'rejected' ? progressResult.reason : progressPayload?.error;
+        console.error('[MeetingDetailPage] failed loading council_dimension_progress', { id, error: progressError });
+      }
+      if (templatesResult.status === 'rejected' || templatesPayload?.error) {
+        const templatesError = templatesResult.status === 'rejected' ? templatesResult.reason : templatesPayload?.error;
+        console.error('[MeetingDetailPage] failed loading templates', { id, error: templatesError });
+      }
+      if (configResult.status === 'rejected' || configPayload?.error) {
+        const configError = configResult.status === 'rejected' ? configResult.reason : configPayload?.error;
+        console.error('[MeetingDetailPage] failed loading config_versions', { id, error: configError });
+      }
 
       let dimensionData: DimensionOption[] = [];
-      if (publishedConfig?.id) {
-        const { data: dims, error: dimError } = await supabase.from('dimensions').select('id,label').eq('config_version_id', publishedConfig.id).order('sort_order', { ascending: true });
-        if (dimError) toast({ title: 'Erro ao carregar dimensões', description: dimError.message, variant: 'destructive' });
+      const publishedConfigId = configPayload?.data?.id;
+      if (publishedConfigId) {
+        const { data: dims, error: dimError } = await supabase.from('dimensions').select('id,label').eq('config_version_id', publishedConfigId).order('sort_order', { ascending: true });
+        if (dimError) {
+          console.error('[MeetingDetailPage] failed loading dimensions', { id, configVersionId: publishedConfigId, error: dimError });
+        }
         dimensionData = (dims || []) as DimensionOption[];
       }
 
-      const rows = (progress || []) as CouncilDimensionProgress[];
+      const rows = (progressPayload?.data || []) as CouncilDimensionProgress[];
       const formState: Record<string, DimensionForm> = {};
 
       for (const dim of dimensionData) {
@@ -155,17 +195,24 @@ export default function MeetingDetailPage() {
       }
 
       setMeeting(m as CouncilMeeting);
-      setActions((a || []) as CouncilAction[]);
-      setCompanyName(company?.name || '');
+      setActions((actionsPayload?.data || []) as CouncilAction[]);
+      setCompanyName(companyPayload?.data?.name || '');
       setDimensions(dimensionData);
       setProgressRows(rows);
-      setAgendaTemplates((templates || []) as CouncilAgendaTemplate[]);
+      setAgendaTemplates((templatesPayload?.data || []) as CouncilAgendaTemplate[]);
       setFormByDimension(formState);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Falha ao carregar os dados do encontro.';
       setError(message);
       setMeeting(null);
-      console.error('Erro ao carregar detalhe do encontro', err);
+      console.error('[MeetingDetailPage] failed loading meeting', {
+        id,
+        error: err,
+        message: err && typeof err === 'object' && 'message' in err ? (err as { message?: string }).message : undefined,
+        details: err && typeof err === 'object' && 'details' in err ? (err as { details?: string }).details : undefined,
+        hint: err && typeof err === 'object' && 'hint' in err ? (err as { hint?: string }).hint : undefined,
+        code: err && typeof err === 'object' && 'code' in err ? (err as { code?: string }).code : undefined
+      });
       toast({ title: 'Erro ao carregar encontro', description: message, variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -319,7 +366,7 @@ export default function MeetingDetailPage() {
   };
 
   if (loading) return <div className='text-sm text-muted-foreground'>Carregando encontro...</div>;
-  if (error) return <Card className='executive-panel'><CardHeader><CardTitle>Erro ao carregar encontro</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>Não foi possível carregar os dados deste encontro agora. {error}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
+  if (error) return <Card className='executive-panel'><CardHeader><CardTitle>Erro ao carregar encontro</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>Não foi possível carregar os dados deste encontro agora.</p>{import.meta.env.DEV && <div className='rounded-md border border-dashed border-destructive/40 bg-destructive/5 p-3 text-xs text-muted-foreground space-y-1'><p><strong>meeting id:</strong> {id || '(vazio)'}</p><p><strong>error code:</strong> {errorCode || '(sem código)'}</p><p><strong>mensagem:</strong> {error}</p></div>}<Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
   if (notFound || !meeting) return <Card className='executive-panel'><CardHeader><CardTitle>Encontro não encontrado</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>{id ? 'Encontro não encontrado ou sem permissão de acesso.' : 'Encontro não encontrado.'}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
 
   const todayDateOnly = getTodayDateOnly();
