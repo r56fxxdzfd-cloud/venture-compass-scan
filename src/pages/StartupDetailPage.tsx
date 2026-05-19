@@ -268,7 +268,12 @@ export default function StartupDetailPage() {
       };
       return getWeight(b) - getWeight(a);
     })
-    .slice(0, 6);
+    .slice(0, 5);
+
+
+  const normalizedCompanyName = (company.name || '').trim().toLowerCase();
+  const normalizedLegalName = (company.legal_name || '').trim().toLowerCase();
+  const isLegalNameCoherent = !!company.legal_name && (!!normalizedCompanyName && (normalizedLegalName.includes(normalizedCompanyName) || normalizedCompanyName.includes(normalizedLegalName)));
 
   const actionBadges = [
     { label: 'Travadas', value: actions.filter((a) => a.status === 'blocked').length },
@@ -292,9 +297,11 @@ export default function StartupDetailPage() {
           </Tooltip>
         </TooltipProvider>
           <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
-            <p className="text-sm text-muted-foreground">Perfil executivo da organização</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+            <h1 className="text-3xl font-bold tracking-tight leading-tight">{company.name}</h1>
+            <p className="text-sm text-muted-foreground mt-1">Perfil executivo da organização acompanhada pelo Conselho OS.</p>
+            </div>
             {canWrite && (
               <TooltipProvider>
                 <Tooltip>
@@ -308,7 +315,7 @@ export default function StartupDetailPage() {
               </TooltipProvider>
             )}
           </div>
-          <div className="flex gap-2 mt-2 flex-wrap">
+          <div className="flex gap-2 mt-3 flex-wrap">
             {company.stage && <Badge variant="secondary" className="executive-pill">{stageLabels[company.stage] || company.stage}</Badge>}
             {company.sector && <Badge variant="outline" className="executive-pill">{company.sector}</Badge>}
             <Badge variant={latestStatusVariant} className="executive-pill">Status geral: {lastResult?.level || latestStatusLabel}</Badge>
@@ -372,10 +379,9 @@ export default function StartupDetailPage() {
                   {recentMeetings.map((meeting) => (
                     <div key={meeting.id} className="flex items-center justify-between rounded-md border px-3 py-2">
                       <div>
-                        <p className="font-medium">{formatDateOnlyBR(meeting.meeting_date)}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[360px]">
-                          {meeting.next_agenda || 'Sem pauta definida'}
-                        </p>
+                        <p className="text-xs text-muted-foreground">{formatDateOnlyBR(meeting.meeting_date)}</p>
+                        <p className="font-medium">{meeting.title || meeting.executive_summary || 'Encontro de conselho'}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[360px]">Próxima pauta: {meeting.next_agenda || 'Não definida'}</p>
                       </div>
                       <Button asChild size="sm" variant="ghost">
                         <Link to={`/app/agenda/${meeting.id}`}>Abrir</Link>
@@ -390,7 +396,6 @@ export default function StartupDetailPage() {
             <p><span className='text-muted-foreground'>Ações abertas/críticas:</span> <strong>{openActionsCount}</strong> / <strong className='text-destructive'>{criticalActionsCount}</strong></p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
-              <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
             </div>
           </CardContent>
         </Card>
@@ -423,9 +428,8 @@ export default function StartupDetailPage() {
                 <p className="text-muted-foreground mt-2">Prazo: {formatDateOnlyBR(item.due_date) || '—'}</p>
                 <p className="text-muted-foreground">Responsável: {item.owner_name || 'Não definido'}</p>
                 <p className="text-muted-foreground">Dimensão: {item.related_dimension || 'Não informada'}</p>
-                <div className="mt-2 flex gap-2">
-                  <Button asChild size="sm" variant="outline"><Link to={item.meeting_id ? `/app/agenda/${item.meeting_id}` : '/app/agenda'}>Encontro</Link></Button>
-                  <Button asChild size="sm"><Link to={`/app/startups/${company.id}/counselor`}>Central</Link></Button>
+                <div className="mt-2">
+                  <Button asChild size="sm"><Link to={item.meeting_id ? `/app/agenda/${item.meeting_id}` : `/app/startups/${company.id}/counselor`}>{item.meeting_id ? 'Abrir encontro' : 'Abrir Central do Conselheiro'}</Link></Button>
                 </div>
               </div>
             ))}
@@ -441,12 +445,15 @@ export default function StartupDetailPage() {
           <div className="rounded-lg border p-3"><p className="text-muted-foreground">Estáveis</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.stable}</p></div>
           <div className="rounded-lg border p-3"><p className="text-muted-foreground">Piorando</p><p className="text-lg font-semibold text-destructive">{lastMeetingProgressSummary.worsening}</p></div>
           <div className="rounded-lg border p-3"><p className="text-muted-foreground">Sem evidência</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.insufficient_evidence}</p></div>
+          <p className='col-span-full text-sm text-muted-foreground'>
+            {`${lastMeetingProgressSummary.improving} dimens${lastMeetingProgressSummary.improving === 1 ? 'ão' : 'ões'} melhorando; ${lastMeetingProgressSummary.worsening === 0 ? 'nenhuma dimensão piorando' : `${lastMeetingProgressSummary.worsening} em piora`}.`}
+          </p>
           {lastMeetingProgressSummary.meetingId && <Link className='text-primary underline col-span-full' to={`/app/agenda/${lastMeetingProgressSummary.meetingId}`}>Ver detalhe da última reunião</Link>}
           {recentMeetings.length === 0 && <p className="col-span-full text-sm text-muted-foreground">Sem histórico de reunião para calcular evolução por dimensão.</p>}
         </CardContent>
       </Card>
 
-      {/* Last completed assessment summary */}
+      {/* Resumo do diagnóstico mais recente */}
       {lastResult && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-5">
@@ -454,7 +461,7 @@ export default function StartupDetailPage() {
               <div className="flex items-center gap-4">
                 <div className="text-center">
                   <p className="text-3xl font-bold">{lastResult.score100}</p>
-                  <p className="text-xs text-muted-foreground">Score</p>
+                  <p className="text-xs text-muted-foreground">Resumo do diagnóstico mais recente</p>
                 </div>
                 <Separator orientation="vertical" className="h-10" />
                 <div>
@@ -527,7 +534,10 @@ export default function StartupDetailPage() {
               </div>
 
               {/* Individual founders table */}
-              {founders.length > 0 && (
+              {founders.length > 0 && founderAssessments.length === 0 && (
+                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">Avaliação de liderança ainda não registrada.</div>
+              )}
+              {founders.length > 0 && founderAssessments.length > 0 && (
                 <div className="space-y-1.5">
                   {founders.map(f => {
                     const fa = founderAssessments.find(a => a.founder_id === f.id);
@@ -545,7 +555,7 @@ export default function StartupDetailPage() {
                               {stage && <Badge variant="outline" className={`text-[10px] ${stage.color}`}>{stage.label}</Badge>}
                             </>
                           ) : (
-                            <span className="text-muted-foreground italic">Sem avaliação</span>
+                            <span className="text-muted-foreground italic">Avaliação de liderança ainda não registrada.</span>
                           )}
                         </div>
                       </div>
@@ -599,7 +609,8 @@ export default function StartupDetailPage() {
         <Card>
           <CardHeader><CardTitle className="text-sm">Informações</CardTitle></CardHeader>
           <CardContent className="text-sm space-y-2">
-            {company.legal_name && <p><span className="text-muted-foreground">Razão Social:</span> {company.legal_name}</p>}
+            {isLegalNameCoherent && <p><span className="text-muted-foreground">Razão Social:</span> {company.legal_name}</p>}
+            {!isLegalNameCoherent && <p><span className="text-muted-foreground">Razão Social:</span> Informação em revisão no cadastro</p>}
             {company.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {company.cnpj}</p>}
             {company.business_model && <p><span className="text-muted-foreground">Modelo:</span> {company.business_model}</p>}
           </CardContent>
