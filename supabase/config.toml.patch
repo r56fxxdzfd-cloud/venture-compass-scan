@@ -1,2 +1,0 @@
-[functions.admin-reset-password]
-verify_jwt = false
