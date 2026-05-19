@@ -78,15 +78,74 @@ const dimensionLabelByCode: Record<string, string> = {
   PT: 'Produto & Tecnologia',
 };
 
+const dimensionCodeByAlias: Record<string, keyof typeof dimensionLabelByCode> = {
+  ic: 'IC',
+  identidade: 'IC',
+  identidadecultura: 'IC',
+
+  pl: 'PL',
+  pessoas: 'PL',
+  lideranca: 'PL',
+
+  gr: 'GR',
+  governanca: 'GR',
+  riscos: 'GR',
+
+  ee: 'EE',
+  estrategia: 'EE',
+  execucao: 'EE',
+
+  pm: 'PM',
+  processos: 'PM',
+  metricas: 'PM',
+
+  fs: 'FS',
+  financas: 'FS',
+  sustentabilidade: 'FS',
+
+  mn: 'MN',
+  modelo: 'MN',
+  negocio: 'MN',
+
+  gt: 'GT',
+  gotomarket: 'GT',
+  tracao: 'GT',
+
+  pt: 'PT',
+  produto: 'PT',
+  tecnologia: 'PT',
+};
+
+function normalizeDimensionToken(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function normalizeDimensionCode(value?: string | null): keyof typeof dimensionLabelByCode | null {
+  if (!value) return null;
+  const cleaned = value.trim();
+  if (!cleaned) return null;
+  const normalized = normalizeDimensionToken(cleaned);
+  if (!normalized) return null;
+
+  if (normalized in dimensionCodeByAlias) {
+    return dimensionCodeByAlias[normalized];
+  }
+
+  const byLabel = Object.entries(dimensionLabelByCode).find(([, fullLabel]) => normalizeDimensionToken(fullLabel) === normalized);
+  if (byLabel) return byLabel[0] as keyof typeof dimensionLabelByCode;
+
+  return null;
+}
+
 function dimensionDisplayLabel(value?: string | null): string {
   if (!value) return '—';
-  const cleaned = value.trim();
-  if (!cleaned) return '—';
-  const upper = cleaned.toUpperCase();
-  if (dimensionLabelByCode[upper]) return `${dimensionLabelByCode[upper]} (${upper})`;
-  const matchedCode = Object.entries(dimensionLabelByCode).find(([, fullLabel]) => fullLabel.toLowerCase() === cleaned.toLowerCase());
-  if (matchedCode) return `${matchedCode[1]} (${matchedCode[0]})`;
-  return cleaned;
+  const code = normalizeDimensionCode(value);
+  if (!code) return value.trim() || '—';
+  return `${dimensionLabelByCode[code]} (${code})`;
 }
 
 const MIN_TRANSCRIPT_CHARS = 80;
