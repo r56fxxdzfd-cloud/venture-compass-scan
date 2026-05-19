@@ -32,7 +32,7 @@ const severityVariant = (type: AttentionItem['type']): 'destructive' | 'secondar
 const panels = [
   { id: 'diagnosticos', title: 'Diagnósticos pendentes', icon: ClipboardList, matches: (item: AttentionItem) => item.type === 'low_progress' },
   { id: 'avaliacoes', title: 'Founders e avaliações', icon: Users, matches: (item: AttentionItem) => item.category === 'founder' },
-  { id: 'riscos', title: 'Riscos críticos', icon: ShieldAlert, matches: (item: AttentionItem) => item.type === 'high_red_flag' || item.type === 'founder_risk' || item.type === 'founder_regression' },
+  { id: 'riscos', title: 'Red flags críticas', icon: ShieldAlert, matches: (item: AttentionItem) => item.type === 'high_red_flag' || item.type === 'founder_risk' || item.type === 'founder_regression' },
 ];
 
 export default function AttentionSection({ items, loading }: AttentionSectionProps) {

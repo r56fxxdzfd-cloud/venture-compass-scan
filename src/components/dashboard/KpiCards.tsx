@@ -80,7 +80,7 @@ const cards: CardDef[] = [
   },
   {
     key: 'highRedFlags',
-    label: 'Riscos críticos',
+    label: 'Red flags críticas',
     sublabel: 'organizações com red flags altas',
     icon: ShieldAlert,
     iconWrap: 'bg-red-500/10 border border-red-500/30',
