@@ -174,6 +174,7 @@ export default function AdminUsersPage() {
     jv_admin: 'Admin',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
+    demo_user: 'Demo',
   };
 
   const statusBadge = (status: string) => {
