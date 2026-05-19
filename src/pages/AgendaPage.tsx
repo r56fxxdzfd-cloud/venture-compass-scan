@@ -115,6 +115,12 @@ const isDateOnlyBefore = (
   return parsed.day < reference.day;
 };
 
+const getValidMeetingId = (meeting: Pick<CouncilMeeting, 'id'>) => {
+  if (typeof meeting.id !== 'string') return null;
+  const sanitizedId = meeting.id.trim();
+  return sanitizedId.length > 0 ? sanitizedId : null;
+};
+
 export default function AgendaPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -532,7 +538,14 @@ export default function AgendaPage() {
                 <div className='rounded-2xl border border-border/70 bg-background/70 p-3 shadow-sm'><p className='text-[11px] uppercase tracking-[0.12em] text-muted-foreground'>Próxima pauta</p><p className='mt-1 line-clamp-1 font-bold'>{prioritized.next_agenda || 'Sem próxima pauta'}</p></div>
               </div>
             </div>
-            <div className='flex flex-col justify-between gap-3 rounded-3xl border border-primary/20 bg-primary/10 p-4 lg:items-stretch'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>Ação recomendada</p><p className='mt-2 text-sm text-muted-foreground'>Abrir o encontro, validar pauta e destravar encaminhamentos críticos.</p></div><Button asChild size='lg' className='rounded-full shadow-lg shadow-primary/20'><Link to={`/app/agenda/${prioritized.id}`}>Abrir encontro <ArrowRight className='ml-2 h-4 w-4' /></Link></Button></div>
+            <div className='flex flex-col justify-between gap-3 rounded-3xl border border-primary/20 bg-primary/10 p-4 lg:items-stretch'><div><p className='text-[11px] font-semibold uppercase tracking-[0.14em] text-primary'>Ação recomendada</p><p className='mt-2 text-sm text-muted-foreground'>Abrir o encontro, validar pauta e destravar encaminhamentos críticos.</p></div>{(() => {
+              const meetingId = getValidMeetingId(prioritized);
+              if (!meetingId) {
+                if (import.meta.env.DEV) console.warn('AgendaPage: encontro priorizado sem id válido para abrir detalhe', prioritized);
+                return <Button size='lg' className='rounded-full shadow-lg shadow-primary/20' disabled>Abrir indisponível</Button>;
+              }
+              return <Button asChild size='lg' className='rounded-full shadow-lg shadow-primary/20'><Link to={`/app/agenda/${meetingId}`}>Abrir encontro <ArrowRight className='ml-2 h-4 w-4' /></Link></Button>;
+            })()}</div>
           </div>;
         })()}
       </CardContent></Card>
@@ -556,7 +569,14 @@ export default function AgendaPage() {
               <div className='flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden'><span><strong className='text-foreground'>{completedCount}/{am.length}</strong> ações</span><span><strong className='text-foreground'>{dimCount}</strong> dimensões avaliadas</span></div>
               <p className='line-clamp-1 text-xs text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
             </div>
-            <div className='flex items-center gap-2 sm:flex-col sm:items-end sm:justify-center'><Badge variant='outline' className={cn('executive-pill min-w-[92px] justify-center font-bold', statusBadgeClasses(health?.status))}><span className={cn('mr-1.5 h-2 w-2 rounded-full', statusDotClasses(health?.status))} />{health?.status || 'Atenção'}</Badge><Button asChild size='sm' variant='outline' className='h-10 rounded-full border-primary/40 bg-primary/10 px-5 font-bold text-primary shadow-sm shadow-primary/10 hover:bg-primary hover:text-primary-foreground print:h-8 print:px-3'><Link to={`/app/agenda/${m.id}`}>Abrir</Link></Button></div>
+            <div className='flex items-center gap-2 sm:flex-col sm:items-end sm:justify-center'><Badge variant='outline' className={cn('executive-pill min-w-[92px] justify-center font-bold', statusBadgeClasses(health?.status))}><span className={cn('mr-1.5 h-2 w-2 rounded-full', statusDotClasses(health?.status))} />{health?.status || 'Atenção'}</Badge>{(() => {
+              const meetingId = getValidMeetingId(m);
+              if (!meetingId) {
+                if (import.meta.env.DEV) console.warn('AgendaPage: encontro sem id válido na timeline', m);
+                return <Button size='sm' variant='outline' disabled className='h-10 rounded-full border-border bg-muted px-5 font-bold text-muted-foreground print:h-8 print:px-3'>Abrir indisponível</Button>;
+              }
+              return <Button asChild size='sm' variant='outline' className='h-10 rounded-full border-primary/40 bg-primary/10 px-5 font-bold text-primary shadow-sm shadow-primary/10 hover:bg-primary hover:text-primary-foreground print:h-8 print:px-3'><Link to={`/app/agenda/${meetingId}`}>Abrir</Link></Button>;
+            })()}</div>
           </div>
         </CardContent></Card>;
       })}</div>
