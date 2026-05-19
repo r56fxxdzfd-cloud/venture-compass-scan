@@ -398,7 +398,7 @@ export default function MeetingDetailPage() {
     ...(meeting.related_dimensions || []),
     ...progressRows.map(p => p.dimension_id),
   ]);
-  const officialDimensionIds = useMemo(() => new Set(dimensions.map((d) => d.id)), [dimensions]);
+  const officialDimensionIds = new Set(dimensions.map((d) => d.id));
   const trimmedTranscript = transcriptText.trim();
   const canGenerateDraft = trimmedTranscript.length >= MIN_TRANSCRIPT_CHARS && !generatingDraft;
   const draftFingerprint = draft ? JSON.stringify(draft) : null;
