@@ -267,7 +267,7 @@ export default function MethodologyPage() {
         {/* Cover page — only visible in print */}
         <div id="pdf-cover">
           <h1>Metodologia</h1>
-          <h2>Darwin Startup Readiness</h2>
+          <h2>Darwin Organization Readiness</h2>
           <p>Versão: {version.version_name}</p>
           <p>Publicada em: {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
@@ -582,7 +582,7 @@ export default function MethodologyPage() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Avaliação dual:</strong> perspectiva do founder (autoavaliação, registrada pelo JV) e perspectiva da JV — o delta entre as duas é informação estratégica</li>
               <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Cadência semestral:</strong> a curva de evolução importa mais do que o número absoluto de um ciclo isolado</li>
-              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Score composto:</strong> quando a startup tem múltiplos founders, o score da empresa é a média simples dos scores individuais ativos no semestre</li>
+              <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Score composto:</strong> quando a organização tem múltiplos founders, o score da empresa é a média simples dos scores individuais ativos no semestre</li>
               <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Foco em comportamento observável,</strong> não em intenção declarada</li>
               <li className="pl-2 border-l-2 border-primary/30"><strong className="text-foreground">Máximo de 2 pilares foco</strong> por semestre — concentração é a regra</li>
             </ul>
@@ -857,7 +857,7 @@ export default function MethodologyPage() {
               <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Check-in:</strong> quinzenal dentro do semestre ativo (4 perguntas fixas: o que foi entregue? próximo passo? o que travou? pilar foco subindo ou estável?)</li>
               <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Quem preenche:</strong> exclusivamente a JV — o founder não acessa o sistema</li>
               <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">Perspectiva "autoavaliação":</strong> registrada pelo JV com base no que o founder relatou em conversa/entrevista</li>
-              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">PDF do Founder Score:</strong> documento separado e confidencial, exportado independentemente do PDF da startup</li>
+              <li className="pl-2 border-l-2 border-muted"><strong className="text-foreground">PDF do Founder Score:</strong> documento separado e confidencial, exportado independentemente do PDF da organização</li>
             </ul>
           </CardContent>
         </Card>

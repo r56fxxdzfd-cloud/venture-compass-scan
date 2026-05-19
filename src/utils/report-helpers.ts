@@ -398,7 +398,7 @@ export function generateOverallNarrative(
     .slice(0, 2)
     .map((d) => d.label);
 
-  let narrative = `A startup apresenta maturidade no nível "${level.label}" com score geral de ${score100}/100.`;
+  let narrative = `A organização apresenta maturidade no nível "${level.label}" com score geral de ${score100}/100.`;
   if (strengths.length) narrative += ` Destaque positivo em ${strengths.join(' e ')}.`;
   if (topGaps.length) narrative += ` As maiores oportunidades de melhoria estão em ${topGaps.join(' e ')}.`;
   if (result.red_flags.length > 0) {
@@ -428,7 +428,7 @@ export function generateDimensionNarrative(ds: DimensionScore): string {
   const level = getLevel(s100);
   const coveragePct = Math.round(ds.coverage * 100);
   return `${level.label} (${s100}/100). Cobertura de ${coveragePct}% das questões respondidas (${ds.answered}/${ds.total}). ${
-    s100 < 55 ? 'Esta dimensão requer atenção prioritária para fortalecer a prontidão da startup.' : 
+    s100 < 55 ? 'Esta dimensão requer atenção prioritária para fortalecer a prontidão da organização.' :
     s100 < 75 ? 'Dimensão em desenvolvimento — há espaço para consolidar práticas e processos.' :
     'Dimensão bem estruturada — manter e otimizar as práticas atuais.'
   }`;

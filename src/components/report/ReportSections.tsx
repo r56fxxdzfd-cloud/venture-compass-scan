@@ -52,7 +52,7 @@ export function ReportHeader({
         {completeness.confidence === 'low' && (
           <div className="mt-3 flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            Completude baixa ({completeness.pct}%). O relatório pode não refletir a realidade da startup. Complete mais questões para maior confiabilidade.
+            Completude baixa ({completeness.pct}%). O relatório pode não refletir a realidade da organização. Complete mais questões para maior confiabilidade.
           </div>
         )}
       </CardContent>
