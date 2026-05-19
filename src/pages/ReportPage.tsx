@@ -173,7 +173,7 @@ export default function ReportPage() {
         }
       }
 
-      const startupName = (assessment as any).company?.name || 'Startup';
+      const startupName = (assessment as any).company?.name || 'Organização';
       const dateStr = new Date().toISOString().slice(0, 10);
       pdf.save(`${startupName}-diagnostico-${dateStr}.pdf`);
     } catch (err) {
@@ -221,7 +221,7 @@ export default function ReportPage() {
 
   const stage = assessment.stage || 'seed';
   const completeness = getCompleteness(result);
-  const startupName = (assessment as any).company?.name || 'Startup';
+  const startupName = (assessment as any).company?.name || 'Organização';
   const isSimulation = assessment.is_simulation;
 
   const scrollTo = (elId: string) => {
