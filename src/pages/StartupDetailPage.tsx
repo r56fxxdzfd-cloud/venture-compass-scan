@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
-import { Plus, ClipboardList, ArrowLeft, Pencil, TrendingUp, AlertTriangle, ArrowRight, Inbox, Users, Shield } from 'lucide-react';
+import { Plus, ClipboardList, ArrowLeft, Pencil, AlertTriangle, ArrowRight, Inbox, Users, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -238,10 +238,26 @@ export default function StartupDetailPage() {
   ];
 
   const totalQuestions = 45;
+  const latestAssessment = assessments[0];
+  const latestStatusLabel = latestAssessment?.status === 'completed' ? 'Concluído' : latestAssessment?.status === 'in_progress' ? 'Em andamento' : 'Sem diagnóstico';
+  const latestStatusVariant = latestAssessment?.status === 'completed' ? 'default' : 'secondary';
+  const latestStatusDate = latestAssessment?.created_at ? new Date(latestAssessment.created_at).toLocaleDateString('pt-BR') : '—';
+  const openActionsCount = councilStats.open;
+  const criticalActionsCount = lastMeetingProgressSummary.worsening + lastMeetingProgressSummary.insufficient_evidence;
+  const upcomingAgenda = councilStats.nextAgenda && councilStats.nextAgenda !== '-' ? councilStats.nextAgenda : 'Sem pauta definida até o momento';
+  const progressReportLink = lastResult ? `/app/assessments/${lastResult.assessmentId}/report` : `/app/startups/${company.id}/progress`;
+
+  const actionBadges = [
+    { label: 'Travadas', value: lastMeetingProgressSummary.insufficient_evidence },
+    { label: 'Atrasadas', value: Math.max(0, openActionsCount - councilStats.completed) },
+    { label: 'Alta prioridade', value: criticalActionsCount },
+    { label: 'Abertas', value: openActionsCount },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="executive-panel p-5 rounded-xl space-y-4">
+        <div className="flex items-center gap-3">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -252,7 +268,7 @@ export default function StartupDetailPage() {
             <TooltipContent>Voltar para lista de organizações</TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <div className="flex-1">
+          <div className="flex-1">
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-bold tracking-tight">{company.name}</h1>
             <p className="text-sm text-muted-foreground">Perfil executivo da organização</p>
@@ -269,10 +285,18 @@ export default function StartupDetailPage() {
               </TooltipProvider>
             )}
           </div>
-          <div className="flex gap-2 mt-1">
-            {company.stage && <Badge variant="secondary">{stageLabels[company.stage] || company.stage}</Badge>}
-            {company.sector && <Badge variant="outline">{company.sector}</Badge>}
+          <div className="flex gap-2 mt-2 flex-wrap">
+            {company.stage && <Badge variant="secondary" className="executive-pill">{stageLabels[company.stage] || company.stage}</Badge>}
+            {company.sector && <Badge variant="outline" className="executive-pill">{company.sector}</Badge>}
+            <Badge variant={latestStatusVariant} className="executive-pill">Status geral: {lastResult?.level || latestStatusLabel}</Badge>
           </div>
+        </div>
+        </div>
+        <div className='flex flex-wrap gap-2'>
+          {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
+          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
+          <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
+          <Button asChild variant='secondary'><Link to={progressReportLink}>Relatório de Progresso</Link></Button>
         </div>
       </div>
 
@@ -286,25 +310,80 @@ export default function StartupDetailPage() {
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Dimensões em atenção</p><p className='text-2xl font-bold'>{lastMeetingProgressSummary.worsening + lastMeetingProgressSummary.insufficient_evidence}</p></CardContent></Card>
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className='executive-panel'>
+          <CardHeader><p className='executive-section-title text-xs'>Diagnósticos e relatórios</p><CardTitle>Último diagnóstico</CardTitle></CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-muted-foreground">Status</p>
+                <Badge variant={latestStatusVariant}>{latestStatusLabel}</Badge>
+              </div>
+              <div className="text-right">
+                <p className="text-muted-foreground">Data</p>
+                <p className="font-medium">{latestStatusDate}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-muted-foreground">Score</p>
+              <p className="text-xl font-semibold">{lastResult ? `${lastResult.score100} · ${lastResult.level}` : 'Sem score disponível'}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild variant="outline" disabled={!lastResult}><Link to={progressReportLink}>Abrir relatório</Link></Button>
+              {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className='executive-panel'>
+          <CardHeader><p className='executive-section-title text-xs'>Conselho e evolução</p><CardTitle>Últimos encontros e governança</CardTitle></CardHeader>
+          <CardContent className='space-y-3 text-sm'>
+            <p><span className='text-muted-foreground'>Última reunião:</span> <strong>{formatDateOnlyBR(councilStats.lastMeeting)}</strong></p>
+            <p><span className='text-muted-foreground'>Próxima pauta:</span> {upcomingAgenda}</p>
+            <p><span className='text-muted-foreground'>Ações abertas/críticas:</span> <strong>{openActionsCount}</strong> / <strong className='text-destructive'>{criticalActionsCount}</strong></p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button asChild variant='outline'><Link to='/app/agenda'>CTA Agenda</Link></Button>
+              <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>CTA Central do Conselheiro</Link></Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className='executive-panel'>
-        <CardHeader><p className='executive-section-title text-xs'>Histórico de conselho</p><CardTitle>Histórico de Conselho</CardTitle></CardHeader>
-        <CardContent className='grid md:grid-cols-5 gap-3 text-sm'>
-          <div><p className='text-muted-foreground'>Ações abertas</p><p className='text-xl font-semibold'>{councilStats.open}</p></div>
-          <div><p className='text-muted-foreground'>Ações concluídas</p><p className='text-xl font-semibold'>{councilStats.completed}</p></div>
-          <div><p className='text-muted-foreground'>Última reunião</p><p className='font-medium'>{formatDateOnlyBR(councilStats.lastMeeting)}</p></div>
-          <div><p className='text-muted-foreground'>Próxima pauta</p><p className='font-medium line-clamp-2'>{councilStats.nextAgenda}</p></div>
-          <div className='flex flex-col md:items-end justify-end gap-2'>
-            {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
-            <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda de Evolução</Link></Button>
-            <Button asChild variant='secondary'><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link></Button>
-            <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
+        <CardHeader><p className='executive-section-title text-xs'>Ações e pendências</p><CardTitle>Top ações relevantes</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {actionBadges.map((badge) => (
+              <Badge key={badge.label} variant="outline" className="executive-pill">{badge.label}: {badge.value}</Badge>
+            ))}
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {actionBadges.map((item) => (
+              <div key={item.label} className="rounded-lg border p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <p className="font-medium">{item.label}</p>
+                  {item.value > 0 ? <AlertCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                </div>
+                <p className="text-muted-foreground">Responsável: Conselho OS</p>
+                <p className="text-muted-foreground">Dimensão: Governança</p>
+                <div className="mt-2 flex gap-2">
+                  <Button asChild size="sm" variant="outline"><Link to='/app/agenda'>Encontro</Link></Button>
+                  <Button asChild size="sm"><Link to={`/app/startups/${company.id}/counselor`}>Central</Link></Button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
-        <CardContent className='pt-0 text-sm space-y-1'>
-          <p className='text-muted-foreground'>Resumo do último encontro</p>
-          <p>Dimensões avaliadas: <strong>{lastMeetingProgressSummary.total}</strong></p>
-          <p>Melhorando: <strong>{lastMeetingProgressSummary.improving}</strong> • Estáveis: <strong>{lastMeetingProgressSummary.stable}</strong> • Piorando: <strong>{lastMeetingProgressSummary.worsening}</strong> • Sem evidência: <strong>{lastMeetingProgressSummary.insufficient_evidence}</strong></p>
-          {lastMeetingProgressSummary.meetingId && <Link className='text-primary underline' to={`/app/agenda/${lastMeetingProgressSummary.meetingId}`}>Ver detalhe da última reunião</Link>}
+      </Card>
+
+      <Card className='executive-panel'>
+        <CardHeader><p className='executive-section-title text-xs'>Evolução por dimensão</p><CardTitle>Leitura executiva de evolução</CardTitle></CardHeader>
+        <CardContent className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+          <div className="rounded-lg border p-3"><p className="text-muted-foreground">Melhorando</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.improving}</p></div>
+          <div className="rounded-lg border p-3"><p className="text-muted-foreground">Estáveis</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.stable}</p></div>
+          <div className="rounded-lg border p-3"><p className="text-muted-foreground">Piorando</p><p className="text-lg font-semibold text-destructive">{lastMeetingProgressSummary.worsening}</p></div>
+          <div className="rounded-lg border p-3"><p className="text-muted-foreground">Sem evidência</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.insufficient_evidence}</p></div>
+          {lastMeetingProgressSummary.meetingId && <Link className='text-primary underline col-span-full' to={`/app/agenda/${lastMeetingProgressSummary.meetingId}`}>Ver detalhe da última reunião</Link>}
         </CardContent>
       </Card>
 
