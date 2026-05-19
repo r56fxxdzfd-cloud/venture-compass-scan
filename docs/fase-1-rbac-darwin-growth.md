@@ -65,3 +65,38 @@ on conflict (user_id, role) do nothing;
 - visibilidade granular por papel e escopo;
 - isolamento real vs demo por políticas mais amplas;
 - enforcement de “super_admin único” com fluxo seguro de rotação.
+
+## Fase 1.1 — Isolamento de Demo User por RLS (2026-05-19)
+
+Implementado via migration `20260519143000_phase1_1_demo_rls_isolation.sql`.
+
+### Novo helper
+- `public.can_access_company(company_id, user_id)` com regras:
+  - `super_admin` e `jv_admin`: acesso total (real + demo);
+  - `demo_user`: acesso somente quando `companies.is_demo = true`;
+  - compatibilidade preservada para fluxo legado de `is_approved_member`.
+
+### Tabelas protegidas no núcleo operacional
+- `companies`
+- `assessments`
+- `founders`
+- `council_meetings`
+- `council_actions`
+- `council_dimension_progress`
+- `founder_assessments` (escopo indireto por founder/company)
+- `founder_pillar_scores` (escopo indireto por founder_assessment/founder)
+
+### Efeito prático
+- `demo_user` isolado de dados reais no núcleo operacional.
+- `demo_user` permanece read-only (sem `can_operate_platform`).
+- Super Admin e JV Admin preservam operação interna.
+
+### Pendências para hardening (fora da Fase 1.1)
+- Auditoria e eventual isolamento de Storage buckets (anexos, exports, transcrições e rascunhos).
+- Validação E2E de UX para rotas diretas bloqueadas por RLS (erro amigável/empty state).
+
+### Critério de liberação para demo externo controlado
+Liberar somente após:
+1. validação manual autenticada de rotas diretas críticas com `demo_user`;
+2. confirmação de policies de Storage sem vazamento para `demo_user`;
+3. revisão de roles da conta demo (somente `demo_user`).
