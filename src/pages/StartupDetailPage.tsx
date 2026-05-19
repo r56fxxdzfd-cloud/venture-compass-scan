@@ -23,9 +23,13 @@ import { scoreTo100, getLevel } from '@/utils/report-helpers';
 import { getCurrentSemester, getFounderStageLabel } from '@/utils/founder-scoring';
 import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
 import type { Founder, FounderAssessment } from '@/types/founder';
+import type { CouncilAction, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
+const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
+const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
+const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
 
 function formatDateOnlyBR(dateString?: string | null) {
   if (!dateString) return '-';
@@ -49,6 +53,8 @@ export default function StartupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [councilStats, setCouncilStats] = useState({ open: 0, completed: 0, lastMeeting: '-', nextAgenda: '-', meetings: 0 });
   const [lastMeetingProgressSummary, setLastMeetingProgressSummary] = useState({ total: 0, improving: 0, stable: 0, worsening: 0, insufficient_evidence: 0, meetingId: '' });
+  const [recentMeetings, setRecentMeetings] = useState<CouncilMeeting[]>([]);
+  const [actions, setActions] = useState<CouncilAction[]>([]);
 
   const canWrite = isAdmin || isAnalyst;
 
@@ -82,10 +88,12 @@ export default function StartupDetailPage() {
       if (faData) setFounderAssessments(faData as FounderAssessment[]);
       if (allFaData) setAllFounderAssessments(allFaData as FounderAssessment[]);
 
-      const { data: meetingData } = await supabase.from('council_meetings').select('id,meeting_date,next_agenda').eq('company_id', id).order('meeting_date', { ascending: false });
+      const { data: meetingData } = await supabase.from('council_meetings').select('*').eq('company_id', id).order('meeting_date', { ascending: false });
       if (meetingData) {
+        setRecentMeetings((meetingData as CouncilMeeting[]).slice(0, 3));
         const ids = meetingData.map((m:any) => m.id);
-        const { data: actionData } = ids.length ? await supabase.from('council_actions').select('status').in('meeting_id', ids) : { data: [] as any[] };
+        const { data: actionData } = ids.length ? await supabase.from('council_actions').select('*').in('meeting_id', ids).order('created_at', { ascending: false }) : { data: [] as any[] };
+        setActions((actionData || []) as CouncilAction[]);
         const open = (actionData || []).filter((a:any) => a.status !== 'completed').length;
         const completed = (actionData || []).filter((a:any) => a.status === 'completed').length;
         setCouncilStats({ open, completed, lastMeeting: meetingData[0]?.meeting_date || '-', nextAgenda: meetingData[0]?.next_agenda || '-', meetings: meetingData.length });
@@ -243,14 +251,29 @@ export default function StartupDetailPage() {
   const latestStatusVariant = latestAssessment?.status === 'completed' ? 'default' : 'secondary';
   const latestStatusDate = latestAssessment?.created_at ? new Date(latestAssessment.created_at).toLocaleDateString('pt-BR') : '—';
   const openActionsCount = councilStats.open;
-  const criticalActionsCount = lastMeetingProgressSummary.worsening + lastMeetingProgressSummary.insufficient_evidence;
+  const criticalActionsCount = actions.filter((a) => a.status === 'blocked' || a.priority === 'high').length;
   const upcomingAgenda = councilStats.nextAgenda && councilStats.nextAgenda !== '-' ? councilStats.nextAgenda : 'Sem pauta definida até o momento';
   const progressReportLink = lastResult ? `/app/assessments/${lastResult.assessmentId}/report` : `/app/startups/${company.id}/progress`;
+  const overdueActions = actions.filter((a) => a.due_date && new Date(a.due_date) < new Date() && !['completed', 'cancelled'].includes(a.status || ''));
+  const relevantActions = actions
+    .filter((a) => openActionStatuses.has(a.status || ''))
+    .sort((a, b) => {
+      const getWeight = (action: CouncilAction) => {
+        let score = 0;
+        if (action.status === 'blocked') score += 100;
+        if (action.due_date && new Date(action.due_date) < new Date()) score += 80;
+        if (action.priority === 'high') score += 60;
+        if (action.status === 'in_progress') score += 20;
+        return score;
+      };
+      return getWeight(b) - getWeight(a);
+    })
+    .slice(0, 6);
 
   const actionBadges = [
-    { label: 'Travadas', value: lastMeetingProgressSummary.insufficient_evidence },
-    { label: 'Atrasadas', value: Math.max(0, openActionsCount - councilStats.completed) },
-    { label: 'Alta prioridade', value: criticalActionsCount },
+    { label: 'Travadas', value: actions.filter((a) => a.status === 'blocked').length },
+    { label: 'Atrasadas', value: overdueActions.length },
+    { label: 'Alta prioridade', value: actions.filter((a) => a.priority === 'high' && openActionStatuses.has(a.status || '')).length },
     { label: 'Abertas', value: openActionsCount },
   ];
 
@@ -342,8 +365,8 @@ export default function StartupDetailPage() {
             <p><span className='text-muted-foreground'>Próxima pauta:</span> {upcomingAgenda}</p>
             <p><span className='text-muted-foreground'>Ações abertas/críticas:</span> <strong>{openActionsCount}</strong> / <strong className='text-destructive'>{criticalActionsCount}</strong></p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild variant='outline'><Link to='/app/agenda'>CTA Agenda</Link></Button>
-              <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>CTA Central do Conselheiro</Link></Button>
+              <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
+              <Button asChild><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
             </div>
           </CardContent>
         </Card>
@@ -357,22 +380,33 @@ export default function StartupDetailPage() {
               <Badge key={badge.label} variant="outline" className="executive-pill">{badge.label}: {badge.value}</Badge>
             ))}
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {actionBadges.map((item) => (
-              <div key={item.label} className="rounded-lg border p-3 text-sm">
+          {relevantActions.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+              Sem ações abertas no momento. Registre ações na Agenda ou na Central do Conselheiro para acompanhar pendências executivas.
+            </div>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+            {relevantActions.map((item) => (
+              <div key={item.id} className="rounded-lg border p-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium">{item.label}</p>
-                  {item.value > 0 ? <AlertCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                  <p className="font-medium">{item.title}</p>
+                  {item.status === 'blocked' || (item.due_date && new Date(item.due_date) < new Date()) ? <AlertCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                 </div>
-                <p className="text-muted-foreground">Responsável: Conselho OS</p>
-                <p className="text-muted-foreground">Dimensão: Governança</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  <Badge variant="outline" className="executive-pill">{statusLabel[item.status || ''] || 'Aberta'}</Badge>
+                  {item.priority && <Badge variant={item.priority === 'high' ? 'destructive' : 'secondary'} className="executive-pill">Prioridade {priorityLabel[item.priority] || item.priority}</Badge>}
+                </div>
+                <p className="text-muted-foreground mt-2">Prazo: {formatDateOnlyBR(item.due_date) || '—'}</p>
+                <p className="text-muted-foreground">Responsável: {item.owner_name || 'Não definido'}</p>
+                <p className="text-muted-foreground">Dimensão: {item.related_dimension || 'Não informada'}</p>
                 <div className="mt-2 flex gap-2">
-                  <Button asChild size="sm" variant="outline"><Link to='/app/agenda'>Encontro</Link></Button>
+                  <Button asChild size="sm" variant="outline"><Link to={item.meeting_id ? `/app/agenda/${item.meeting_id}` : '/app/agenda'}>Encontro</Link></Button>
                   <Button asChild size="sm"><Link to={`/app/startups/${company.id}/counselor`}>Central</Link></Button>
                 </div>
               </div>
             ))}
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -384,6 +418,7 @@ export default function StartupDetailPage() {
           <div className="rounded-lg border p-3"><p className="text-muted-foreground">Piorando</p><p className="text-lg font-semibold text-destructive">{lastMeetingProgressSummary.worsening}</p></div>
           <div className="rounded-lg border p-3"><p className="text-muted-foreground">Sem evidência</p><p className="text-lg font-semibold">{lastMeetingProgressSummary.insufficient_evidence}</p></div>
           {lastMeetingProgressSummary.meetingId && <Link className='text-primary underline col-span-full' to={`/app/agenda/${lastMeetingProgressSummary.meetingId}`}>Ver detalhe da última reunião</Link>}
+          {recentMeetings.length === 0 && <p className="col-span-full text-sm text-muted-foreground">Sem histórico de reunião para calcular evolução por dimensão.</p>}
         </CardContent>
       </Card>
 
