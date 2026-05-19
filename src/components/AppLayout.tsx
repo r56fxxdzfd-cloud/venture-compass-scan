@@ -35,6 +35,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const { theme, setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const visibleNavItems = isDemoUser ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
 
   // Fetch pending approval count for super_admin
   useEffect(() => {
@@ -85,7 +86,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          {navItems.map((item) => <Link
+          {visibleNavItems.map((item) => <Link
             key={item.href}
             to={item.href}
             className={cn(

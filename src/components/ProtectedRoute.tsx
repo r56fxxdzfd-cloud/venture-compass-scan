@@ -1,15 +1,18 @@
 import { ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import type { AppRole } from '@/types/darwin';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRoles?: AppRole[];
+  blockDemo?: boolean;
 }
 
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { user, roles, loading, profileStatus } = useAuth();
+export function ProtectedRoute({ children, requiredRoles, blockDemo = false }: ProtectedRouteProps) {
+  const { user, roles, loading, profileStatus, isDemoUser } = useAuth();
 
   if (loading) {
     return (
@@ -46,6 +49,23 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
       return <>{children}</>;
     }
     return <Navigate to="/app/dashboard" replace />;
+  }
+
+  if (blockDemo && isDemoUser) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-lg">
+          <CardHeader>
+            <CardTitle>Acesso não disponível no modo demo.</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button asChild>
+              <Link to="/app/dashboard">Voltar ao Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return <>{children}</>;
