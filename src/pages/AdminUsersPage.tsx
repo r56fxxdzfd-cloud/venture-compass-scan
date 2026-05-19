@@ -180,9 +180,9 @@ export default function AdminUsersPage() {
   const roleLabels: Record<AppRole, string> = {
     super_admin: 'Super Admin',
     jv_admin: 'JV Admin',
-    
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
+    demo_admin: 'Demo Admin',
     demo_user: 'Demo',
   };
 
