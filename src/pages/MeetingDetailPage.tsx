@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, CouncilMeetingNotesDraft, DimensionTrend, SuggestedCouncilActionDraft, DimensionProgressSuggestionDraft } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
-import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
+import { formatDateOnlyBR, getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 
 type DimensionOption = { id: string; label: string };
 type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
@@ -38,6 +38,27 @@ const blockerSuggestions = ['Falta de responsável','Falta de dados','Falta de c
 
 const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa' } as const;
 
+
+const actionStatusLabel: Record<string, string> = {
+  not_started: 'Não iniciada',
+  'Not Started': 'Não iniciada',
+  in_progress: 'Em andamento',
+  'In Progress': 'Em andamento',
+  blocked: 'Travada',
+  Blocked: 'Travada',
+  completed: 'Concluída',
+  Completed: 'Concluída',
+  cancelled: 'Cancelada',
+  Cancelled: 'Cancelada',
+};
+
+const actionStatusGroupLabels = {
+  not_started: 'Não iniciadas',
+  in_progress: 'Em andamento',
+  blocked: 'Travadas',
+  completed: 'Concluídas',
+  cancelled: 'Canceladas',
+} as const;
 
 const MIN_TRANSCRIPT_CHARS = 80;
 
@@ -409,6 +430,12 @@ export default function MeetingDetailPage() {
     Array.from(discussedDimensionIds).some(id => id.toLowerCase() === t.dimension_label.toLowerCase())
   );
 
+  const hasStructuredMinutesContent = [meeting.executive_summary, meeting.decisions, meeting.recommendations, meeting.key_blockers, meeting.next_agenda]
+    .some((item) => !!item?.trim());
+  const dimensionsWithProgress = dimensions.filter((dimension) => progressRows.some((row) => row.dimension_id === dimension.id));
+  const dimensionsWithoutProgress = dimensions.filter((dimension) => !progressRows.some((row) => row.dimension_id === dimension.id));
+  const hasCompactMatrix = actions.length <= 2;
+
   return <div className='space-y-4'>
     <div>
       <Button variant='ghost' asChild className='px-0 text-muted-foreground hover:text-foreground'>
@@ -418,7 +445,23 @@ export default function MeetingDetailPage() {
         </Link>
       </Button>
     </div>
-    <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-6'>
+    <Card className='executive-panel print:break-inside-avoid'>
+      <CardContent className='p-4 space-y-3'>
+        <div>
+          <p className='text-xs uppercase tracking-[0.12em] text-muted-foreground'>Encontro de conselho</p>
+          <h1 className='text-xl font-bold'>{meeting.title || meeting.main_topic || 'Encontro de acompanhamento'}</h1>
+        </div>
+        <div className='grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3'>
+          <p><strong>Organização:</strong> {companyName || '—'}</p>
+          <p><strong>Data:</strong> {formatDateOnlyBR(meeting.meeting_date)}</p>
+          <p><strong>Tipo:</strong> {meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</p>
+          <p><strong>Saúde do ciclo:</strong> {cycleHealth}</p>
+          <p><strong>Ações concluídas:</strong> {completedActions}/{totalActions}</p>
+          <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'Não definida'}</p>
+        </div>
+      </CardContent>
+    </Card>
+    <div className='grid gap-2 sm:grid-cols-2 xl:grid-cols-6 print:grid-cols-3'>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{totalActions}</p><p className='text-xs text-muted-foreground'>Ações totais</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{completedActions}</p><p className='text-xs text-muted-foreground'>Concluídas</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-2xl font-bold'>{openActions}</p><p className='text-xs text-muted-foreground'>Abertas</p></CardContent></Card>
@@ -427,16 +470,21 @@ export default function MeetingDetailPage() {
       <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{meeting.next_agenda ? 'Sim' : 'Não'}</p><p className='text-xs text-muted-foreground'>Próxima pauta definida</p></CardContent></Card>
       <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{cycleHealth}</p><p className='text-xs text-muted-foreground'>Saúde do ciclo (atrasos, travas, pauta, evolução e conclusão)</p></CardContent></Card>
     </div>
-    <Card className='executive-panel'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
-      <Badge className='executive-pill'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
+    <Card className='executive-panel print:break-inside-avoid'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
+      <Badge className='executive-pill print:hidden'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
       <p><strong>Empresa:</strong> {companyName || '—'}</p>
-      <p><strong>Resumo:</strong> {meeting.executive_summary || '—'}</p>
-      <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
-      <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
-      <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
-      <div><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
-      <div><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>
-      <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+      {!hasStructuredMinutesContent ? <div className='rounded-md border border-dashed p-3 text-muted-foreground'>
+        <p className='font-medium'>Ata ainda não estruturada.</p>
+        <p className='text-xs'>Use o Assistente de Ata para gerar uma pré-ata revisável a partir da transcrição.</p>
+      </div> : <>
+        <p><strong>Resumo:</strong> {meeting.executive_summary || '—'}</p>
+        <p><strong>Decisões:</strong> {meeting.decisions || '—'}</p>
+        <p><strong>Recomendações:</strong> {meeting.recommendations || '—'}</p>
+        <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
+        <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
+      </>}
+      <div className='print:hidden'><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
+      <div className='print:hidden'><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>
       <div className='flex flex-wrap gap-2'>
         {!meeting.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
         {totalActions === 0 && <Badge variant='outline'>Sem ações</Badge>}
@@ -455,7 +503,22 @@ export default function MeetingDetailPage() {
       </div>)}
     </CardContent></Card>
 
-    <Card className='executive-panel'><CardHeader><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className='executive-panel'><CardHeader className='print:break-after-avoid'><CardTitle>Evolução por Dimensão</CardTitle></CardHeader><CardContent className='space-y-3'>
+      <div className='hidden print:block text-sm'>
+        {dimensionsWithProgress.length === 0 ? <p className='text-muted-foreground'>Nenhuma evolução por dimensão registrada neste encontro.</p> : <div className='space-y-2'>
+          {dimensionsWithProgress.map((d) => {
+            const row = progressRows.find((p) => p.dimension_id === d.id);
+            if (!row) return null;
+            return <div key={`print-${d.id}`} className='rounded border p-2 print:break-inside-avoid'>
+              <p className='font-medium'>{d.label} · {trendLabel[row.trend]}</p>
+              <p className='text-xs text-muted-foreground'>Antes: {row.initial_score ?? '—'} · Agora: {row.current_perceived_score ?? '—'}</p>
+              {row.evidence_note ? <p className='text-xs'><strong>Evidência:</strong> {row.evidence_note}</p> : null}
+            </div>;
+          })}
+          {dimensionsWithoutProgress.length > 0 ? <p className='text-xs text-muted-foreground'>Dimensões sem registro neste encontro: {dimensionsWithoutProgress.map((d) => d.label).join(', ')}.</p> : null}
+        </div>}
+      </div>
+      <div className='print:hidden'>
       {dimensions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma dimensão ativa encontrada na metodologia publicada.</p> : <>
         <p className='text-sm text-muted-foreground'>Registre apenas as dimensões discutidas neste encontro.</p>
         <div className='space-y-4'>{dimensions.map((d) => {
@@ -485,6 +548,7 @@ export default function MeetingDetailPage() {
           </div>;
         })}</div>
       </>}
+      </div>
     </CardContent></Card>
 
     <Card className='executive-panel'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>
@@ -492,33 +556,38 @@ export default function MeetingDetailPage() {
         <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-primary' style={{ width: `${progressPct}%` }} /></div>
         <p className='text-xs text-muted-foreground'>{completedActions} de {totalActions} ações concluídas ({progressPct}%)</p>
       </div>
-      <div className='grid md:grid-cols-5 gap-2'>
+      <div className='grid md:grid-cols-5 gap-2 print:hidden'>
         <div className='md:col-span-2'><Label>Ação</Label><Input value={newAction.title || ''} onChange={e => setNewAction({ ...newAction, title: e.target.value })} /></div>
         <div><Label>Responsável</Label><Input value={newAction.owner_name || ''} onChange={e => setNewAction({ ...newAction, owner_name: e.target.value })} /></div>
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
         <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
       </div><Button onClick={addAction}>Adicionar ação de conselho</Button>
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação vinculada. Sem ações fica impossível monitorar execução do encontro. Próximo passo: registre ao menos uma ação com responsável e prazo.</p> :
-      <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>{Object.entries(actionsByStatus).map(([status, rows]) => <div key={status} className='executive-card rounded p-2 space-y-2'>
-        <p className='text-sm font-semibold capitalize'>{status.replace('_', ' ')}</p>
+      <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>{Object.entries(actionsByStatus).map(([status, rows]) => <div key={status} className='executive-card rounded p-2 space-y-2 print:break-inside-avoid'>
+        <p className='text-sm font-semibold'>{actionStatusGroupLabels[status as keyof typeof actionStatusGroupLabels]}</p>
         {rows.length === 0 ? <p className='text-xs text-muted-foreground'>Sem itens</p> : rows.map(a => <div key={a.id} className='rounded border border-border/50 p-2 space-y-1'>
           <p className='text-sm font-medium'>{a.title}</p><p className='text-xs text-muted-foreground'>{a.owner_name || 'Sem responsável'} • {a.due_date || 'Sem prazo'}</p>
+          <p className='text-xs text-muted-foreground'>Prioridade: {a.priority || '—'} · Dimensão: {a.related_dimension || '—'}</p>
+          {a.expected_evidence ? <p className='text-xs'><strong>Evidência esperada:</strong> {a.expected_evidence}</p> : null}
           {a.impact === 'high' && a.effort === 'low' && ['not_started', 'in_progress', 'blocked'].includes(a.status) && <Badge className='mt-1'>Prioridade imediata</Badge>}
-          <Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-full h-8'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select>
+          <p className='hidden print:block text-xs font-medium'>{actionStatusLabel[a.status] || a.status}</p>
+          <div className='print:hidden'><Select value={a.status} onValueChange={(v) => updateStatus(a, v)}><SelectTrigger className='w-full h-8'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem><SelectItem value='cancelled'>Cancelada</SelectItem></SelectContent></Select></div>
         </div>)}
       </div>)}</div>}
     </CardContent></Card>
 
     <Card className='executive-panel'><CardHeader><CardTitle>Matriz impacto x esforço</CardTitle></CardHeader><CardContent>
-      <div className='grid md:grid-cols-2 gap-3 text-sm'>
+      {hasCompactMatrix ? <p className='text-sm text-muted-foreground'>Poucas ações classificadas neste encontro. Resumo: alto impacto/baixo esforço {matrix.high_low.length}, alto impacto/alto esforço {matrix.high_high.length}, baixo impacto/baixo esforço {matrix.low_low.length}, baixo impacto/alto esforço {matrix.low_high.length}.</p> : <div className='grid md:grid-cols-2 gap-3 text-sm'>
         <div className='executive-card rounded p-3'><p className='font-semibold'>Alto impacto / baixo esforço</p><p>{matrix.high_low.length} ações</p></div>
         <div className='executive-card rounded p-3'><p className='font-semibold'>Alto impacto / alto esforço</p><p>{matrix.high_high.length} ações</p></div>
         <div className='executive-card rounded p-3'><p className='font-semibold'>Baixo impacto / baixo esforço</p><p>{matrix.low_low.length} ações</p></div>
         <div className='executive-card rounded p-3'><p className='font-semibold'>Baixo impacto / alto esforço</p><p>{matrix.low_high.length} ações</p></div>
-      </div>
+      </div>}
     </CardContent></Card>
 
     <Card className='executive-panel'><CardHeader><CardTitle>Assistente de Ata do Conselho</CardTitle></CardHeader><CardContent className='space-y-3'>
+      <p className='hidden print:block text-xs text-muted-foreground'>Assistente de Ata disponível na versão digital.</p>
+      <div className='print:hidden space-y-3'>
       <p className='text-xs text-muted-foreground'>A IA gera um rascunho. Revise antes de aplicar ao encontro.</p>
       <Textarea value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)} placeholder='Cole a transcrição da reunião aqui...' className='min-h-40' />
       <Button disabled={!canGenerateDraft} onClick={generateMeetingDraft}>{generatingDraft ? 'Analisando transcrição...' : 'Gerar pré-ata'}</Button>
@@ -561,6 +630,7 @@ export default function MeetingDetailPage() {
         </Tabs>
         <Button onClick={applyDraftToMeeting} disabled={!canApplyDraft}>{applyingDraft ? 'Aplicando...' : 'Aplicar ao encontro'}</Button>
       </div>}
+      </div>
     </CardContent></Card>
 
     <BackToTopFooter />
