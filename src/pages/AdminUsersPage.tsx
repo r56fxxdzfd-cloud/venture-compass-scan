@@ -27,7 +27,7 @@ interface UserWithRole {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [approveModal, setApproveModal] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' });
-  const [selectedRole, setSelectedRole] = useState<AppRole>('jv_viewer');
+  const [selectedRole, setSelectedRole] = useState<AppRole>('demo_user');
   const [resendingFor, setResendingFor] = useState<string | null>(null);
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
@@ -42,9 +42,12 @@ export default function AdminUsersPage() {
     const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
+      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_user', 'user', 'jv_analyst', 'jv_viewer'];
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
-        const bestRole = userRoles.find((r: any) => r.role === 'super_admin') || userRoles[0];
+        const bestRole = rolePriority
+          .map((role) => userRoles.find((r: any) => r.role === role))
+          .find(Boolean);
         return {
           id: p.id,
           full_name: p.full_name,
@@ -110,7 +113,7 @@ export default function AdminUsersPage() {
     }
 
     setApproveModal({ open: false, userId: '', name: '' });
-    setSelectedRole('jv_viewer');
+    setSelectedRole('demo_user');
     fetchUsers();
   };
 
@@ -131,6 +134,11 @@ export default function AdminUsersPage() {
     // Don't allow changing super_admin's own role
     if (userId === currentUser?.id) {
       toast({ title: 'Ação não permitida', description: 'Você não pode alterar sua própria role.', variant: 'destructive' });
+      return;
+    }
+
+    if (newRole === 'super_admin' && !isSuperAdmin) {
+      toast({ title: 'Ação não permitida', description: 'Apenas Super Admin pode promover para Super Admin.', variant: 'destructive' });
       return;
     }
 
@@ -171,7 +179,8 @@ export default function AdminUsersPage() {
 
   const roleLabels: Record<AppRole, string> = {
     super_admin: 'Super Admin',
-    jv_admin: 'Admin',
+    jv_admin: 'JV Admin',
+    user: 'User',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
     demo_user: 'Demo',
@@ -337,9 +346,12 @@ export default function AdminUsersPage() {
                                         <SelectValue placeholder="Sem role" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="jv_admin">Admin</SelectItem>
-                                        <SelectItem value="jv_analyst">Analista</SelectItem>
-                                        <SelectItem value="jv_viewer">Visualizador</SelectItem>
+                                        <SelectItem value="demo_user">Demo</SelectItem>
+                                        <SelectItem value="jv_admin">JV Admin</SelectItem>
+                                        <SelectItem value="user">User</SelectItem>
+                                        {isSuperAdmin && (
+                                          <SelectItem value="super_admin">Super Admin</SelectItem>
+                                        )}
                                       </SelectContent>
                                     </Select>
                                   </div>
@@ -402,24 +414,32 @@ export default function AdminUsersPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="jv_viewer">
+                <SelectItem value="demo_user">
                   <div>
-                    <p className="font-medium">Visualizador</p>
-                    <p className="text-xs text-muted-foreground">Pode visualizar relatórios e dashboards</p>
+                    <p className="font-medium">Demo</p>
+                    <p className="text-xs text-muted-foreground">Acesso ao ambiente demo com dados fictícios</p>
                   </div>
                 </SelectItem>
-                <SelectItem value="jv_analyst">
+                <SelectItem value="user">
                   <div>
-                    <p className="font-medium">Analista</p>
-                    <p className="text-xs text-muted-foreground">Pode criar e editar diagnósticos</p>
+                    <p className="font-medium">User</p>
+                    <p className="text-xs text-muted-foreground">Acesso padrão de usuário</p>
                   </div>
                 </SelectItem>
                 <SelectItem value="jv_admin">
                   <div>
-                    <p className="font-medium">Admin</p>
+                    <p className="font-medium">JV Admin</p>
                     <p className="text-xs text-muted-foreground">Acesso total ao sistema e configurações</p>
                   </div>
                 </SelectItem>
+                {isSuperAdmin && (
+                  <SelectItem value="super_admin">
+                    <div>
+                      <p className="font-medium">Super Admin</p>
+                      <p className="text-xs text-muted-foreground">Controle total da plataforma</p>
+                    </div>
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
