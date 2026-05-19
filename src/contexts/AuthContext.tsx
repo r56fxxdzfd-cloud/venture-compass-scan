@@ -19,6 +19,8 @@ interface AuthContextType {
   isViewer: boolean;
   isJVAdmin: boolean;
   isDemoUser: boolean;
+  isDemoAdmin: boolean;
+  canOperateDemo: boolean;
   canManageSensitiveParameters: boolean;
   canOperatePlatform: boolean;
   refreshProfile: () => Promise<void>;
