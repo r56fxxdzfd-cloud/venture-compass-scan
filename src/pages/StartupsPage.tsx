@@ -129,7 +129,7 @@ export default function StartupsPage() {
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3 max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-              <Sparkles className="h-3 w-3" /> Portfolio
+              <Sparkles className="h-3 w-3" /> Portfólio
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Conselho OS.</p>

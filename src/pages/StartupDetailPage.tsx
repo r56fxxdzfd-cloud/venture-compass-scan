@@ -25,6 +25,7 @@ import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
 import type { Founder, FounderAssessment } from '@/types/founder';
 import type { CouncilAction, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
@@ -255,14 +256,15 @@ export default function StartupDetailPage() {
   const upcomingAgenda = councilStats.nextAgenda && councilStats.nextAgenda !== '-' ? councilStats.nextAgenda : 'Sem pauta definida até o momento';
   const diagnosticReportLink = latestAssessment?.id ? `/app/assessments/${latestAssessment.id}/report` : null;
   const companyProgressLink = `/app/startups/${company.id}/progress`;
-  const overdueActions = actions.filter((a) => a.due_date && new Date(a.due_date) < new Date() && !['completed', 'cancelled'].includes(a.status || ''));
+  const todayDateOnly = getTodayDateOnly();
+  const overdueActions = actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status || ''));
   const relevantActions = actions
     .filter((a) => openActionStatuses.has(a.status || ''))
     .sort((a, b) => {
       const getWeight = (action: CouncilAction) => {
         let score = 0;
         if (action.status === 'blocked') score += 100;
-        if (action.due_date && new Date(action.due_date) < new Date()) score += 80;
+        if (action.due_date && isDateOnlyBefore(action.due_date, todayDateOnly)) score += 80;
         if (action.priority === 'high') score += 60;
         if (action.status === 'in_progress') score += 20;
         return score;
@@ -427,7 +429,7 @@ export default function StartupDetailPage() {
               <div key={item.id} className="rounded-lg border p-3 text-sm">
                 <div className="flex items-center justify-between">
                   <p className="font-medium">{item.title}</p>
-                  {item.status === 'blocked' || (item.due_date && new Date(item.due_date) < new Date()) ? <AlertCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                  {item.status === 'blocked' || (item.due_date && isDateOnlyBefore(item.due_date, todayDateOnly)) ? <AlertCircle className="h-4 w-4 text-amber-500" /> : <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   <Badge variant="outline" className="executive-pill">{statusLabel[item.status || ''] || 'Aberta'}</Badge>
