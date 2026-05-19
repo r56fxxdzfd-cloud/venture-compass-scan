@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, CouncilMeetingNotesDraft, DimensionTrend, SuggestedCouncilActionDraft, DimensionProgressSuggestionDraft } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 
 type DimensionOption = { id: string; label: string };
 type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
@@ -69,7 +70,8 @@ const emptyDraft: CouncilMeetingNotesDraft = {
 
 
 export default function MeetingDetailPage() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = typeof rawId === 'string' ? rawId.trim() : '';
   const [meeting, setMeeting] = useState<CouncilMeeting | null>(null);
   const [actions, setActions] = useState<CouncilAction[]>([]);
   const [dimensions, setDimensions] = useState<DimensionOption[]>([]);
@@ -320,11 +322,11 @@ export default function MeetingDetailPage() {
   if (error) return <Card className='executive-panel'><CardHeader><CardTitle>Erro ao carregar encontro</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>Não foi possível carregar os dados deste encontro agora. {error}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
   if (notFound || !meeting) return <Card className='executive-panel'><CardHeader><CardTitle>Encontro não encontrado</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>{id ? 'Encontro não encontrado ou sem permissão de acesso.' : 'Encontro não encontrado.'}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
 
-  const today = new Date();
+  const todayDateOnly = getTodayDateOnly();
   const totalActions = actions.length;
   const completedActions = actions.filter(a => a.status === 'completed').length;
   const openActions = actions.filter(a => ['not_started', 'in_progress', 'blocked'].includes(a.status)).length;
-  const overdueActions = actions.filter(a => a.due_date && new Date(a.due_date) < today && !['completed', 'cancelled'].includes(a.status)).length;
+  const overdueActions = actions.filter(a => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)).length;
   const blockedActions = actions.filter(a => a.status === 'blocked').length;
   const progressPct = totalActions ? Math.round((completedActions / totalActions) * 100) : 0;
   const actionsByStatus = {
