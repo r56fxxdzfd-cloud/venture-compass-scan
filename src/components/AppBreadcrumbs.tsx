@@ -19,8 +19,8 @@ const routeLabels: Record<string, string> = {
   report: 'Relatório',
   progress: 'Relatório de Progresso',
   counselor: 'Central do Conselheiro',
-  founders: 'Founders',
-  'founder-assessments': 'Founder Score',
+  founders: 'Lideranças',
+  'founder-assessments': 'Avaliação de Liderança',
   new: 'Nova Avaliação',
   pdf: 'PDF',
 };

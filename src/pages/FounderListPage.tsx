@@ -91,7 +91,7 @@ export default function FounderListPage() {
       setAddOpen(false);
       setNewName('');
       setNewRole('');
-      toast({ title: 'Founder adicionado' });
+      toast({ title: 'Liderança adicionada' });
       loadData();
     }
   };
@@ -129,15 +129,15 @@ export default function FounderListPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6" />
-            Founders — {company?.name}
+            Lideranças — {company?.name}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Founder Score · Semestre {currentSemester}</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Avaliação de Liderança · Semestre {currentSemester}</p>
         </div>
         <div className="flex gap-2">
           {canWrite && (
             <>
               <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-                <UserPlus className="mr-1 h-3 w-3" /> Adicionar Founder
+                <UserPlus className="mr-1 h-3 w-3" /> Adicionar Liderança
               </Button>
               {founders.length > 0 && (
                 <Button size="sm" onClick={() => navigate(`/app/founder-assessments/new?company=${companyId}`)}>
@@ -149,20 +149,20 @@ export default function FounderListPage() {
         </div>
       </div>
 
-      {/* Composite Score Card */}
+      {/* Score Composto Card */}
       {compositeScore != null && (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-5">
             <div className="flex items-center gap-4">
               <div className="text-center">
                 <p className="text-3xl font-bold">{compositeScore}</p>
-                <p className="text-xs text-muted-foreground">Composite Score</p>
+                <p className="text-xs text-muted-foreground">Score Composto</p>
               </div>
               <div>
                 <p className={`text-sm font-semibold ${getFounderStageLabel(compositeScore).color}`}>
                   {getFounderStageLabel(compositeScore).label}
                 </p>
-                <p className="text-xs text-muted-foreground">{currentSemester} · {compositeScores.length} founder(s) avaliado(s)</p>
+                <p className="text-xs text-muted-foreground">{currentSemester} · {compositeScores.length} liderança(s) avaliada(s)</p>
               </div>
             </div>
           </CardContent>
@@ -174,10 +174,10 @@ export default function FounderListPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <Inbox className="mx-auto h-10 w-10 text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground mb-3">Nenhum founder cadastrado ainda.</p>
+            <p className="text-sm text-muted-foreground mb-3">Nenhuma liderança cadastrada ainda.</p>
             {canWrite && (
               <Button size="sm" onClick={() => setAddOpen(true)}>
-                <UserPlus className="mr-1 h-3 w-3" /> Adicionar Founder
+                <UserPlus className="mr-1 h-3 w-3" /> Adicionar Liderança
               </Button>
             )}
           </CardContent>
@@ -262,7 +262,7 @@ export default function FounderListPage() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Founder</DialogTitle>
+            <DialogTitle>Adicionar Liderança</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">

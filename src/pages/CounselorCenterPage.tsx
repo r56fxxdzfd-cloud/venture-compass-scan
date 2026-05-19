@@ -21,6 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { CouncilAction, CouncilAgendaTemplate, CouncilDimensionProgress, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { DimensionEvolutionRadar } from '@/components/DimensionEvolutionRadar';
+import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 
 type Company = { id: string; name: string };
 
@@ -89,7 +90,8 @@ export default function CounselorCenterPage() {
 
   const latestMeeting = meetings[0];
   const openActions = actions.filter(a => openStatuses.has(a.status));
-  const overdueActions = actions.filter(a => a.due_date && new Date(a.due_date) < new Date() && !['completed', 'cancelled'].includes(a.status));
+  const todayDateOnly = getTodayDateOnly();
+  const overdueActions = actions.filter(a => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status));
   const latestProgressByDimension = useMemo(() => {
     const map = new Map<string, CouncilDimensionProgress>();
     for (const row of progress) {
@@ -287,7 +289,7 @@ export default function CounselorCenterPage() {
                     <p className="text-xs text-muted-foreground mt-1">Mantenha o registro atualizado para sustentar a execução entre encontros.</p>
                   </div>
                 ) : openActions.map(a => {
-                  const overdue = a.due_date && new Date(a.due_date) < new Date();
+                  const overdue = !!(a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly));
                   const quickWin = a.impact === 'high' && a.effort === 'low';
                   const priorityTone = a.priority === 'high' ? 'bg-destructive/10 text-destructive border-destructive/30' : 'bg-muted/40 text-muted-foreground border-border/60';
                   return (
