@@ -329,7 +329,7 @@ export default function StartupDetailPage() {
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Último score/status</p><p className='text-2xl font-bold'>{lastResult ? `${lastResult.score100}` : '—'}</p><p className='text-xs text-muted-foreground'>{lastResult?.level || 'Sem diagnóstico concluído'}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Encontros registrados</p><p className='text-2xl font-bold'>{councilStats.meetings}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações abertas</p><p className='text-2xl font-bold'>{councilStats.open}</p></CardContent></Card>
-        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações críticas</p><p className='text-2xl font-bold text-destructive'>{lastResult?.redFlagCount || 0}</p></CardContent></Card>
+        <Card className='executive-card border-destructive/40'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações críticas</p><p className='text-2xl font-bold text-destructive'>{criticalActionsCount}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Dimensões em atenção</p><p className='text-2xl font-bold'>{lastMeetingProgressSummary.worsening + lastMeetingProgressSummary.insufficient_evidence}</p></CardContent></Card>
       </div>
 
@@ -361,6 +361,30 @@ export default function StartupDetailPage() {
         <Card className='executive-panel'>
           <CardHeader><p className='executive-section-title text-xs'>Conselho e evolução</p><CardTitle>Últimos encontros e governança</CardTitle></CardHeader>
           <CardContent className='space-y-3 text-sm'>
+            <div className="space-y-2">
+              <p className="text-muted-foreground">Últimos encontros</p>
+              {recentMeetings.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-3 text-muted-foreground">
+                  Nenhum encontro registrado ainda.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {recentMeetings.map((meeting) => (
+                    <div key={meeting.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                      <div>
+                        <p className="font-medium">{formatDateOnlyBR(meeting.meeting_date)}</p>
+                        <p className="text-xs text-muted-foreground truncate max-w-[360px]">
+                          {meeting.next_agenda || 'Sem pauta definida'}
+                        </p>
+                      </div>
+                      <Button asChild size="sm" variant="ghost">
+                        <Link to={`/app/agenda/${meeting.id}`}>Abrir</Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <p><span className='text-muted-foreground'>Última reunião:</span> <strong>{formatDateOnlyBR(councilStats.lastMeeting)}</strong></p>
             <p><span className='text-muted-foreground'>Próxima pauta:</span> {upcomingAgenda}</p>
             <p><span className='text-muted-foreground'>Ações abertas/críticas:</span> <strong>{openActionsCount}</strong> / <strong className='text-destructive'>{criticalActionsCount}</strong></p>
