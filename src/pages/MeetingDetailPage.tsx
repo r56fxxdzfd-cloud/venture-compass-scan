@@ -80,6 +80,8 @@ export default function MeetingDetailPage() {
   const [newAction, setNewAction] = useState<any>({ priority: 'medium', status: 'not_started' });
   const [companyName, setCompanyName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
   const [transcriptText, setTranscriptText] = useState('');
   const [draft, setDraft] = useState<CouncilMeetingNotesDraft | null>(null);
@@ -89,67 +91,83 @@ export default function MeetingDetailPage() {
 
 
   const load = async () => {
-    if (!id) return;
     setLoading(true);
-    const { data: m, error: meetingError } = await supabase.from('council_meetings').select('*').eq('id', id).single();
-    if (meetingError) {
-      toast({ title: 'Erro ao carregar encontro', description: meetingError.message, variant: 'destructive' });
+    setError(null);
+    setNotFound(false);
+    try {
+      if (!id) {
+        setMeeting(null);
+        setNotFound(true);
+        return;
+      }
+      const { data: m, error: meetingError } = await supabase.from('council_meetings').select('*').eq('id', id).maybeSingle();
+      if (meetingError) throw meetingError;
+      if (!m) {
+        setMeeting(null);
+        setNotFound(true);
+        return;
+      }
+
+      const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }, { data: templates, error: templatesError }] = await Promise.all([
+        supabase.from('council_actions').select('*').eq('meeting_id', id),
+        supabase.from('companies').select('name').eq('id', m.company_id).single(),
+        supabase.from('config_versions').select('id').eq('status', 'published').single(),
+        supabase.from('council_dimension_progress').select('*').eq('meeting_id', id),
+        supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order'),
+      ]);
+
+      if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
+      if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
+      if (progressError) toast({ title: 'Erro ao carregar evolução por dimensão', description: progressError.message, variant: 'destructive' });
+      if (templatesError) toast({ title: 'Erro ao carregar templates de pauta', description: templatesError.message, variant: 'destructive' });
+
+      let dimensionData: DimensionOption[] = [];
+      if (publishedConfig?.id) {
+        const { data: dims, error: dimError } = await supabase.from('dimensions').select('id,label').eq('config_version_id', publishedConfig.id).order('sort_order', { ascending: true });
+        if (dimError) toast({ title: 'Erro ao carregar dimensões', description: dimError.message, variant: 'destructive' });
+        dimensionData = (dims || []) as DimensionOption[];
+      }
+
+      const rows = (progress || []) as CouncilDimensionProgress[];
+      const formState: Record<string, DimensionForm> = {};
+
+      for (const dim of dimensionData) {
+        const existing = rows.find(r => r.dimension_id === dim.id);
+        formState[dim.id] = existing ? {
+          dimension_id: existing.dimension_id,
+          dimension_label: existing.dimension_label,
+          initial_score: existing.initial_score,
+          current_perceived_score: existing.current_perceived_score,
+          trend: existing.trend,
+          evidence_note: existing.evidence_note,
+          counselor_comment: existing.counselor_comment,
+        } : {
+          dimension_id: dim.id,
+          dimension_label: dim.label,
+          initial_score: null,
+          current_perceived_score: null,
+          trend: 'stable',
+          evidence_note: null,
+          counselor_comment: null,
+        };
+      }
+
+      setMeeting(m as CouncilMeeting);
+      setActions((a || []) as CouncilAction[]);
+      setCompanyName(company?.name || '');
+      setDimensions(dimensionData);
+      setProgressRows(rows);
+      setAgendaTemplates((templates || []) as CouncilAgendaTemplate[]);
+      setFormByDimension(formState);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Falha ao carregar os dados do encontro.';
+      setError(message);
+      setMeeting(null);
+      console.error('Erro ao carregar detalhe do encontro', err);
+      toast({ title: 'Erro ao carregar encontro', description: message, variant: 'destructive' });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const [{ data: a, error: actionError }, { data: company, error: companyError }, { data: publishedConfig }, { data: progress, error: progressError }, { data: templates, error: templatesError }] = await Promise.all([
-      supabase.from('council_actions').select('*').eq('meeting_id', id),
-      supabase.from('companies').select('name').eq('id', m.company_id).single(),
-      supabase.from('config_versions').select('id').eq('status', 'published').single(),
-      supabase.from('council_dimension_progress').select('*').eq('meeting_id', id),
-      supabase.from('council_agenda_templates').select('*').eq('is_active', true).order('sort_order'),
-    ]);
-
-    if (actionError) toast({ title: 'Erro ao carregar ações', description: actionError.message, variant: 'destructive' });
-    if (companyError) toast({ title: 'Erro ao carregar empresa', description: companyError.message, variant: 'destructive' });
-    if (progressError) toast({ title: 'Erro ao carregar evolução por dimensão', description: progressError.message, variant: 'destructive' });
-    if (templatesError) toast({ title: 'Erro ao carregar templates de pauta', description: templatesError.message, variant: 'destructive' });
-
-    let dimensionData: DimensionOption[] = [];
-    if (publishedConfig?.id) {
-      const { data: dims, error: dimError } = await supabase.from('dimensions').select('id,label').eq('config_version_id', publishedConfig.id).order('sort_order', { ascending: true });
-      if (dimError) toast({ title: 'Erro ao carregar dimensões', description: dimError.message, variant: 'destructive' });
-      dimensionData = (dims || []) as DimensionOption[];
-    }
-
-    const rows = (progress || []) as CouncilDimensionProgress[];
-    const formState: Record<string, DimensionForm> = {};
-
-    for (const dim of dimensionData) {
-      const existing = rows.find(r => r.dimension_id === dim.id);
-      formState[dim.id] = existing ? {
-        dimension_id: existing.dimension_id,
-        dimension_label: existing.dimension_label,
-        initial_score: existing.initial_score,
-        current_perceived_score: existing.current_perceived_score,
-        trend: existing.trend,
-        evidence_note: existing.evidence_note,
-        counselor_comment: existing.counselor_comment,
-      } : {
-        dimension_id: dim.id,
-        dimension_label: dim.label,
-        initial_score: null,
-        current_perceived_score: null,
-        trend: 'stable',
-        evidence_note: null,
-        counselor_comment: null,
-      };
-    }
-
-    setMeeting(m as CouncilMeeting);
-    setActions((a || []) as CouncilAction[]);
-    setCompanyName(company?.name || '');
-    setDimensions(dimensionData);
-    setProgressRows(rows);
-    setAgendaTemplates((templates || []) as CouncilAgendaTemplate[]);
-    setFormByDimension(formState);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [id]);
@@ -299,7 +317,8 @@ export default function MeetingDetailPage() {
   };
 
   if (loading) return <div className='text-sm text-muted-foreground'>Carregando encontro...</div>;
-  if (!meeting) return <div className='text-sm text-muted-foreground'>Encontro não encontrado.</div>;
+  if (error) return <Card className='executive-panel'><CardHeader><CardTitle>Erro ao carregar encontro</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>Não foi possível carregar os dados deste encontro agora. {error}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
+  if (notFound || !meeting) return <Card className='executive-panel'><CardHeader><CardTitle>Encontro não encontrado</CardTitle></CardHeader><CardContent className='space-y-3'><p className='text-sm text-muted-foreground'>{id ? 'Encontro não encontrado ou sem permissão de acesso.' : 'Encontro não encontrado.'}</p><Button asChild><Link to='/app/agenda'>Voltar para Agenda</Link></Button></CardContent></Card>;
 
   const today = new Date();
   const totalActions = actions.length;
