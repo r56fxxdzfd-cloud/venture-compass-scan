@@ -35,7 +35,8 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const { theme, setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
-  const visibleNavItems = isDemoUser ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
+  const isDemoMode = isDemoUser || isDemoAdmin;
+  const visibleNavItems = isDemoMode ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
 
   // Fetch pending approval count for super_admin
   useEffect(() => {
