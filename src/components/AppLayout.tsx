@@ -28,14 +28,15 @@ const adminItems = [
 
 
 export function AppLayout({ children }: {children: React.ReactNode;}) {
-  const { profile, signOut, isAdmin, isSuperAdmin, isDemoUser } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin, isDemoUser, isDemoAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
-  const visibleNavItems = isDemoUser ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
+  const isDemoMode = isDemoUser || isDemoAdmin;
+  const visibleNavItems = isDemoMode ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
 
   // Fetch pending approval count for super_admin
   useEffect(() => {
@@ -207,7 +208,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           data-scroll-container="main"
           className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0"
         >
-          {isDemoUser && (
+          {isDemoMode && (
             <div className="mb-4 rounded-xl border border-amber-300/40 bg-amber-100/50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
               Modo Demo — dados fictícios do Darwin Growth
             </div>

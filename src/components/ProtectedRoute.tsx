@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRoles, blockDemo = false }: ProtectedRouteProps) {
-  const { user, roles, loading, profileStatus, isDemoUser } = useAuth();
+  const { user, roles, loading, profileStatus, isDemoUser, isDemoAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -51,7 +51,7 @@ export function ProtectedRoute({ children, requiredRoles, blockDemo = false }: P
     return <Navigate to="/app/dashboard" replace />;
   }
 
-  if (blockDemo && isDemoUser) {
+  if (blockDemo && (isDemoUser || isDemoAdmin)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <Card className="w-full max-w-lg">

@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
     const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
-      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_user', 'jv_analyst', 'jv_viewer'];
+      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_admin', 'demo_user', 'jv_analyst', 'jv_viewer'];
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
         const bestRole = rolePriority
@@ -180,9 +180,9 @@ export default function AdminUsersPage() {
   const roleLabels: Record<AppRole, string> = {
     super_admin: 'Super Admin',
     jv_admin: 'JV Admin',
-    
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
+    demo_admin: 'Demo Admin',
     demo_user: 'Demo',
   };
 
@@ -347,6 +347,7 @@ export default function AdminUsersPage() {
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="demo_user">Demo</SelectItem>
+                                        <SelectItem value="demo_admin">Demo Admin</SelectItem>
                                         <SelectItem value="jv_admin">JV Admin</SelectItem>
                                         <SelectItem value="user">User</SelectItem>
                                         {isSuperAdmin && (
@@ -418,6 +419,12 @@ export default function AdminUsersPage() {
                   <div>
                     <p className="font-medium">Demo</p>
                     <p className="text-xs text-muted-foreground">Acesso ao ambiente demo com dados fictícios</p>
+                  </div>
+                </SelectItem>
+                <SelectItem value="demo_admin">
+                  <div>
+                    <p className="font-medium">Demo Admin</p>
+                    <p className="text-xs text-muted-foreground">Cria e edita dados apenas no ambiente demo</p>
                   </div>
                 </SelectItem>
                 <SelectItem value="user">

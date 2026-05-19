@@ -1025,6 +1025,7 @@ export type Database = {
       }
       is_admin_or_analyst: { Args: { _user_id: string }; Returns: boolean }
       is_approved_member: { Args: { _user_id: string }; Returns: boolean }
+      is_demo_admin: { Args: { _user_id: string }; Returns: boolean }
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
       is_jv_admin: { Args: { _user_id: string }; Returns: boolean }
       is_jv_member: { Args: { _user_id: string }; Returns: boolean }
@@ -1037,6 +1038,7 @@ export type Database = {
         | "jv_viewer"
         | "super_admin"
         | "demo_user"
+        | "demo_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1170,6 +1172,7 @@ export const Constants = {
         "jv_viewer",
         "super_admin",
         "demo_user",
+        "demo_admin",
       ],
     },
   },
