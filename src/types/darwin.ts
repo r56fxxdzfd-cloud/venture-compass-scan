@@ -1,4 +1,4 @@
-export type AppRole = 'super_admin' | 'jv_admin' | 'jv_analyst' | 'jv_viewer';
+export type AppRole = 'super_admin' | 'jv_admin' | 'demo_user' | 'user' | 'jv_analyst' | 'jv_viewer';
 
 export type ProfileStatus = 'pending' | 'approved' | 'rejected';
 
@@ -27,6 +27,7 @@ export interface Company {
   stage: 'pre_seed' | 'seed' | 'series_a' | null;
   business_model: string | null;
   created_at: string;
+  is_demo?: boolean;
 }
 
 export interface ConfigVersion {
@@ -147,6 +148,7 @@ export interface Answer {
   is_na: boolean;
   notes: string | null;
   created_at: string;
+  is_demo?: boolean;
 }
 
 export interface AssessmentRedFlag {
@@ -156,6 +158,7 @@ export interface AssessmentRedFlag {
   status: 'triggered' | 'resolved';
   notes: string | null;
   created_at: string;
+  is_demo?: boolean;
 }
 
 // Scoring types

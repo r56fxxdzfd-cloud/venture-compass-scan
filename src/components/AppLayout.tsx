@@ -28,7 +28,7 @@ const adminItems = [
 
 
 export function AppLayout({ children }: {children: React.ReactNode;}) {
-  const { profile, signOut, isAdmin, isSuperAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin, isDemoUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -206,6 +206,11 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           data-scroll-container="main"
           className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0"
         >
+          {isDemoUser && (
+            <div className="mb-4 rounded-xl border border-amber-300/40 bg-amber-100/50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              Modo Demo — dados fictícios do Darwin Growth
+            </div>
+          )}
           <div className="flex-1">{children}</div>
           <div data-print-hide="true" className="flex flex-col items-center gap-3 pt-4 pb-3 select-none print:hidden">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />

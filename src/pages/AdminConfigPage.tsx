@@ -24,7 +24,7 @@ export default function AdminConfigPage() {
   const [publishTarget, setPublishTarget] = useState<ConfigVersion | null>(null);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
+  const { user, canManageSensitiveParameters, isDemoUser } = useAuth();
   const { toast } = useToast();
 
   const fetchVersions = async () => {
@@ -246,7 +246,7 @@ export default function AdminConfigPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
-            <Input ref={fileRef} type="file" accept=".json" onChange={handleImport} disabled={uploading} />
+            <Input ref={fileRef} type="file" accept=".json" onChange={handleImport} disabled={uploading || !canManageSensitiveParameters} />
             <Button variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
               <Upload className="mr-1 h-4 w-4" />
               {uploading ? 'Importando...' : 'Upload'}
@@ -258,7 +258,7 @@ export default function AdminConfigPage() {
       </Card>
 
       {/* Create Draft button */}
-      {!hasDraft && publishedVersion && (
+      {canManageSensitiveParameters && !hasDraft && publishedVersion && (
         <Card className="border-dashed">
           <CardContent className="pt-6 flex items-center justify-between">
             <div>
@@ -303,7 +303,7 @@ export default function AdminConfigPage() {
                       </div>
                       <TooltipProvider>
                         <div className="flex gap-1">
-                          {isDraft && (
+                          {canManageSensitiveParameters && isDraft && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -317,7 +317,7 @@ export default function AdminConfigPage() {
                               <TooltipContent>Abrir editor visual de configuração</TooltipContent>
                             </Tooltip>
                           )}
-                          {isDraft && (
+                          {canManageSensitiveParameters && isDraft && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="sm" onClick={() => { setExpandedPreview(isPreviewExpanded ? null : v.id); if (isEditorExpanded) setExpandedEditor(null); }}>
@@ -336,7 +336,7 @@ export default function AdminConfigPage() {
                             </TooltipTrigger>
                             <TooltipContent>Exportar como JSON</TooltipContent>
                           </Tooltip>
-                          {isDraft && (
+                          {canManageSensitiveParameters && isDraft && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="sm" onClick={() => setPublishTarget(v)}>
@@ -407,7 +407,7 @@ export default function AdminConfigPage() {
                     )}
 
                     {/* Editor panel */}
-                    {isEditorExpanded && isDraft && (
+                    {canManageSensitiveParameters && isEditorExpanded && isDraft && (
                       <ConfigEditorPanel
                         draftId={v.id}
                         initialConfig={v.config_json}
