@@ -186,6 +186,8 @@ export default function ProgressReportPage() {
 
     const normalizeSentence = (value: string) => value.replace(/\.{2,}/g, '.').replace(/\s+\./g, '.').trim();
 
+    const hasRealProgress = positive.length > 0 || attentionDimensions.length > 0;
+
     return {
       text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros e ${actionsByStatus.completed.length} ações concluídas.`),
       text15: progressDimensionRows.length === 0
@@ -195,6 +197,7 @@ export default function ProgressReportPage() {
       text25: attentionDimensions.length ? normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.join(', ')}.`) : '',
       text3: normalizeSentence(`As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`),
       text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
+      hasRealProgress,
       nextFocus,
     };
   }, [meetings, actionsByStatus.completed.length, progressDimensionRows, actions, dimensions, todayDateOnly]);
@@ -305,7 +308,7 @@ export default function ProgressReportPage() {
       })}</div>}
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
+    <Card className='executive-surface print-safe print:hidden'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
       {progressDimensionRows.length === 0 ? <div className='text-sm text-muted-foreground space-y-1'><p>Nenhuma evolução por dimensão registrada até o momento.</p>{dimensionsWithoutEvidence.length > 0 ? <p>Dimensões sem evidência registrada: {dimensionsWithoutEvidence.join(', ')}.</p> : null}</div> :
       <div className='space-y-2'>{progressDimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
         <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p>{progress ? <Badge className='executive-pill'>{trendLabel[progress.trend]}</Badge> : <Badge variant='outline'>Sem evidência</Badge>}</div>
@@ -318,12 +321,15 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Leitura executiva da evolução</CardTitle></CardHeader><CardContent className='pt-2 text-sm'>
-      <p>{`${improvingCount} dimens${improvingCount === 1 ? 'ão' : 'ões'} melhorando; ${worseningCount === 0 ? 'nenhuma dimensão piorando' : `${worseningCount} em piora`}.`}</p>
+      <p>{summary.hasRealProgress
+        ? `${improvingCount} dimens${improvingCount === 1 ? 'ão' : 'ões'} melhorando; ${worseningCount === 0 ? 'nenhuma dimensão piorando' : `${worseningCount} em piora`}.`
+        : 'Ainda não há dados suficientes para classificar evolução positiva ou negativa por dimensão.'}
+      </p>
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações do conselho</CardTitle></CardHeader><CardContent className='pt-2'>
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
-      <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className='space-y-1.5'>
+      <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className={`space-y-1.5 ${actionsByStatus[status].length === 0 ? 'print:hidden' : ''}`}>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
         {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm print:break-inside-avoid'>
           <p className='font-medium'>{action.title}</p>
