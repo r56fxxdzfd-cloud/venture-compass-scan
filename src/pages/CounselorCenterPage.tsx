@@ -390,7 +390,7 @@ export default function CounselorCenterPage() {
             </div>
             <div className="flex flex-wrap gap-2 lg:shrink-0">
               <Button asChild className="rounded-full"><Link to="/app/agenda"><Plus className="h-4 w-4 mr-2" />Novo encontro</Link></Button>
-              <Button variant="outline" asChild className="rounded-full"><Link to={`/app/startups/${company.id}/progress`}>Relatório de Progresso <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>
+              <Button variant="outline" asChild className="rounded-full"><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>
               <Button variant="outline" asChild className="rounded-full"><Link to="/app/agenda/templates">Templates de Pauta</Link></Button>
             </div>
           </div>

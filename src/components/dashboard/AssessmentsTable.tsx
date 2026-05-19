@@ -64,7 +64,7 @@ export default function AssessmentsTable({ rows, loading }: AssessmentsTableProp
 
   const getNextAction = (row: AssessmentRow): { label: string; href: string } => {
     if (row.status === 'completed' && row.hasHighRedFlags) return { label: 'Ver alertas', href: `/app/assessments/${row.id}/report` };
-    if (row.status === 'completed') return { label: 'Relatório', href: `/app/assessments/${row.id}/report` };
+    if (row.status === 'completed') return { label: 'Abrir Relatório de Diagnóstico', href: `/app/assessments/${row.id}/report` };
     return { label: 'Continuar', href: `/app/assessments/${row.id}/questionnaire` };
   };
 
