@@ -244,7 +244,7 @@ export default function StartupsPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {filtered.map((company, i) => (
               <motion.div
                 key={company.id}
@@ -252,48 +252,54 @@ export default function StartupsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Link to={`/app/startups/${company.id}`}>
-                  <Card className="executive-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer rounded-2xl">
-                    <CardContent className="pt-6">
+                <Link to={`/app/startups/${company.id}`} className="block h-full">
+                  <Card className="executive-card executive-panel h-full rounded-2xl border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
+                    <CardContent className="flex h-full flex-col gap-4 p-5">
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                           <Building2 className="h-5 w-5" />
                         </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold truncate">{company.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <p className="truncate text-base font-semibold leading-tight">{company.name}</p>
+                          <div className="flex flex-wrap items-center gap-2">
                             {company.stage && (
-                              <span className="badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
+                              <span className="executive-pill badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
                             )}
                             {company.sector && (
-                              <span className="text-xs text-muted-foreground">{company.sector}</span>
+                              <span className="executive-pill text-xs text-muted-foreground">{company.sector}</span>
                             )}
                           </div>
                         </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
-                              <p className="text-muted-foreground">Diagnósticos</p>
-                              <p className="font-semibold">{portfolioMetrics[company.id]?.diagnostics ?? 0}</p>
-                            </div>
-                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
-                              <p className="text-muted-foreground">Encontros</p>
-                              <p className="font-semibold">{portfolioMetrics[company.id]?.meetings ?? 0}</p>
-                            </div>
-                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
-                              <p className="text-muted-foreground">Ações abertas</p>
-                              <p className="font-semibold">{portfolioMetrics[company.id]?.openActions ?? 0}</p>
-                            </div>
-                            <div className="rounded-lg border border-border/70 bg-background/50 p-2">
-                              <p className="text-muted-foreground">Críticas</p>
-                              <p className="font-semibold text-destructive">{portfolioMetrics[company.id]?.criticalActions ?? 0}</p>
-                            </div>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-background/70 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Último diagnóstico</p>
+                        <p className="mt-1 text-sm text-foreground">
+                          {portfolioMetrics[company.id]?.lastAssessmentDate
+                            ? `Último diagnóstico: ${new Date(portfolioMetrics[company.id].lastAssessmentDate).toLocaleDateString('pt-BR')}`
+                            : 'Último diagnóstico: não disponível'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border/70 bg-background/70 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Conselho</p>
+                        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                          <div className="rounded-lg border border-border/60 bg-background/60 p-2">
+                            <p className="text-[11px] text-muted-foreground">Encontros</p>
+                            <p className="text-sm font-semibold">Encontros: {portfolioMetrics[company.id]?.meetings ?? 0}</p>
                           </div>
-                          <div className="mt-3 flex items-center justify-between">
-                            <p className="text-xs text-muted-foreground">
-                              Último diagnóstico: {portfolioMetrics[company.id]?.lastAssessmentDate ? new Date(portfolioMetrics[company.id].lastAssessmentDate).toLocaleDateString('pt-BR') : 'Não disponível'}
-                            </p>
-                            <span className="text-xs font-semibold text-primary inline-flex items-center gap-1">Abrir organização <ArrowRight className="h-3.5 w-3.5" /></span>
+                          <div className="rounded-lg border border-border/60 bg-background/60 p-2">
+                            <p className="text-[11px] text-muted-foreground">Ações abertas</p>
+                            <p className="text-sm font-semibold">Ações abertas: {portfolioMetrics[company.id]?.openActions ?? 0}</p>
                           </div>
+                          <div className="rounded-lg border border-border/60 bg-background/60 p-2">
+                            <p className="text-[11px] text-muted-foreground">Críticas</p>
+                            <p className="text-sm font-semibold text-destructive">Críticas: {portfolioMetrics[company.id]?.criticalActions ?? 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-auto flex items-center justify-end pt-1">
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-semibold text-primary">
+                          Abrir organização <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
