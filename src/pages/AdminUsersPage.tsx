@@ -347,6 +347,7 @@ export default function AdminUsersPage() {
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="demo_user">Demo</SelectItem>
+                                        <SelectItem value="demo_admin">Demo Admin</SelectItem>
                                         <SelectItem value="jv_admin">JV Admin</SelectItem>
                                         <SelectItem value="user">User</SelectItem>
                                         {isSuperAdmin && (
