@@ -326,7 +326,7 @@ export default function StartupDetailPage() {
           {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
-          <Button asChild variant='secondary'><Link to={progressReportLink}>Relatório de Progresso</Link></Button>
+          <Button asChild variant='secondary'><Link to={progressReportLink}>Ver Relatório de Progresso</Link></Button>
         </div>
       </div>
 
@@ -359,7 +359,8 @@ export default function StartupDetailPage() {
               <p className="text-xl font-semibold">{lastResult ? `${lastResult.score100} · ${lastResult.level}` : 'Sem score disponível'}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" disabled={!lastResult}><Link to={progressReportLink}>Abrir relatório</Link></Button>
+              <Button asChild variant="outline" disabled={!lastResult}><Link to={`/app/assessments/${latestAssessment?.id}/report`}>Abrir Relatório de Diagnóstico</Link></Button>
+              <Button asChild variant="outline"><Link to={progressReportLink}>Ver Relatório de Progresso</Link></Button>
               {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
             </div>
           </CardContent>
