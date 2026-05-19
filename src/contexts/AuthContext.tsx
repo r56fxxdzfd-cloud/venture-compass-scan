@@ -149,6 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isSuperAdmin: hasRole('super_admin'),
         isJVAdmin: hasRole('jv_admin') || hasRole('super_admin'),
         isDemoUser: hasRole('demo_user'),
+        isDemoAdmin: hasRole('demo_admin'),
+        canOperateDemo: hasRole('demo_admin') || hasRole('jv_admin') || hasRole('super_admin'),
         canManageSensitiveParameters: hasRole('super_admin'),
         canOperatePlatform: hasRole('jv_admin') || hasRole('super_admin'),
         isAnalyst: hasRole('jv_analyst'),
