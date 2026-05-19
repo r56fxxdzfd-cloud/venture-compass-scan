@@ -573,8 +573,10 @@ export default function MeetingDetailPage() {
         <p><strong>Travas:</strong> {meeting.key_blockers || '—'}</p>
         <p><strong>Próxima pauta:</strong> {meeting.next_agenda || '—'}</p>
       </>}
-      {!isDemoUser && <div className='print:hidden'><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
-      <div className='print:hidden'><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>}
+      {!isDemoUser && <>
+        <div className='print:hidden'><p className='mb-1'><strong>Sugestões de avanços:</strong></p><div className='flex flex-wrap gap-2'>{winsSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.recommendations ? `${meeting.recommendations}; ${item}` : item; await supabase.from('council_meetings').update({ recommendations: v }).eq('id', meeting.id); setMeeting({ ...meeting, recommendations: v }); }}>{item}</button>)}</div></div>
+        <div className='print:hidden'><p className='mb-1'><strong>Sugestões de travas:</strong></p><div className='flex flex-wrap gap-2'>{blockerSuggestions.map(item => <button key={item} type='button' className='rounded-full border px-2 py-1 text-xs' onClick={async () => { const v = meeting.key_blockers ? `${meeting.key_blockers}; ${item}` : item; await supabase.from('council_meetings').update({ key_blockers: v }).eq('id', meeting.id); setMeeting({ ...meeting, key_blockers: v }); }}>{item}</button>)}</div></div>
+      </>}
       <div className='flex flex-wrap gap-2'>
         {!meeting.next_agenda && <Badge variant='outline'>Sem próxima pauta</Badge>}
         {totalActions === 0 && <Badge variant='outline'>Sem ações</Badge>}
@@ -625,7 +627,7 @@ export default function MeetingDetailPage() {
             <div className='grid md:grid-cols-3 gap-2'>
               <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
               <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
-              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência</SelectItem></SelectContent></Select></div>}
+              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência</SelectItem></SelectContent></Select></div>
             </div>
             <div className='grid md:grid-cols-2 gap-2'>
               <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } }))} /></div>
@@ -638,7 +640,7 @@ export default function MeetingDetailPage() {
           </div>;
         })}</div>
       </>}
-      </div>}
+      </div>
     </CardContent></Card>
 
     <Card className='executive-panel'><CardHeader><CardTitle>Ações combinadas</CardTitle></CardHeader><CardContent className='space-y-3'>
@@ -650,7 +652,7 @@ export default function MeetingDetailPage() {
         <div className='md:col-span-2'><Label>Ação</Label><Input value={newAction.title || ''} onChange={e => setNewAction({ ...newAction, title: e.target.value })} /></div>
         <div><Label>Responsável</Label><Input value={newAction.owner_name || ''} onChange={e => setNewAction({ ...newAction, owner_name: e.target.value })} /></div>
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
-        <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>}
+        <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
       </div>}
       {!isDemoUser && <Button onClick={addAction}>Adicionar ação de conselho</Button>}
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação vinculada. Sem ações fica impossível monitorar execução do encontro. Próximo passo: registre ao menos uma ação com responsável e prazo.</p> :
