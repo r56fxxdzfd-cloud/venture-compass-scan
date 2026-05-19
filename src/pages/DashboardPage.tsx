@@ -177,7 +177,7 @@ function buildMicrotext(parts: Array<[number, string, string]>) {
 }
 
 export default function DashboardPage() {
-  const { isDemoUser } = useAuth();
+  const { isDemoUser, canOperateDemo } = useAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ExecutiveData>({
     companies: [],
@@ -389,7 +389,7 @@ export default function DashboardPage() {
   };
 
   const hasNoOperatingData = !loading && data.companies.length === 0;
-  const visibleQuickAccessCards = isDemoUser
+  const visibleQuickAccessCards = !canOperateDemo
     ? quickAccessCards.filter((card) => !['Novo Diagnóstico', 'Registrar Encontro', 'Templates de Pauta', 'Metodologia'].includes(card.label))
     : quickAccessCards;
   const hasNoDiagnostics = !loading && data.companies.length > 0 && data.assessments.length === 0;
@@ -407,7 +407,7 @@ export default function DashboardPage() {
               <p className="executive-section-title text-sm">Comece pelo portfólio</p>
               <p className="mt-1 text-sm text-muted-foreground">Nenhuma organização cadastrada. Cadastre uma organização para liberar diagnósticos, ritos e ações.</p>
             </div>
-            {!isDemoUser && <Button asChild className="rounded-full"><Link to="/app/startups">Adicionar organização</Link></Button>}
+            {canOperateDemo && <Button asChild className="rounded-full"><Link to="/app/startups">Adicionar organização</Link></Button>}
           </CardContent>
         </Card>
       )}
@@ -577,8 +577,8 @@ export default function DashboardPage() {
 
       {(hasNoDiagnostics || hasNoMeetings) && (
         <section className="grid gap-3 md:grid-cols-2">
-          {hasNoDiagnostics && !isDemoUser && <GuidanceCard title="Sem diagnósticos" description="Inicie um diagnóstico a partir da página de organizações para gerar leitura executiva." href="/app/startups" cta="Novo diagnóstico" icon={ClipboardList} />}
-          {hasNoMeetings && !isDemoUser && <GuidanceCard title="Sem encontros" description="Registre ritos na Agenda de Evolução para ativar pautas, atas e ações." href="/app/agenda" cta="Registrar encontro" icon={CalendarRange} />}
+          {hasNoDiagnostics && canOperateDemo && <GuidanceCard title="Sem diagnósticos" description="Inicie um diagnóstico a partir da página de organizações para gerar leitura executiva." href="/app/startups" cta="Novo diagnóstico" icon={ClipboardList} />}
+          {hasNoMeetings && canOperateDemo && <GuidanceCard title="Sem encontros" description="Registre ritos na Agenda de Evolução para ativar pautas, atas e ações." href="/app/agenda" cta="Registrar encontro" icon={CalendarRange} />}
         </section>
       )}
 

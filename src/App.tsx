@@ -52,10 +52,10 @@ function AnimatedRoutes() {
         <Route path="/app/counselor" element={<ProtectedRoute><AppLayout><AnimatedPage><CounselorOverviewPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/counselor" element={<ProtectedRoute><AppLayout><AnimatedPage><CounselorCenterPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/founders" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderListPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']} blockDemo><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/founder-assessments/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst', 'demo_admin']}><AppLayout><AnimatedPage><FounderAssessmentFormPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/founder-assessments/:id/pdf" element={<ProtectedRoute><AppLayout><AnimatedPage><FounderAssessmentPdfPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
-        <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst']} blockDemo><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/assessments/:id/questionnaire" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst', 'demo_admin']}><AppLayout><AnimatedPage><QuestionnairePage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/assessments/:id/report" element={<ProtectedRoute><AppLayout><AnimatedPage><ReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/agenda" element={<ProtectedRoute><AppLayout><AnimatedPage><AgendaPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/agenda/templates" element={<ProtectedRoute blockDemo><AppLayout><AnimatedPage><AgendaTemplatesPage /></AnimatedPage></AppLayout></ProtectedRoute>} />

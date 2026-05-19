@@ -21,11 +21,11 @@ export default function StartupsPage() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
-  const { isAdmin, isAnalyst, isDemoUser } = useAuth();
+  const { canOperatePlatform, canOperateDemo, isDemoUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const canWrite = isAdmin || isAnalyst;
+  const canWrite = canOperatePlatform || canOperateDemo;
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false });
