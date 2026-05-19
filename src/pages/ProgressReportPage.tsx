@@ -163,6 +163,7 @@ export default function ProgressReportPage() {
 
   const dimensionRows = useMemo(() => dimensions.map((d) => ({ dim: d, progress: latestProgressByDimension.get(d.id) })), [dimensions, latestProgressByDimension]);
   const progressDimensionRows = useMemo(() => dimensionRows.filter((r) => !!r.progress), [dimensionRows]);
+  const dimensionsWithoutEvidence = useMemo(() => dimensionRows.filter((r) => !r.progress).map((r) => extractDimensionCode(r.dim.label)), [dimensionRows]);
   const printDimensionRows = useMemo(() => progressDimensionRows
     .map(({ dim, progress }) => {
       const shortCodeRaw = dim.label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase() || dim.label.split(/[\s&/-]+/).map(w => w[0]?.toUpperCase()).join('').slice(0, 2);
@@ -187,9 +188,11 @@ export default function ProgressReportPage() {
 
     return {
       text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros e ${actionsByStatus.completed.length} ações concluídas.`),
-      text15: normalizeSentence(`Foram registradas ${progressDimensionRows.length} dimensões com evolução acompanhada.`),
-      text2: normalizeSentence(`As dimensões com tendência positiva são: ${positive.length ? positive.join(', ') : 'sem evidência registrada'}.`),
-      text25: normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.length ? attentionDimensions.join(', ') : 'sem evidência registrada'}.`),
+      text15: progressDimensionRows.length === 0
+        ? 'Ainda não há evolução por dimensão registrada nos encontros do conselho.'
+        : normalizeSentence(`Foram registradas ${progressDimensionRows.length} dimensões com evolução acompanhada.`),
+      text2: positive.length ? normalizeSentence(`As dimensões com tendência positiva são: ${positive.join(', ')}.`) : '',
+      text25: attentionDimensions.length ? normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.join(', ')}.`) : '',
       text3: normalizeSentence(`As principais pendências estão em: ${pending.length ? pending.join('; ') : 'sem pendências críticas registradas'}.`),
       text4: normalizeSentence(`O próximo foco sugerido é: ${nextFocus[0] || 'registrar evolução por dimensão e atualizar ações abertas'}.`),
       nextFocus,
@@ -255,8 +258,8 @@ export default function ProgressReportPage() {
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
       <p>{summary.text1}</p>
       <p>{summary.text15}</p>
-      <p>{summary.text2}</p>
-      <p>{summary.text25}</p>
+      {summary.text2 ? <p>{summary.text2}</p> : null}
+      {summary.text25 ? <p>{summary.text25}</p> : null}
       <p>{summary.text3}</p>
       <p>{summary.text4}</p>
     </CardContent></Card>
@@ -284,7 +287,7 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe hidden print:block'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão — visão executiva</CardTitle></CardHeader><CardContent className='pt-0'>
-      {printDimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Sem evolução por dimensão registrada.</p> :
+      {printDimensionRows.length === 0 ? <div className='text-sm text-muted-foreground space-y-1'><p>Nenhuma evolução por dimensão registrada até o momento.</p>{dimensionsWithoutEvidence.length > 0 ? <p>Dimensões sem evidência registrada: {dimensionsWithoutEvidence.join(', ')}.</p> : null}</div> :
       <div className='print-dimension-grid'>{printDimensionRows.map(({ dim, progress, safeCode, initial, current, variation }) => {
         const baselinePct = initial === null ? 0 : Math.min(100, Math.max(0, (initial / 5) * 100));
         const currentPct = current === null ? 0 : Math.min(100, Math.max(0, (current / 5) * 100));
@@ -303,7 +306,7 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Evolução por dimensão</CardTitle></CardHeader><CardContent className='pt-2'>
-      {progressDimensionRows.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma evolução por dimensão registrada até o momento.</p> :
+      {progressDimensionRows.length === 0 ? <div className='text-sm text-muted-foreground space-y-1'><p>Nenhuma evolução por dimensão registrada até o momento.</p>{dimensionsWithoutEvidence.length > 0 ? <p>Dimensões sem evidência registrada: {dimensionsWithoutEvidence.join(', ')}.</p> : null}</div> :
       <div className='space-y-2'>{progressDimensionRows.map(({ dim, progress }) => <div key={dim.id} className='executive-card rounded-lg p-2.5 text-sm space-y-1'>
         <div className='flex items-center justify-between'><p className='font-medium'>{dim.label}</p>{progress ? <Badge className='executive-pill'>{trendLabel[progress.trend]}</Badge> : <Badge variant='outline'>Sem evidência</Badge>}</div>
         <p><strong>Baseline:</strong> {progress?.initial_score ?? 'sem evidência'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'sem evidência'}</p>
@@ -332,16 +335,23 @@ export default function ProgressReportPage() {
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Decisões e recomendações recentes</CardTitle></CardHeader><CardContent className='pt-2 space-y-2'>
-      {meetings.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
-        <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
-        {meeting.decisions || meeting.recommendations || meeting.key_blockers || meeting.next_agenda ? <>
-          <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
-          <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
-          <p><strong>Principais travas:</strong> {meeting.key_blockers || 'sem evidência registrada'}</p>
-          <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'sem evidência registrada'}</p>
-        </> : <p className='text-muted-foreground'>Ata ainda não estruturada.</p>}
-      </div>)}
-      {meetings.length === 0 && <p className='text-sm text-muted-foreground'>Sem encontros para extrair decisões e recomendações.</p>}
+      {(() => {
+        const recent = meetings.slice(0, 6);
+        const withContent = recent.filter((meeting) => !!(meeting.decisions || meeting.recommendations || meeting.key_blockers || meeting.next_agenda));
+        const withoutContentCount = recent.length - withContent.length;
+        if (recent.length === 0) return <p className='text-sm text-muted-foreground'>Sem encontros para extrair decisões e recomendações.</p>;
+        if (withContent.length === 0) return <div className='text-sm text-muted-foreground space-y-1'><p>Nenhuma ata estruturada registrada nos encontros analisados.</p><p>Use o Assistente de Ata para gerar pré-atas revisáveis a partir das transcrições.</p></div>;
+        return <>
+          {withContent.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
+            <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
+            <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
+            <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
+            <p><strong>Principais travas:</strong> {meeting.key_blockers || 'sem evidência registrada'}</p>
+            <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'sem evidência registrada'}</p>
+          </div>)}
+          {withoutContentCount > 0 ? <p className='text-xs text-muted-foreground'>{withoutContentCount} encontro(s) recente(s) sem ata estruturada detalhada.</p> : null}
+        </>;
+      })()}
     </CardContent></Card>
 
     <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Próximos focos sugeridos</CardTitle></CardHeader><CardContent className='pt-2'>
@@ -349,23 +359,49 @@ export default function ProgressReportPage() {
       <ol className='list-decimal pl-5 text-sm space-y-1'>{summary.nextFocus.map((item, idx) => <li key={idx}>{item}</li>)}</ol>}
     </CardContent></Card>
     <BackToTopFooter />
-    <div className='hidden print:block print-report-footer'>Relatório gerado pelo Venture Compass Scan — uso executivo.</div>
+    <div className='hidden print:block print-report-footer'>Relatório gerado pelo Darwin Conselho OS — uso executivo.</div>
   </div>;
 }
 
 function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: CouncilAction[], dimensions: DimensionOption[], meetings: CouncilMeeting[], todayDateOnly: string) {
   const dimensionName = (id: string) => dimensions.find((d) => d.id === id)?.label || id;
-  const items: string[] = [];
+  const rankByAction = new Map<string, { priority: number; text: string }>();
+  const generalItems: Array<{ priority: number; text: string }> = [];
 
-  progressRows.filter((d) => d.trend === 'worsening').forEach((d) => items.push(`Reverter tendência de queda em ${dimensionName(d.dimension_id)}.`));
-  progressRows.filter((d) => !d.evidence_note).forEach((d) => items.push(`Consolidar evidências de evolução em ${dimensionName(d.dimension_id)}.`));
-  actions.filter((a) => a.status === 'blocked').forEach((a) => items.push(`Destravar ação: ${a.title}.`));
-  actions.filter((a) => a.due_date && isDateOnlyBefore(a.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(a.status)).forEach((a) => items.push(`Tratar atraso da ação ${a.title} e redefinir plano de execução.`));
-  progressRows.filter((d) => d.trend === 'stable' && (d.current_perceived_score ?? 99) <= 2.5).forEach((d) => items.push(`Acelerar evolução em ${dimensionName(d.dimension_id)} para sair de estabilidade baixa.`));
-  const hasNextAgenda = meetings.some((m) => !!m.next_agenda?.trim());
-  if (!hasNextAgenda) items.push('Definir próxima pauta do conselho.');
+  actions.forEach((action) => {
+    const blocked = action.status === 'blocked';
+    const overdue = !!(action.due_date && isDateOnlyBefore(action.due_date, todayDateOnly) && !['completed', 'cancelled'].includes(action.status));
+    if (!blocked && !overdue) return;
+    const priority = blocked ? 1 : 2;
+    const text = blocked ? `Destravar ação: ${action.title}.` : `Tratar atraso da ação ${action.title} e redefinir plano de execução.`;
+    const current = rankByAction.get(action.title);
+    if (!current || priority < current.priority) rankByAction.set(action.title, { priority, text });
+  });
 
-  return Array.from(new Set(items)).slice(0, 5);
+  progressRows.filter((d) => d.trend === 'worsening').forEach((d) => generalItems.push({ priority: 3, text: `Reverter tendência de queda em ${dimensionName(d.dimension_id)}.` }));
+  progressRows.filter((d) => d.trend === 'stable' && (d.current_perceived_score ?? 99) <= 2.5).forEach((d) => generalItems.push({ priority: 4, text: `Acelerar evolução em ${dimensionName(d.dimension_id)} para sair de estabilidade baixa.` }));
+  if (!meetings.some((m) => !!m.next_agenda?.trim())) generalItems.push({ priority: 5, text: 'Definir próxima pauta do conselho.' });
+  progressRows.filter((d) => !d.evidence_note).forEach((d) => generalItems.push({ priority: 6, text: `Consolidar evidências de evolução em ${dimensionName(d.dimension_id)}.` }));
+
+  const prioritized = [
+    ...Array.from(rankByAction.values()),
+    ...generalItems,
+  ].sort((a, b) => a.priority - b.priority);
+
+  return Array.from(new Set(prioritized.map((item) => item.text))).slice(0, 5);
+}
+
+function extractDimensionCode(label: string) {
+  const codeFromSuffix = label.match(/\(([^)]+)\)\s*$/)?.[1]?.toUpperCase();
+  if (codeFromSuffix && dimensionCodeOrder.includes(codeFromSuffix as typeof dimensionCodeOrder[number])) return codeFromSuffix;
+  const normalized = label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const aliasMap: Record<string, string> = {
+    identidade: 'IC', cultura: 'IC', pessoas: 'PL', lideranca: 'PL', governanca: 'GR', riscos: 'GR',
+    estrategia: 'EE', execucao: 'EE', processos: 'PM', metricas: 'PM', financas: 'FS', sustentabilidade: 'FS',
+    modelo: 'MN', negocio: 'MN', tracao: 'GT', produto: 'PT', tecnologia: 'PT',
+  };
+  const found = Object.entries(aliasMap).find(([key]) => normalized.includes(key))?.[1];
+  return found || label;
 }
 
 function formatDimensionLabel(value?: string | null) {
