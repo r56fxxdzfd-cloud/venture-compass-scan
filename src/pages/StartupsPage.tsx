@@ -21,7 +21,7 @@ export default function StartupsPage() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
-  const { isAdmin, isAnalyst } = useAuth();
+  const { isAdmin, isAnalyst, isDemoUser } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -234,8 +234,14 @@ export default function StartupsPage() {
       {companies.length === 0 ? (
         <div className="executive-surface rounded-xl text-center py-16">
           <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground mb-2">Seu portfólio ainda está vazio.</p>
-          <p className="text-sm text-muted-foreground mb-4">Comece cadastrando uma organização para iniciar diagnósticos, agenda e acompanhamento executivo.</p>
+          <p className="text-muted-foreground mb-2">
+            {isDemoUser ? 'Nenhum dado demo disponível.' : 'Seu portfólio ainda está vazio.'}
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {isDemoUser
+              ? 'Quando houver empresas marcadas como demo (is_demo = true), elas aparecerão aqui.'
+              : 'Comece cadastrando uma organização para iniciar diagnósticos, agenda e acompanhamento executivo.'}
+          </p>
           {canWrite && (
             <Button onClick={() => setOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova Organização
