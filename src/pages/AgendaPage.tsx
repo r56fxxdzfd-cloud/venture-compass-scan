@@ -595,7 +595,7 @@ export default function AgendaPage() {
       </>}
     <Dialog open={open} onOpenChange={(value) => { setOpen(value); if (!value) { setCreationMode('manual'); resetDraftFlow(); } }}><DialogContent className='max-w-5xl max-h-[90vh] overflow-y-auto'><DialogHeader><DialogTitle>Registrar novo encontro</DialogTitle></DialogHeader>
       <Tabs value={creationMode} onValueChange={(v) => setCreationMode(v as 'manual' | 'transcript')} className='space-y-3'>
-        <TabsList className='grid grid-cols-2 w-full'>
+        <TabsList className='grid w-full min-w-0 grid-cols-2'>
           <TabsTrigger value='manual'>Registro manual</TabsTrigger>
           <TabsTrigger value='transcript'>A partir de transcrição</TabsTrigger>
         </TabsList>

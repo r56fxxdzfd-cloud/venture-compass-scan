@@ -390,7 +390,7 @@ export default function StartupDetailPage() {
                       <div>
                         <p className="text-xs text-muted-foreground">{formatDateOnlyBR(meeting.meeting_date)}</p>
                         <p className="font-medium">{meeting.title || meeting.executive_summary || 'Encontro de conselho'}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[360px]">Próxima pauta: {meeting.next_agenda || 'Não definida'}</p>
+                        <p className="max-w-full break-words text-xs text-muted-foreground">Próxima pauta: {meeting.next_agenda || 'Não definida'}</p>
                       </div>
                       <Button asChild size="sm" variant="ghost">
                         <Link to={`/app/agenda/${meeting.id}`}>Abrir</Link>
@@ -709,7 +709,7 @@ export default function StartupDetailPage() {
 
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Configuração do Diagnóstico</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs">Estágio</Label>
                 <Select value={newStage} onValueChange={setNewStage}>
@@ -748,7 +748,7 @@ export default function StartupDetailPage() {
 
             <Separator />
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {numericFieldDefs.map(f => (
                 <div key={f.key} className="space-y-1">
                   <Label className="text-xs">{f.label}</Label>

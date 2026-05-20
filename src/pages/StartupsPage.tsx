@@ -137,11 +137,11 @@ export default function StartupsPage() {
           {canWrite && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="rounded-full">
+                <Button size="sm" className="w-full rounded-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" /> Nova Organização
                 </Button>
               </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Nova Organização</DialogTitle>
               </DialogHeader>
@@ -171,7 +171,7 @@ export default function StartupsPage() {
                     }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Setor</Label>
                     <Select value={form.sector} onValueChange={(v) => setForm({ ...form, sector: v })}>
@@ -250,7 +250,7 @@ export default function StartupsPage() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {filtered.map((company, i) => (
               <motion.div
                 key={company.id}
@@ -266,7 +266,7 @@ export default function StartupsPage() {
                           <Building2 className="h-5 w-5" />
                         </div>
                         <div className="min-w-0 flex-1 space-y-2">
-                          <p className="truncate text-base font-semibold leading-tight">{company.name}</p>
+                          <p className="break-words text-base font-semibold leading-tight">{company.name}</p>
                           <div className="flex flex-wrap items-center gap-2">
                             {company.stage && (
                               <span className="executive-pill badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
@@ -309,8 +309,8 @@ export default function StartupsPage() {
                       </div>
                     </CardContent>
                   </Link>
-                  <div className="px-5 pb-5 -mt-1 flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="secondary">
+                  <div className="mt-1 flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:flex-wrap">
+                    <Button asChild size="sm" variant="secondary" className="w-full sm:w-auto">
                       <Link to={`/app/startups/${company.id}/progress`}>Relatório de Progresso</Link>
                     </Button>
                   </div>
