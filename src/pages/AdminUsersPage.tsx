@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
       </section>
 
       <Tabs defaultValue={pendingUsers.length > 0 ? 'pending' : 'active'}>
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="pending" className="gap-1.5">
             Aguardando aprovação
             {pendingUsers.length > 0 && (

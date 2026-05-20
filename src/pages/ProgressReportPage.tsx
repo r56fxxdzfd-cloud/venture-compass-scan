@@ -235,9 +235,9 @@ export default function ProgressReportPage() {
     <div className='executive-surface rounded-xl p-5 print-safe'>
       <p className='executive-header'>Relatório de Progresso</p>
       <p className='text-sm text-muted-foreground mt-1'>Evolução da organização ao longo dos encontros do conselho.</p>
-      <div className='flex items-center justify-between gap-3 mt-2'>
+      <div className='mt-2 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
         <h1 className='executive-section-title text-2xl font-bold'>{company.name}</h1>
-        <div className='flex items-center gap-2 print:hidden'>
+        <div className='flex flex-col gap-2 print:hidden sm:flex-row sm:flex-wrap sm:items-center'>
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}`}>Voltar para organização</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>

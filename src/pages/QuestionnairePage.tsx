@@ -374,7 +374,7 @@ function QuestionCard({
             </div>
 
             {tooltip?.anchors && (
-              <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[11px] text-muted-foreground mt-1 bg-secondary/40 rounded-md px-3 py-2">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-3 text-[11px] text-muted-foreground mt-1 bg-secondary/40 rounded-md px-3 py-2">
                 {Object.entries(tooltip.anchors).map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-1.5">
                     <span className="font-bold text-foreground/60 shrink-0">{k}:</span>
