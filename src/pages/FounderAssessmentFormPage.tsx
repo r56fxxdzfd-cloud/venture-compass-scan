@@ -280,7 +280,7 @@ export default function FounderAssessmentFormPage() {
                 <CardTitle>Contexto da Avaliação</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label className="text-xs text-muted-foreground">Organização</Label>
                     <p className="font-medium">{company?.name}</p>

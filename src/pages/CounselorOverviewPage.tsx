@@ -474,7 +474,7 @@ export default function CounselorOverviewPage() {
               Priorize riscos, prepare reuniões e acompanhe a execução do conselho.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-background/65 p-4 shadow-sm min-w-[280px]">
+          <div className="rounded-2xl border border-white/10 bg-background/65 p-4 shadow-sm min-w-0 max-w-full">
             <p className="text-[11px] tracking-[0.14em] uppercase text-muted-foreground font-semibold">Status geral do portfólio</p>
             <div className="mt-2 flex items-center gap-2">
               <span className={`h-2.5 w-2.5 rounded-full ${portfolioTone.dot}`} />

@@ -688,7 +688,7 @@ export default function MeetingDetailPage() {
 
       {draft && <div className='space-y-4'>
         <Tabs defaultValue='minutes'>
-          <TabsList>
+          <TabsList className="w-full justify-start overflow-x-auto">
             <TabsTrigger value='minutes'>Ata estruturada</TabsTrigger>
             <TabsTrigger value='actions'>Ações sugeridas</TabsTrigger>
             <TabsTrigger value='progress'>Evolução por dimensão</TabsTrigger>
