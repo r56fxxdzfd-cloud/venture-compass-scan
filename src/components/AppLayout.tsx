@@ -181,9 +181,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
       }
 
       {/* Main */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header data-print-hide="true" className="flex h-14 items-center gap-4 border-b bg-background/90 px-4 backdrop-blur-sm lg:px-6">
+        <header data-print-hide="true" className="flex h-14 min-w-0 items-center gap-2 border-b bg-background/90 px-3 backdrop-blur-sm sm:gap-4 sm:px-4 lg:px-6">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -198,7 +198,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
               <TooltipContent>Abrir menu lateral</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <AppBreadcrumbs />
+          <div className="min-w-0 flex-1">
+            <AppBreadcrumbs />
+          </div>
         </header>
 
         {/* Content */}
@@ -206,14 +208,14 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           ref={mainRef}
           id="app-main-scroll"
           data-scroll-container="main"
-          className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6 flex flex-col min-h-0"
+          className="flex min-h-0 max-w-full flex-1 flex-col overflow-y-auto overflow-x-hidden bg-muted/20 p-3 sm:p-4 lg:p-6"
         >
           {isDemoMode && (
             <div className="mb-4 rounded-xl border border-amber-300/40 bg-amber-100/50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
               Modo Demo — dados fictícios do Darwin Growth
             </div>
           )}
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 min-w-0 max-w-full">{children}</div>
           <div data-print-hide="true" className="flex flex-col items-center gap-3 pt-4 pb-3 select-none print:hidden">
             <img src={logoDarwin} alt="Darwin" className="h-5 object-contain dark:brightness-100 brightness-0 opacity-30" />
             <p className="text-[9px] text-muted-foreground/30 tracking-[0.15em] text-center font-medium uppercase">

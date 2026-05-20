@@ -46,17 +46,17 @@ export function AppBreadcrumbs() {
   });
 
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
+    <Breadcrumb className="min-w-0 max-w-full">
+      <BreadcrumbList className="min-w-0 max-w-full flex-nowrap overflow-x-auto">
         {crumbs.map((crumb, i) => (
           <BreadcrumbItem key={i}>
             {i > 0 && <BreadcrumbSeparator />}
             {crumb.href ? (
               <BreadcrumbLink asChild>
-                <Link to={crumb.href}>{crumb.label}</Link>
+                <Link to={crumb.href} className="truncate max-w-[9rem] sm:max-w-none">{crumb.label}</Link>
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+              <BreadcrumbPage className="truncate max-w-[9rem] sm:max-w-none">{crumb.label}</BreadcrumbPage>
             )}
           </BreadcrumbItem>
         ))}
