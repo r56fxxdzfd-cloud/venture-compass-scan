@@ -138,7 +138,11 @@ export function RadarSection({ result, config, stage }: { result: AssessmentResu
     <Card className="executive-surface print-safe">
       <CardContent className="pt-6">
         <h3 className="text-base font-semibold mb-4">Radar — Atual vs Benchmark vs Potencial</h3>
-        <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark showPotential potentialScores={potentialScores} />
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[320px] sm:min-w-0">
+            <DarwinRadarChart dimensionScores={result.dimension_scores} showBenchmark showPotential potentialScores={potentialScores} />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
