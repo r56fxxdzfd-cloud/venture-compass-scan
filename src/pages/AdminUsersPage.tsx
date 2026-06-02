@@ -42,7 +42,7 @@ export default function AdminUsersPage() {
     const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
-      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_admin', 'demo_user', 'user', 'jv_analyst', 'jv_viewer'];
+      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_admin', 'demo_user', 'jv_analyst', 'jv_viewer'];
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
         const bestRole = rolePriority
@@ -180,7 +180,6 @@ export default function AdminUsersPage() {
   const roleLabels: Record<AppRole, string> = {
     super_admin: 'Super Admin',
     jv_admin: 'JV Admin',
-    user: 'User',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
     demo_admin: 'Demo Admin',
