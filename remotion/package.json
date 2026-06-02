@@ -2,5 +2,19 @@
   "name": "darwin-video",
   "version": "1.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.471",
+    "@remotion/cli": "^4.0.471",
+    "@remotion/compositor-linux-x64-musl": "^4.0.471",
+    "@remotion/google-fonts": "^4.0.471",
+    "@remotion/renderer": "^4.0.471",
+    "@remotion/transitions": "^4.0.471",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.471",
+    "typescript": "^6.0.3"
+  }
 }
