@@ -91,12 +91,19 @@ export async function exportReportToPPTX(opts: {
   const addBg = (s: any) => s.background = bgFill;
 
   const addHeader = (slide: any, title: string, subtitle?: string) => {
+    if (logoData) {
+      slide.addImage({ data: logoData, x: SLIDE_W - MARGIN - 1.3, y: 0.3, w: 1.3, h: 0.6 });
+    }
     slide.addText(title, {
-      x: MARGIN, y: 0.35, w: SLIDE_W - MARGIN * 2, h: 0.55,
+      x: MARGIN, y: 0.35, w: SLIDE_W - MARGIN * 2 - 1.5, h: 0.55,
       fontSize: 28, bold: true, color: C.text, fontFace: 'Calibri',
     });
     if (subtitle) {
       slide.addText(subtitle, {
+        x: MARGIN, y: 0.85, w: SLIDE_W - MARGIN * 2 - 1.5, h: 0.4,
+        fontSize: 13, color: C.textMuted, fontFace: 'Calibri',
+      });
+    }
         x: MARGIN, y: 0.92, w: SLIDE_W - MARGIN * 2, h: 0.35,
         fontSize: 14, color: C.textMuted,
       });
