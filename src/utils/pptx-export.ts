@@ -6,8 +6,12 @@ import {
   scoreTo100,
   generateOverallNarrative,
   getCompleteness,
+  computeGaps,
+  generateRoadmap,
 } from '@/utils/report-helpers';
-import { computeParetoActions, selectTop5, generateMeetingAgenda } from '@/utils/pareto-engine';
+import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
+
+
 
 // Darwin palette (kept in sync with theme)
 const C = {
@@ -190,8 +194,43 @@ export async function exportReportToPPTX(opts: {
     });
   });
 
+  // ===== SLIDE 3b: Radar — Atual vs Benchmark vs Potencial =====
+  const sRadar = pptx.addSlide(); addBg(sRadar);
+  addHeader(sRadar, 'Radar · Atual vs Benchmark vs Potencial', 'Visão das 9 dimensões em um único panorama');
+  const radarDims = result.dimension_scores;
+  const radarLabels = radarDims.map(d => d.label);
+  const radarActual = radarDims.map(d => Number(scoreTo100(d.score)));
+  const radarBench = radarDims.map(d => Number(scoreTo100(d.target)));
+  const potentialMap = (() => {
+    const targets = config.targets_by_stage?.[stage] || {};
+    const m: Record<string, number> = {};
+    radarDims.forEach(d => {
+      const raw = (targets as any)[d.dimension_id];
+      const num = typeof raw === 'number' ? raw : (raw?.benchmark ?? raw?.target ?? d.target);
+      m[d.dimension_id] = scoreTo100(Math.max(num, d.target, d.score));
+    });
+    return m;
+  })();
+  const radarPotential = radarDims.map(d => Number(potentialMap[d.dimension_id]));
+  card(sRadar, MARGIN, 1.6, SLIDE_W - MARGIN * 2, 5.4);
+  sRadar.addChart(pptx.ChartType.radar, [
+    { name: 'Atual', labels: radarLabels, values: radarActual },
+    { name: 'Benchmark', labels: radarLabels, values: radarBench },
+    { name: 'Potencial', labels: radarLabels, values: radarPotential },
+  ], {
+    x: MARGIN + 0.2, y: 1.75, w: SLIDE_W - MARGIN * 2 - 0.4, h: 5.1,
+    radarStyle: 'standard',
+    chartColors: [C.primary, C.textMuted, C.accent],
+    showLegend: true, legendPos: 'b', legendColor: C.text, legendFontSize: 11,
+    catAxisLabelColor: C.text, catAxisLabelFontSize: 10,
+    valAxisLabelColor: C.textMuted, valAxisLabelFontSize: 9,
+    valAxisMinVal: 0, valAxisMaxVal: 100,
+    plotArea: { fill: { color: C.panel } },
+  });
+
   // ===== SLIDE 4: Dimensões table =====
   const s4 = pptx.addSlide(); addBg(s4);
+
   addHeader(s4, 'Análise por Dimensão', 'Score atual vs. benchmark de estágio');
   const dims = [...result.dimension_scores].sort((a, b) => a.score - b.score);
   const rows: any[][] = [[
@@ -265,7 +304,71 @@ export async function exportReportToPPTX(opts: {
     }
   }
 
+  // ===== SLIDE 5b: Matriz Risco × Impacto =====
+  const matrixPoints = compute2x2Matrix(config, result, stage);
+  if (matrixPoints.length > 0) {
+    const sMat = pptx.addSlide(); addBg(sMat);
+    addHeader(sMat, 'Matriz Risco × Impacto', 'Dimensões (círculos) e Red Flags (triângulos) por risco e impacto potencial');
+
+    // Legend pills (4 quadrants)
+    const pillY = 1.55;
+    const pills = [
+      { label: 'Agir Imediatamente', color: C.danger, x: MARGIN },
+      { label: 'Quick Win', color: C.primary, x: MARGIN + 2.4 },
+      { label: 'Monitorar', color: C.textMuted, x: MARGIN + 4.5 },
+      { label: 'Baixa Prioridade', color: C.border, x: MARGIN + 6.6 },
+    ];
+    pills.forEach(p => {
+      sMat.addShape(pptx.ShapeType.roundRect, { x: p.x, y: pillY, w: 2.2, h: 0.32, fill: { color: p.color }, line: { color: p.color }, rectRadius: 0.05 });
+      sMat.addText(p.label, { x: p.x, y: pillY, w: 2.2, h: 0.32, fontSize: 10, bold: true, color: '0B1220', align: 'center', valign: 'middle' });
+    });
+
+    // Plot area
+    const plotX = MARGIN + 0.7, plotY = 2.1, plotW = 7.2, plotH = 3.6;
+    card(sMat, plotX - 0.4, plotY - 0.1, plotW + 0.6, plotH + 0.5, C.panel);
+    // Axes
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY + plotH, w: plotW, h: 0, line: { color: C.border, width: 1 } });
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY, w: 0, h: plotH, line: { color: C.border, width: 1 } });
+    // Quadrant dividers
+    sMat.addShape(pptx.ShapeType.line, { x: plotX + plotW / 2, y: plotY, w: 0, h: plotH, line: { color: C.border, width: 0.5, dashType: 'dash' } });
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY + plotH / 2, w: plotW, h: 0, line: { color: C.border, width: 0.5, dashType: 'dash' } });
+    // Axis labels
+    sMat.addText('Risco →', { x: plotX, y: plotY + plotH + 0.05, w: plotW, h: 0.25, fontSize: 9, color: C.textMuted, align: 'center' });
+    sMat.addText('Impacto →', { x: plotX - 0.7, y: plotY, w: 0.6, h: plotH, fontSize: 9, color: C.textMuted, align: 'center', valign: 'middle', rotate: -90 });
+    // 0/50/100 ticks
+    ['0', '50', '100'].forEach((t, i) => {
+      sMat.addText(t, { x: plotX + (i * plotW / 2) - 0.15, y: plotY + plotH + 0.18, w: 0.3, h: 0.2, fontSize: 8, color: C.textMuted, align: 'center' });
+      sMat.addText(t, { x: plotX - 0.35, y: plotY + plotH - (i * plotH / 2) - 0.1, w: 0.3, h: 0.2, fontSize: 8, color: C.textMuted, align: 'right' });
+    });
+    // Points
+    matrixPoints.forEach((pt, idx) => {
+      const cx = plotX + (pt.risk / 100) * plotW;
+      const cy = plotY + plotH - (pt.impact / 100) * plotH;
+      const isRf = pt.type === 'red_flag';
+      const r = 0.18;
+      const color = isRf ? C.danger : C.primary;
+      if (isRf) {
+        sMat.addShape(pptx.ShapeType.triangle, { x: cx - r, y: cy - r, w: r * 2, h: r * 2, fill: { color }, line: { color } });
+      } else {
+        sMat.addShape(pptx.ShapeType.ellipse, { x: cx - r, y: cy - r, w: r * 2, h: r * 2, fill: { color }, line: { color } });
+      }
+      sMat.addText(String(idx + 1), { x: cx - r, y: cy - r + (isRf ? 0.04 : 0), w: r * 2, h: r * 2, fontSize: 8, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+    });
+    // Legend list
+    const legW = (SLIDE_W - MARGIN * 2) / 3;
+    matrixPoints.forEach((pt, idx) => {
+      const col = idx % 3, row = Math.floor(idx / 3);
+      const lx = MARGIN + col * legW;
+      const ly = 5.85 + row * 0.25;
+      const color = pt.type === 'red_flag' ? C.danger : C.primary;
+      sMat.addShape(pptx.ShapeType.ellipse, { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fill: { color }, line: { color } });
+      sMat.addText(String(idx + 1), { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fontSize: 8, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+      sMat.addText(pt.label, { x: lx + 0.28, y: ly, w: legW - 0.3, h: 0.25, fontSize: 9, color: C.text, valign: 'middle' });
+    });
+  }
+
   // ===== SLIDE 6: Quick Wins =====
+
   const scored = computeParetoActions(config, result, stage);
   const top5 = selectTop5(scored, result, config);
   const s6 = pptx.addSlide(); addBg(s6);
@@ -305,7 +408,38 @@ export async function exportReportToPPTX(opts: {
     });
   }
 
+  // ===== SLIDE 6b: Roadmap 6 Meses =====
+  const gapsForRoadmap = computeGaps(result.dimension_scores, config, stage);
+  const roadmapActions = generateRoadmap(gapsForRoadmap, result.red_flags, config, result);
+  if (roadmapActions.length > 0) {
+    const sRoad = pptx.addSlide(); addBg(sRoad);
+    addHeader(sRoad, 'Roadmap 6 Meses', 'Plano preliminar de execução — sujeito a validação no conselho');
+    const waves = [
+      { wave: 1 as const, label: 'WAVE 1 — 0-30 DIAS', color: C.danger },
+      { wave: 2 as const, label: 'WAVE 2 — 31-90 DIAS', color: C.warning },
+      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.primary },
+    ];
+    const wW = (SLIDE_W - MARGIN * 2 - 0.4) / 3;
+    waves.forEach((w, i) => {
+      const x = MARGIN + i * (wW + 0.2);
+      const wActions = roadmapActions.filter(a => a.wave === w.wave);
+      card(sRoad, x, 1.6, wW, 5.4);
+      sRoad.addShape(pptx.ShapeType.rect, { x, y: 1.6, w: wW, h: 0.08, fill: { color: w.color }, line: { color: w.color } });
+      sRoad.addText(w.label, { x: x + 0.25, y: 1.78, w: wW - 0.5, h: 0.35, fontSize: 11, bold: true, color: w.color, charSpacing: 2 });
+      let yPos = 2.2;
+      wActions.forEach((a) => {
+        sRoad.addText(a.source.toUpperCase(), { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.25, fontSize: 9, bold: true, color: C.accent, charSpacing: 1 });
+        yPos += 0.27;
+        sRoad.addText(a.title, { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.6, fontSize: 11, bold: true, color: C.text, valign: 'top' });
+        yPos += 0.65;
+        sRoad.addText(a.rationale, { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.55, fontSize: 9, color: C.textMuted, valign: 'top' });
+        yPos += 0.62;
+      });
+    });
+  }
+
   // ===== SLIDE 7: Pauta do Conselho =====
+
   const agenda = generateMeetingAgenda(config, result, stage, answers.map(a => ({
     question_id: a.question_id, dimension_id: '', score: a.value, value: a.value,
   })) as any);
@@ -338,7 +472,91 @@ export async function exportReportToPPTX(opts: {
     });
   }
 
+  // ===== SLIDE 7b: Deep Dive — Questões para Aprofundamento =====
+  if (result.deep_dive_dimensions.length > 0 && config.deep_dive_prompts) {
+    const dd: any = config.deep_dive_prompts;
+    const ddMap: Record<string, any[]> = {};
+    if (Array.isArray(dd)) {
+      dd.forEach((it: any) => { if (it?.dimension_id) ddMap[it.dimension_id] = Array.isArray(it?.prompts) ? it.prompts : []; });
+    } else if (dd && typeof dd === 'object') {
+      Object.entries(dd).forEach(([k, v]) => { ddMap[k] = Array.isArray(v) ? (v as any[]) : []; });
+    }
+    const promptText = (p: any) => typeof p === 'string' ? p : (p?.prompt || p?.text || String(p));
+    const triggeredRf = new Set(result.red_flags.map(r => r.code));
+    const selectPrompts = (dimId: string): string[] => {
+      const all = ddMap[dimId] || [];
+      const ds = result.dimension_scores.find(d => d.dimension_id === dimId);
+      const ds5 = ds?.score ?? 5;
+      const rel = all.filter((p: any) => {
+        if (typeof p !== 'object' || p === null) return true;
+        if (p.show_if_rf && !triggeredRf.has(p.show_if_rf)) return false;
+        if (p.show_if_score_below && ds5 >= p.show_if_score_below) return false;
+        return true;
+      });
+      if (rel.length >= 2) return rel.slice(0, 3).map(promptText);
+      const uncond = all.filter((p: any) => typeof p !== 'object' || p === null || (!p.show_if_rf && !p.show_if_score_below));
+      return uncond.slice(0, 3).map(promptText);
+    };
+    const getLowQs = (dimId: string): string[] => {
+      return answers
+        .filter(a => {
+          const q = config.questions?.find(qq => qq.id === a.question_id);
+          return q?.dimension_id === dimId && a.value !== null && a.value !== undefined && (a.value as number) <= 2;
+        })
+        .map(a => {
+          const q = config.questions?.find(qq => qq.id === a.question_id);
+          return q?.text || a.question_id;
+        })
+        .slice(0, 3);
+    };
+
+    const items = result.deep_dive_dimensions
+      .map(dimId => {
+        const dim = config.dimensions.find(d => d.id === dimId);
+        const prompts = selectPrompts(dimId);
+        const lowQs = getLowQs(dimId);
+        if (!dim || prompts.length === 0) return null;
+        return { dim, prompts, lowQs };
+      })
+      .filter(Boolean) as Array<{ dim: any; prompts: string[]; lowQs: string[] }>;
+
+    const perPage = 3;
+    const pages = Math.max(1, Math.ceil(items.length / perPage));
+    for (let pg = 0; pg < pages; pg++) {
+      const sDD = pptx.addSlide(); addBg(sDD);
+      addHeader(sDD, `Deep Dive · Questões para Aprofundamento ${pages > 1 ? `(${pg + 1}/${pages})` : ''}`,
+        'Perguntas críticas para validar causas, riscos e hipóteses antes da deliberação');
+      const slice = items.slice(pg * perPage, pg * perPage + perPage);
+      const colW = (SLIDE_W - MARGIN * 2 - (slice.length - 1) * 0.2) / slice.length;
+      slice.forEach((it, i) => {
+        const x = MARGIN + i * (colW + 0.2);
+        const yTop = 1.6;
+        const h = 5.4;
+        card(sDD, x, yTop, colW, h);
+        sDD.addText(it.dim.label, { x: x + 0.25, y: yTop + 0.15, w: colW - 0.5, h: 0.4, fontSize: 14, bold: true, color: C.text });
+        let yPos = yTop + 0.6;
+        if (it.lowQs.length > 0) {
+          const boxH = 0.35 + it.lowQs.length * 0.32;
+          sDD.addShape(pptx.ShapeType.roundRect, { x: x + 0.25, y: yPos, w: colW - 0.5, h: boxH, fill: { color: C.bg }, line: { color: C.danger, width: 0.75 }, rectRadius: 0.05 });
+          sDD.addText('Pontos críticos identificados:', { x: x + 0.4, y: yPos + 0.08, w: colW - 0.8, h: 0.25, fontSize: 9, bold: true, color: C.danger });
+          let qy = yPos + 0.32;
+          it.lowQs.forEach(q => {
+            sDD.addText(`• ${q}`, { x: x + 0.4, y: qy, w: colW - 0.8, h: 0.3, fontSize: 9, color: C.textMuted, valign: 'top' });
+            qy += 0.32;
+          });
+          yPos += boxH + 0.15;
+        }
+        it.prompts.forEach(p => {
+          sDD.addShape(pptx.ShapeType.rect, { x: x + 0.25, y: yPos, w: 0.04, h: 0.55, fill: { color: C.warning }, line: { color: C.warning } });
+          sDD.addText(p, { x: x + 0.4, y: yPos, w: colW - 0.6, h: 0.55, fontSize: 10, color: C.text, valign: 'top' });
+          yPos += 0.6;
+        });
+      });
+    }
+  }
+
   // ===== SLIDE 8: Encerramento =====
+
   const s8 = pptx.addSlide(); addBg(s8);
   s8.addShape(pptx.ShapeType.rect, {
     x: 0, y: SLIDE_H - 0.18, w: SLIDE_W, h: 0.18, fill: { color: C.primary }, line: { color: C.primary },
