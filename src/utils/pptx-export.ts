@@ -75,6 +75,7 @@ export async function exportReportToPPTX(opts: {
   pptx.theme = { headFontFace: 'Calibri', bodyFontFace: 'Calibri' };
 
   const { assessment, config, result, startupName, answers } = opts;
+  const logoData = await fetchLogoDataUrl();
   const stage = assessment.stage || 'seed';
   const isSimulation = !!assessment.is_simulation;
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
