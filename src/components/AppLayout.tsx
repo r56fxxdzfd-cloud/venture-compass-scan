@@ -74,15 +74,8 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         )}>
 
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-sidebar-border/80 bg-sidebar-accent/30">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-            <span className="text-sm font-bold text-sidebar-primary-foreground">ST
-            </span>
-          </div>
-          <div>
-            <p className="text-sm font-bold tracking-tight">Darwin</p>
-            <p className="text-[10px] text-sidebar-muted">Conselho OS</p>
-          </div>
+        <div className="flex h-16 items-center px-6 border-b border-sidebar-border/80 bg-sidebar-accent/30">
+          <img src={logoDarwin} alt="Darwin Growth" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Nav */}

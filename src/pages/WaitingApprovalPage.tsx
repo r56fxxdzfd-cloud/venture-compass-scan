@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, LogOut, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function WaitingApprovalPage() {
   const { user, signOut } = useAuth();
@@ -53,6 +54,9 @@ export default function WaitingApprovalPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
+        <div className="flex justify-center mb-6">
+          <img src={logoDarwin} alt="Darwin Growth" className="h-14 w-auto object-contain dark:brightness-100 brightness-0" />
+        </div>
         <Card className="border-0 shadow-lg">
           <CardContent className="pt-8 pb-8 text-center space-y-6">
             <div className="flex justify-center">

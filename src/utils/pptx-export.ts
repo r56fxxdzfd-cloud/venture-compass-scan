@@ -10,6 +10,22 @@ import {
   generateRoadmap,
 } from '@/utils/report-helpers';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
+import logoDarwinUrl from '@/assets/logo-darwin.png';
+
+async function fetchLogoDataUrl(): Promise<string | null> {
+  try {
+    const res = await fetch(logoDarwinUrl);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const r = new FileReader();
+      r.onloadend = () => resolve(r.result as string);
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 
 
@@ -59,6 +75,7 @@ export async function exportReportToPPTX(opts: {
   pptx.theme = { headFontFace: 'Calibri', bodyFontFace: 'Calibri' };
 
   const { assessment, config, result, startupName, answers } = opts;
+  const logoData = await fetchLogoDataUrl();
   const stage = assessment.stage || 'seed';
   const isSimulation = !!assessment.is_simulation;
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
@@ -74,14 +91,17 @@ export async function exportReportToPPTX(opts: {
   const addBg = (s: any) => s.background = bgFill;
 
   const addHeader = (slide: any, title: string, subtitle?: string) => {
+    if (logoData) {
+      slide.addImage({ data: logoData, x: SLIDE_W - MARGIN - 1.3, y: 0.3, w: 1.3, h: 0.6 });
+    }
     slide.addText(title, {
-      x: MARGIN, y: 0.35, w: SLIDE_W - MARGIN * 2, h: 0.55,
+      x: MARGIN, y: 0.35, w: SLIDE_W - MARGIN * 2 - 1.5, h: 0.55,
       fontSize: 28, bold: true, color: C.text, fontFace: 'Calibri',
     });
     if (subtitle) {
       slide.addText(subtitle, {
-        x: MARGIN, y: 0.92, w: SLIDE_W - MARGIN * 2, h: 0.35,
-        fontSize: 14, color: C.textMuted,
+        x: MARGIN, y: 0.85, w: SLIDE_W - MARGIN * 2 - 1.5, h: 0.4,
+        fontSize: 13, color: C.textMuted, fontFace: 'Calibri',
       });
     }
     // Accent strip
@@ -118,10 +138,14 @@ export async function exportReportToPPTX(opts: {
   s1.addShape(pptx.ShapeType.rect, {
     x: 0, y: 0, w: SLIDE_W, h: 0.18, fill: { color: C.primary }, line: { color: C.primary },
   });
-  s1.addText('DARWIN', {
-    x: MARGIN, y: 0.6, w: 6, h: 0.5,
-    fontSize: 18, bold: true, color: C.primary, charSpacing: 4,
-  });
+  if (logoData) {
+    s1.addImage({ data: logoData, x: MARGIN, y: 0.55, w: 2.4, h: 1.1 });
+  } else {
+    s1.addText('DARWIN GROWTH', {
+      x: MARGIN, y: 0.6, w: 6, h: 0.5,
+      fontSize: 18, bold: true, color: C.primary, charSpacing: 4,
+    });
+  }
   s1.addText('Relatório de Diagnóstico', {
     x: MARGIN, y: 2.0, w: SLIDE_W - MARGIN * 2, h: 0.8,
     fontSize: 36, color: C.textMuted,

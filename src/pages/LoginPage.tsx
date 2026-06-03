@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -81,14 +82,8 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           className="max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-              <span className="text-lg font-black text-accent-foreground">ST</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Darwin</h1>
-              <p className="text-sm text-white/60">Conselho OS</p>
-            </div>
+          <div className="mb-8">
+            <img src={logoDarwin} alt="Darwin Growth" className="h-20 w-auto object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
             Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para organizações
@@ -123,14 +118,8 @@ export default function LoginPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="w-full max-w-sm">
 
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <span className="text-sm font-black text-primary-foreground">ST</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Darwin</h1>
-              <p className="text-xs text-muted-foreground">Conselho OS</p>
-            </div>
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src={logoDarwin} alt="Darwin Growth" className="h-14 w-auto object-contain dark:brightness-100 brightness-0" />
           </div>
 
           {rejectedError && (

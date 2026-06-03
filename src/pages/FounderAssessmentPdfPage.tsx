@@ -14,6 +14,7 @@ import {
 } from '@/utils/founder-scoring';
 import type { FounderAssessment, FounderPillarScore, FounderActionPlan, Founder } from '@/types/founder';
 import type { Company } from '@/types/darwin';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function FounderAssessmentPdfPage() {
   const { id } = useParams();
@@ -140,9 +141,12 @@ export default function FounderAssessmentPdfPage() {
         )}
 
         {/* Header */}
-        <div className="text-center space-y-1">
-          <h1 className="text-2xl font-bold">Founder Score — {founder.name}</h1>
-          <p className="text-muted-foreground">{company?.name} · {assessment.semester} · {new Date(assessment.assessment_date).toLocaleDateString('pt-BR')}</p>
+        <div className="flex items-center justify-between border-b pb-4">
+          <div>
+            <h1 className="text-2xl font-bold">Founder Score — {founder.name}</h1>
+            <p className="text-muted-foreground text-sm">{company?.name} · {assessment.semester} · {new Date(assessment.assessment_date).toLocaleDateString('pt-BR')}</p>
+          </div>
+          <img src={logoDarwin} alt="Darwin Growth" className="h-12 w-auto object-contain dark:brightness-100 brightness-0" />
         </div>
 
         {/* Score */}
