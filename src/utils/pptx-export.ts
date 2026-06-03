@@ -194,7 +194,41 @@ export async function exportReportToPPTX(opts: {
     });
   });
 
-  // ===== SLIDE 4: Dimensões table =====
+  // ===== SLIDE 3b: Radar — Atual vs Benchmark vs Potencial =====
+  const sRadar = pptx.addSlide(); addBg(sRadar);
+  addHeader(sRadar, 'Radar · Atual vs Benchmark vs Potencial', 'Visão das 9 dimensões em um único panorama');
+  const radarDims = result.dimension_scores;
+  const radarLabels = radarDims.map(d => d.label);
+  const radarActual = radarDims.map(d => Number(scoreTo100(d.score)));
+  const radarBench = radarDims.map(d => Number(scoreTo100(d.target)));
+  const potentialMap = (() => {
+    const targets = config.targets_by_stage?.[stage] || {};
+    const m: Record<string, number> = {};
+    radarDims.forEach(d => {
+      const raw = (targets as any)[d.dimension_id];
+      const num = typeof raw === 'number' ? raw : (raw?.benchmark ?? raw?.target ?? d.target);
+      m[d.dimension_id] = scoreTo100(Math.max(num, d.target, d.score));
+    });
+    return m;
+  })();
+  const radarPotential = radarDims.map(d => Number(potentialMap[d.dimension_id]));
+  card(sRadar, MARGIN, 1.6, SLIDE_W - MARGIN * 2, 5.4);
+  sRadar.addChart(pptx.ChartType.radar, [
+    { name: 'Atual', labels: radarLabels, values: radarActual },
+    { name: 'Benchmark', labels: radarLabels, values: radarBench },
+    { name: 'Potencial', labels: radarLabels, values: radarPotential },
+  ], {
+    x: MARGIN + 0.2, y: 1.75, w: SLIDE_W - MARGIN * 2 - 0.4, h: 5.1,
+    radarStyle: 'standard',
+    chartColors: [C.primary, C.textMuted, C.accent],
+    showLegend: true, legendPos: 'b', legendColor: C.text, legendFontSize: 11,
+    catAxisLabelColor: C.text, catAxisLabelFontSize: 10,
+    valAxisLabelColor: C.textMuted, valAxisLabelFontSize: 9,
+    valAxisMinVal: 0, valAxisMaxVal: 100,
+    plotArea: { fill: { color: C.panel } },
+  });
+
+
   const s4 = pptx.addSlide(); addBg(s4);
   addHeader(s4, 'Análise por Dimensão', 'Score atual vs. benchmark de estágio');
   const dims = [...result.dimension_scores].sort((a, b) => a.score - b.score);
