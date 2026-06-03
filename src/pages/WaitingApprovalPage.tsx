@@ -54,6 +54,9 @@ export default function WaitingApprovalPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
+        <div className="flex justify-center mb-6">
+          <img src={logoDarwin} alt="Darwin Growth" className="h-14 w-auto object-contain dark:brightness-100 brightness-0" />
+        </div>
         <Card className="border-0 shadow-lg">
           <CardContent className="pt-8 pb-8 text-center space-y-6">
             <div className="flex justify-center">
