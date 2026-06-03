@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
