@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import type { QuestionAnswer } from '@/utils/pareto-engine';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 // ======== A. Header ========
 export function ReportHeader({
