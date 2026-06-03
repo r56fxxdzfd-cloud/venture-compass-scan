@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, LogOut, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function WaitingApprovalPage() {
   const { user, signOut } = useAuth();
