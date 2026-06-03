@@ -228,8 +228,9 @@ export async function exportReportToPPTX(opts: {
     plotArea: { fill: { color: C.panel } },
   });
 
-
+  // ===== SLIDE 4: Dimensões table =====
   const s4 = pptx.addSlide(); addBg(s4);
+
   addHeader(s4, 'Análise por Dimensão', 'Score atual vs. benchmark de estágio');
   const dims = [...result.dimension_scores].sort((a, b) => a.score - b.score);
   const rows: any[][] = [[
