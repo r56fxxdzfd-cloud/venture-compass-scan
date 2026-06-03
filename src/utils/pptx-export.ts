@@ -10,6 +10,22 @@ import {
   generateRoadmap,
 } from '@/utils/report-helpers';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
+import logoDarwinUrl from '@/assets/logo-darwin.png';
+
+async function fetchLogoDataUrl(): Promise<string | null> {
+  try {
+    const res = await fetch(logoDarwinUrl);
+    const blob = await res.blob();
+    return await new Promise((resolve) => {
+      const r = new FileReader();
+      r.onloadend = () => resolve(r.result as string);
+      r.onerror = () => resolve(null);
+      r.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 
 
