@@ -82,14 +82,8 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           className="max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent">
-              <span className="text-lg font-black text-accent-foreground">ST</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Darwin</h1>
-              <p className="text-sm text-white/60">Conselho OS</p>
-            </div>
+          <div className="mb-8">
+            <img src={logoDarwin} alt="Darwin Growth" className="h-20 w-auto object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
             Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para organizações
