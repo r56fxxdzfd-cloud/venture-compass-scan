@@ -6,8 +6,11 @@ import {
   scoreTo100,
   generateOverallNarrative,
   getCompleteness,
+  computeGaps,
 } from '@/utils/report-helpers';
-import { computeParetoActions, selectTop5, generateMeetingAgenda } from '@/utils/pareto-engine';
+import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
+import { generateRoadmap } from '@/utils/report-helpers';
+
 
 // Darwin palette (kept in sync with theme)
 const C = {
