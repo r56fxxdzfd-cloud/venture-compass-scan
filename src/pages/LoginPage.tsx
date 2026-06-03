@@ -118,14 +118,8 @@ export default function LoginPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="w-full max-w-sm">
 
-          <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
-              <span className="text-sm font-black text-primary-foreground">ST</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Darwin</h1>
-              <p className="text-xs text-muted-foreground">Conselho OS</p>
-            </div>
+          <div className="lg:hidden flex justify-center mb-8">
+            <img src={logoDarwin} alt="Darwin Growth" className="h-14 w-auto object-contain dark:brightness-100 brightness-0" />
           </div>
 
           {rejectedError && (
