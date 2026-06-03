@@ -276,26 +276,38 @@ export default function ReportPage() {
           </div>
         </div>
         <TooltipProvider>
-          {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
-            </Tooltip>
-          )}
-          {isSimulation && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Exportar relatório de simulação com marca d'água</TooltipContent>
-            </Tooltip>
-          )}
+          <div className="flex items-center gap-2">
+            {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPPT} disabled={exportingPpt}>
+                    {exportingPpt ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PPT...</> : <><Presentation className="mr-1 h-3 w-3" /> Exportar PPT</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar apresentação em PowerPoint (slides sem cortes)</TooltipContent>
+              </Tooltip>
+            )}
+            {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                    {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
+              </Tooltip>
+            )}
+            {isSimulation && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                    {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exportar relatório de simulação com marca d'água</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </TooltipProvider>
       </div>
 
