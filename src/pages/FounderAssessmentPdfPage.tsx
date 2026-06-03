@@ -14,6 +14,7 @@ import {
 } from '@/utils/founder-scoring';
 import type { FounderAssessment, FounderPillarScore, FounderActionPlan, Founder } from '@/types/founder';
 import type { Company } from '@/types/darwin';
+import logoDarwin from '@/assets/logo-darwin.png';
 
 export default function FounderAssessmentPdfPage() {
   const { id } = useParams();
