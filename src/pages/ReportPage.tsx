@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Presentation } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -45,6 +45,7 @@ export default function ReportPage() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
+  const [exportingPpt, setExportingPpt] = useState(false);
   const [founderRedFlags, setFounderRedFlags] = useState<FounderRedFlag[]>([]);
 
   useEffect(() => {
@@ -184,6 +185,27 @@ export default function ReportPage() {
     }
   };
 
+  const handleExportPPT = async () => {
+    if (!result || !assessment || !config) return;
+    const completeness = getCompleteness(result);
+    const isSimulation = assessment.is_simulation;
+    if (completeness.confidence === 'low' && !isSimulation) {
+      toast({ title: 'Completude insuficiente', description: 'Complete mais questões antes de exportar.', variant: 'destructive' });
+      return;
+    }
+    setExportingPpt(true);
+    try {
+      const { exportReportToPPTX } = await import('@/utils/pptx-export');
+      const startupName = (assessment as any).company?.name || 'Organização';
+      await exportReportToPPTX({ assessment, config, result, answers, startupName });
+    } catch (err) {
+      console.error('PPT export error:', err);
+      toast({ title: 'Erro ao exportar PPT', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setExportingPpt(false);
+    }
+  };
+
   if (!result || !config || !assessment) return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
@@ -254,26 +276,38 @@ export default function ReportPage() {
           </div>
         </div>
         <TooltipProvider>
-          {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
-            </Tooltip>
-          )}
-          {isSimulation && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
-                  {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Exportar relatório de simulação com marca d'água</TooltipContent>
-            </Tooltip>
-          )}
+          <div className="flex items-center gap-2">
+            {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPPT} disabled={exportingPpt}>
+                    {exportingPpt ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PPT...</> : <><Presentation className="mr-1 h-3 w-3" /> Exportar PPT</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar apresentação em PowerPoint (slides sem cortes)</TooltipContent>
+              </Tooltip>
+            )}
+            {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                    {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
+              </Tooltip>
+            )}
+            {isSimulation && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
+                    {exporting ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando PDF...</> : <><Download className="mr-1 h-3 w-3" /> Exportar PDF (Simulação)</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exportar relatório de simulação com marca d'água</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
         </TooltipProvider>
       </div>
 
