@@ -185,6 +185,27 @@ export default function ReportPage() {
     }
   };
 
+  const handleExportPPT = async () => {
+    if (!result || !assessment || !config) return;
+    const completeness = getCompleteness(result);
+    const isSimulation = assessment.is_simulation;
+    if (completeness.confidence === 'low' && !isSimulation) {
+      toast({ title: 'Completude insuficiente', description: 'Complete mais questões antes de exportar.', variant: 'destructive' });
+      return;
+    }
+    setExportingPpt(true);
+    try {
+      const { exportReportToPPTX } = await import('@/utils/pptx-export');
+      const startupName = (assessment as any).company?.name || 'Organização';
+      await exportReportToPPTX({ assessment, config, result, answers, startupName });
+    } catch (err) {
+      console.error('PPT export error:', err);
+      toast({ title: 'Erro ao exportar PPT', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setExportingPpt(false);
+    }
+  };
+
   if (!result || !config || !assessment) return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
