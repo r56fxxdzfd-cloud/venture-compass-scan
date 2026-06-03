@@ -104,10 +104,6 @@ export async function exportReportToPPTX(opts: {
         fontSize: 13, color: C.textMuted, fontFace: 'Calibri',
       });
     }
-        x: MARGIN, y: 0.92, w: SLIDE_W - MARGIN * 2, h: 0.35,
-        fontSize: 14, color: C.textMuted,
-      });
-    }
     // Accent strip
     slide.addShape(pptx.ShapeType.rect, {
       x: MARGIN, y: 1.32, w: 0.6, h: 0.06, fill: { color: C.primary }, line: { color: C.primary },
