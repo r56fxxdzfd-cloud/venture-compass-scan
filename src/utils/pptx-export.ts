@@ -472,7 +472,91 @@ export async function exportReportToPPTX(opts: {
     });
   }
 
+  // ===== SLIDE 7b: Deep Dive — Questões para Aprofundamento =====
+  if (result.deep_dive_dimensions.length > 0 && config.deep_dive_prompts) {
+    const dd: any = config.deep_dive_prompts;
+    const ddMap: Record<string, any[]> = {};
+    if (Array.isArray(dd)) {
+      dd.forEach((it: any) => { if (it?.dimension_id) ddMap[it.dimension_id] = Array.isArray(it?.prompts) ? it.prompts : []; });
+    } else if (dd && typeof dd === 'object') {
+      Object.entries(dd).forEach(([k, v]) => { ddMap[k] = Array.isArray(v) ? (v as any[]) : []; });
+    }
+    const promptText = (p: any) => typeof p === 'string' ? p : (p?.prompt || p?.text || String(p));
+    const triggeredRf = new Set(result.red_flags.map(r => r.code));
+    const selectPrompts = (dimId: string): string[] => {
+      const all = ddMap[dimId] || [];
+      const ds = result.dimension_scores.find(d => d.dimension_id === dimId);
+      const ds5 = ds?.score ?? 5;
+      const rel = all.filter((p: any) => {
+        if (typeof p !== 'object' || p === null) return true;
+        if (p.show_if_rf && !triggeredRf.has(p.show_if_rf)) return false;
+        if (p.show_if_score_below && ds5 >= p.show_if_score_below) return false;
+        return true;
+      });
+      if (rel.length >= 2) return rel.slice(0, 3).map(promptText);
+      const uncond = all.filter((p: any) => typeof p !== 'object' || p === null || (!p.show_if_rf && !p.show_if_score_below));
+      return uncond.slice(0, 3).map(promptText);
+    };
+    const getLowQs = (dimId: string): string[] => {
+      return answers
+        .filter(a => {
+          const q = config.questions?.find(qq => qq.id === a.question_id);
+          return q?.dimension_id === dimId && a.value !== null && a.value !== undefined && (a.value as number) <= 2;
+        })
+        .map(a => {
+          const q = config.questions?.find(qq => qq.id === a.question_id);
+          return q?.text || a.question_id;
+        })
+        .slice(0, 3);
+    };
+
+    const items = result.deep_dive_dimensions
+      .map(dimId => {
+        const dim = config.dimensions.find(d => d.id === dimId);
+        const prompts = selectPrompts(dimId);
+        const lowQs = getLowQs(dimId);
+        if (!dim || prompts.length === 0) return null;
+        return { dim, prompts, lowQs };
+      })
+      .filter(Boolean) as Array<{ dim: any; prompts: string[]; lowQs: string[] }>;
+
+    const perPage = 3;
+    const pages = Math.max(1, Math.ceil(items.length / perPage));
+    for (let pg = 0; pg < pages; pg++) {
+      const sDD = pptx.addSlide(); addBg(sDD);
+      addHeader(sDD, `Deep Dive · Questões para Aprofundamento ${pages > 1 ? `(${pg + 1}/${pages})` : ''}`,
+        'Perguntas críticas para validar causas, riscos e hipóteses antes da deliberação');
+      const slice = items.slice(pg * perPage, pg * perPage + perPage);
+      const colW = (SLIDE_W - MARGIN * 2 - (slice.length - 1) * 0.2) / slice.length;
+      slice.forEach((it, i) => {
+        const x = MARGIN + i * (colW + 0.2);
+        const yTop = 1.6;
+        const h = 5.4;
+        card(sDD, x, yTop, colW, h);
+        sDD.addText(it.dim.label, { x: x + 0.25, y: yTop + 0.15, w: colW - 0.5, h: 0.4, fontSize: 14, bold: true, color: C.text });
+        let yPos = yTop + 0.6;
+        if (it.lowQs.length > 0) {
+          const boxH = 0.35 + it.lowQs.length * 0.32;
+          sDD.addShape(pptx.ShapeType.roundRect, { x: x + 0.25, y: yPos, w: colW - 0.5, h: boxH, fill: { color: C.bg }, line: { color: C.danger, width: 0.75 }, rectRadius: 0.05 });
+          sDD.addText('Pontos críticos identificados:', { x: x + 0.4, y: yPos + 0.08, w: colW - 0.8, h: 0.25, fontSize: 9, bold: true, color: C.danger });
+          let qy = yPos + 0.32;
+          it.lowQs.forEach(q => {
+            sDD.addText(`• ${q}`, { x: x + 0.4, y: qy, w: colW - 0.8, h: 0.3, fontSize: 9, color: C.textMuted, valign: 'top' });
+            qy += 0.32;
+          });
+          yPos += boxH + 0.15;
+        }
+        it.prompts.forEach(p => {
+          sDD.addShape(pptx.ShapeType.rect, { x: x + 0.25, y: yPos, w: 0.04, h: 0.55, fill: { color: C.warning }, line: { color: C.warning } });
+          sDD.addText(p, { x: x + 0.4, y: yPos, w: colW - 0.6, h: 0.55, fontSize: 10, color: C.text, valign: 'top' });
+          yPos += 0.6;
+        });
+      });
+    }
+  }
+
   // ===== SLIDE 8: Encerramento =====
+
   const s8 = pptx.addSlide(); addBg(s8);
   s8.addShape(pptx.ShapeType.rect, {
     x: 0, y: SLIDE_H - 0.18, w: SLIDE_W, h: 0.18, fill: { color: C.primary }, line: { color: C.primary },
