@@ -304,7 +304,71 @@ export async function exportReportToPPTX(opts: {
     }
   }
 
+  // ===== SLIDE 5b: Matriz Risco × Impacto =====
+  const matrixPoints = compute2x2Matrix(config, result, stage);
+  if (matrixPoints.length > 0) {
+    const sMat = pptx.addSlide(); addBg(sMat);
+    addHeader(sMat, 'Matriz Risco × Impacto', 'Dimensões (círculos) e Red Flags (triângulos) por risco e impacto potencial');
+
+    // Legend pills (4 quadrants)
+    const pillY = 1.55;
+    const pills = [
+      { label: 'Agir Imediatamente', color: C.danger, x: MARGIN },
+      { label: 'Quick Win', color: C.primary, x: MARGIN + 2.4 },
+      { label: 'Monitorar', color: C.textMuted, x: MARGIN + 4.5 },
+      { label: 'Baixa Prioridade', color: C.border, x: MARGIN + 6.6 },
+    ];
+    pills.forEach(p => {
+      sMat.addShape(pptx.ShapeType.roundRect, { x: p.x, y: pillY, w: 2.2, h: 0.32, fill: { color: p.color }, line: { color: p.color }, rectRadius: 0.05 });
+      sMat.addText(p.label, { x: p.x, y: pillY, w: 2.2, h: 0.32, fontSize: 10, bold: true, color: '0B1220', align: 'center', valign: 'middle' });
+    });
+
+    // Plot area
+    const plotX = MARGIN + 0.7, plotY = 2.1, plotW = 7.2, plotH = 3.6;
+    card(sMat, plotX - 0.4, plotY - 0.1, plotW + 0.6, plotH + 0.5, C.panel);
+    // Axes
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY + plotH, w: plotW, h: 0, line: { color: C.border, width: 1 } });
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY, w: 0, h: plotH, line: { color: C.border, width: 1 } });
+    // Quadrant dividers
+    sMat.addShape(pptx.ShapeType.line, { x: plotX + plotW / 2, y: plotY, w: 0, h: plotH, line: { color: C.border, width: 0.5, dashType: 'dash' } });
+    sMat.addShape(pptx.ShapeType.line, { x: plotX, y: plotY + plotH / 2, w: plotW, h: 0, line: { color: C.border, width: 0.5, dashType: 'dash' } });
+    // Axis labels
+    sMat.addText('Risco →', { x: plotX, y: plotY + plotH + 0.05, w: plotW, h: 0.25, fontSize: 9, color: C.textMuted, align: 'center' });
+    sMat.addText('Impacto →', { x: plotX - 0.7, y: plotY, w: 0.6, h: plotH, fontSize: 9, color: C.textMuted, align: 'center', valign: 'middle', rotate: -90 });
+    // 0/50/100 ticks
+    ['0', '50', '100'].forEach((t, i) => {
+      sMat.addText(t, { x: plotX + (i * plotW / 2) - 0.15, y: plotY + plotH + 0.18, w: 0.3, h: 0.2, fontSize: 8, color: C.textMuted, align: 'center' });
+      sMat.addText(t, { x: plotX - 0.35, y: plotY + plotH - (i * plotH / 2) - 0.1, w: 0.3, h: 0.2, fontSize: 8, color: C.textMuted, align: 'right' });
+    });
+    // Points
+    matrixPoints.forEach((pt, idx) => {
+      const cx = plotX + (pt.risk / 100) * plotW;
+      const cy = plotY + plotH - (pt.impact / 100) * plotH;
+      const isRf = pt.type === 'red_flag';
+      const r = 0.18;
+      const color = isRf ? C.danger : C.primary;
+      if (isRf) {
+        sMat.addShape(pptx.ShapeType.triangle, { x: cx - r, y: cy - r, w: r * 2, h: r * 2, fill: { color }, line: { color } });
+      } else {
+        sMat.addShape(pptx.ShapeType.ellipse, { x: cx - r, y: cy - r, w: r * 2, h: r * 2, fill: { color }, line: { color } });
+      }
+      sMat.addText(String(idx + 1), { x: cx - r, y: cy - r + (isRf ? 0.04 : 0), w: r * 2, h: r * 2, fontSize: 8, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+    });
+    // Legend list
+    const legW = (SLIDE_W - MARGIN * 2) / 3;
+    matrixPoints.forEach((pt, idx) => {
+      const col = idx % 3, row = Math.floor(idx / 3);
+      const lx = MARGIN + col * legW;
+      const ly = 5.85 + row * 0.25;
+      const color = pt.type === 'red_flag' ? C.danger : C.primary;
+      sMat.addShape(pptx.ShapeType.ellipse, { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fill: { color }, line: { color } });
+      sMat.addText(String(idx + 1), { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fontSize: 8, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
+      sMat.addText(pt.label, { x: lx + 0.28, y: ly, w: legW - 0.3, h: 0.25, fontSize: 9, color: C.text, valign: 'middle' });
+    });
+  }
+
   // ===== SLIDE 6: Quick Wins =====
+
   const scored = computeParetoActions(config, result, stage);
   const top5 = selectTop5(scored, result, config);
   const s6 = pptx.addSlide(); addBg(s6);
