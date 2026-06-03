@@ -408,7 +408,38 @@ export async function exportReportToPPTX(opts: {
     });
   }
 
+  // ===== SLIDE 6b: Roadmap 6 Meses =====
+  const gapsForRoadmap = computeGaps(result.dimension_scores, config, stage);
+  const roadmapActions = generateRoadmap(gapsForRoadmap, result.red_flags, config, result);
+  if (roadmapActions.length > 0) {
+    const sRoad = pptx.addSlide(); addBg(sRoad);
+    addHeader(sRoad, 'Roadmap 6 Meses', 'Plano preliminar de execução — sujeito a validação no conselho');
+    const waves = [
+      { wave: 1 as const, label: 'WAVE 1 — 0-30 DIAS', color: C.danger },
+      { wave: 2 as const, label: 'WAVE 2 — 31-90 DIAS', color: C.warning },
+      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.primary },
+    ];
+    const wW = (SLIDE_W - MARGIN * 2 - 0.4) / 3;
+    waves.forEach((w, i) => {
+      const x = MARGIN + i * (wW + 0.2);
+      const wActions = roadmapActions.filter(a => a.wave === w.wave);
+      card(sRoad, x, 1.6, wW, 5.4);
+      sRoad.addShape(pptx.ShapeType.rect, { x, y: 1.6, w: wW, h: 0.08, fill: { color: w.color }, line: { color: w.color } });
+      sRoad.addText(w.label, { x: x + 0.25, y: 1.78, w: wW - 0.5, h: 0.35, fontSize: 11, bold: true, color: w.color, charSpacing: 2 });
+      let yPos = 2.2;
+      wActions.forEach((a) => {
+        sRoad.addText(a.source.toUpperCase(), { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.25, fontSize: 9, bold: true, color: C.accent, charSpacing: 1 });
+        yPos += 0.27;
+        sRoad.addText(a.title, { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.6, fontSize: 11, bold: true, color: C.text, valign: 'top' });
+        yPos += 0.65;
+        sRoad.addText(a.rationale, { x: x + 0.25, y: yPos, w: wW - 0.5, h: 0.55, fontSize: 9, color: C.textMuted, valign: 'top' });
+        yPos += 0.62;
+      });
+    });
+  }
+
   // ===== SLIDE 7: Pauta do Conselho =====
+
   const agenda = generateMeetingAgenda(config, result, stage, answers.map(a => ({
     question_id: a.question_id, dimension_id: '', score: a.value, value: a.value,
   })) as any);
