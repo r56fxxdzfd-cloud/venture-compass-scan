@@ -307,7 +307,7 @@ export async function exportReportToPPTX(opts: {
 
   // ===== SLIDE 7: Pauta do Conselho =====
   const agenda = generateMeetingAgenda(config, result, stage, answers.map(a => ({
-    question_id: a.question_id, dimension_id: '', score: a.score, value: a.value,
+    question_id: a.question_id, dimension_id: '', score: a.value, value: a.value,
   })) as any);
   const s7 = pptx.addSlide(); addBg(s7);
   addHeader(s7, 'Pauta · Próximo Conselho', 'Tópicos priorizados para a próxima reunião');
