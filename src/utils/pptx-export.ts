@@ -138,10 +138,14 @@ export async function exportReportToPPTX(opts: {
   s1.addShape(pptx.ShapeType.rect, {
     x: 0, y: 0, w: SLIDE_W, h: 0.18, fill: { color: C.primary }, line: { color: C.primary },
   });
-  s1.addText('DARWIN', {
-    x: MARGIN, y: 0.6, w: 6, h: 0.5,
-    fontSize: 18, bold: true, color: C.primary, charSpacing: 4,
-  });
+  if (logoData) {
+    s1.addImage({ data: logoData, x: MARGIN, y: 0.55, w: 2.4, h: 1.1 });
+  } else {
+    s1.addText('DARWIN GROWTH', {
+      x: MARGIN, y: 0.6, w: 6, h: 0.5,
+      fontSize: 18, bold: true, color: C.primary, charSpacing: 4,
+    });
+  }
   s1.addText('Relatório de Diagnóstico', {
     x: MARGIN, y: 2.0, w: SLIDE_W - MARGIN * 2, h: 0.8,
     fontSize: 36, color: C.textMuted,
