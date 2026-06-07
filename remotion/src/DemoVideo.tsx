@@ -220,21 +220,10 @@ const HookScene: React.FC<{ sceneFrame: number; sceneDur: number }> = ({ sceneFr
 const OutroScene: React.FC<{ sceneFrame: number; sceneDur: number }> = ({ sceneFrame, sceneDur }) => {
   const { fps } = useVideoConfig();
   const s = spring({ frame: sceneFrame, fps, config: { damping: 14, stiffness: 110 } });
-  const sub = spring({ frame: sceneFrame - 18, fps, config: { damping: 18, stiffness: 100 } });
-  const url = spring({ frame: sceneFrame - 32, fps, config: { damping: 18, stiffness: 100 } });
   return (
     <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
       <div style={{ transform: `scale(${0.85 + s * 0.15})`, opacity: s }}>
         <Img src={staticFile("images/logo.png")} style={{ width: 820, height: "auto" }} />
-      </div>
-      <div style={{ marginTop: 32, color: WHITE, fontFamily: HEADING, fontWeight: 700, fontSize: 64, textAlign: "center", letterSpacing: -1, opacity: sub, transform: `translateY(${(1 - sub) * 18}px)` }}>
-        Darwin Growth
-      </div>
-      <div style={{ marginTop: 12, color: GREEN, fontFamily: BODY, fontSize: 30, letterSpacing: 4, textTransform: "uppercase", opacity: sub }}>
-        Comitê de Crescimento
-      </div>
-      <div style={{ marginTop: 28, padding: "10px 22px", borderRadius: 999, background: "rgba(74,222,128,0.15)", color: GREEN, fontFamily: BODY, fontSize: 22, letterSpacing: 3, textTransform: "uppercase", opacity: url }}>
-        diagnosticostartups.com
       </div>
     </AbsoluteFill>
   );
