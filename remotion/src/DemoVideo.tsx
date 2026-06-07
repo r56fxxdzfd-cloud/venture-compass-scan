@@ -32,14 +32,14 @@ const DIM = "rgba(255,255,255,0.65)";
 // Scenes: 8 scenes, 30s total at 30fps = 900 frames
 // Durations chosen to match narration cadence
 const SCENES: { d: number; c: string; [k: string]: any }[] = [
-  { d: 90, c: "logo" }, // 0-90: Darwin logo (3s)
-  { d: 90, c: "hook" }, // 90-180: Pergunta (3s)
-  { d: 120, c: "shot", img: "dashboard.png", title: "Diagnóstico em minutos", sub: "Avalie a maturidade da operação", focus: { x: 0.55, y: 0.45, z: 1.08 } }, // 180-300 (4s)
-  { d: 120, c: "shot", img: "report-1.png", title: "Relatório executivo", sub: "Score, confiança e narrativa", focus: { x: 0.5, y: 0.4, z: 1.05 }, highlight: { x: 0.04, y: 0.3, w: 0.55, h: 0.28, label: "Score consolidado" } }, // 300-420 (4s)
-  { d: 120, c: "shot", img: "report-radar.png", title: "9 Dimensões", sub: "Atual · Benchmark · Potencial", focus: { x: 0.5, y: 0.5, z: 1.05 } }, // 420-540 (4s)
-  { d: 120, c: "split", imgs: ["report-redflags.png", "report-matrix.png"], title: "Riscos e prioridades", sub: "Red Flags + Matriz Risco × Impacto" }, // 540-660 (4s)
-  { d: 120, c: "shot", img: "report-pauta.png", title: "Plano acionável", sub: "Quick wins · Pauta · Roadmap", focus: { x: 0.55, y: 0.5, z: 1.05 }, highlight: { x: 0.04, y: 0.32, w: 0.92, h: 0.55, label: "Próximos passos" } }, // 660-780 (4s)
-  { d: 120, c: "outro" }, // 780-900 (4s)
+  { d: 90, c: "logo" },
+  { d: 90, c: "hook" },
+  { d: 120, c: "shot", img: "dashboard.png", title: "Diagnóstico em minutos", sub: "Avalie a maturidade da operação", focus: { x: 0.55, y: 0.45, z: 1.08 } },
+  { d: 120, c: "shot", img: "report-1.png", title: "Relatório executivo", sub: "Score, confiança e narrativa", focus: { x: 0.5, y: 0.4, z: 1.05 } },
+  { d: 120, c: "shot", img: "report-radar.png", title: "9 Dimensões", sub: "Atual · Benchmark · Potencial", focus: { x: 0.5, y: 0.5, z: 1.05 } },
+  { d: 120, c: "split", imgs: ["report-redflags.png", "report-matrix.png"], title: "Riscos e prioridades", sub: "Red Flags + Matriz Risco × Impacto" },
+  { d: 120, c: "shot", img: "report-pauta.png", title: "Plano acionável", sub: "Quick wins · Pauta · Roadmap", focus: { x: 0.55, y: 0.5, z: 1.05 } },
+  { d: 120, c: "outro" },
 ];
 
 export const TOTAL_FRAMES = SCENES.reduce((s, x) => s + x.d, 0); // 900
