@@ -24,7 +24,7 @@ await renderMedia({
   codec: "h264",
   outputLocation: "/mnt/documents/darwin-demo-v2.mp4",
   puppeteerInstance: browser,
-  muted: false,
+  muted: true,
   concurrency: 1,
 });
 
