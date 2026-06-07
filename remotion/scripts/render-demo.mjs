@@ -22,7 +22,7 @@ await renderMedia({
   composition,
   serveUrl: bundled,
   codec: "h264",
-  outputLocation: "/mnt/documents/darwin-demo-v2.mp4",
+  outputLocation: "/mnt/documents/darwin-demo-v4-muted.mp4",
   puppeteerInstance: browser,
   muted: true,
   concurrency: 1,
