@@ -214,6 +214,14 @@ export async function exportReportToDOCX(opts: {
   ])));
   body.push(spacer());
 
+  // --- Radar (image)
+  const radarImgPara = imageParagraph(chartImages?.radar ?? null);
+  if (radarImgPara) {
+    body.push(h2('Radar · Atual vs Benchmark vs Potencial'));
+    body.push(card([radarImgPara]));
+    body.push(spacer());
+  }
+
   // --- Red Flags (each = own card)
   body.push(h2('Red Flags'));
   if (result.red_flags.length === 0) {
