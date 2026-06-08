@@ -46,6 +46,7 @@ export default function ReportPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
   const [exportingPpt, setExportingPpt] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [founderRedFlags, setFounderRedFlags] = useState<FounderRedFlag[]>([]);
 
   useEffect(() => {
