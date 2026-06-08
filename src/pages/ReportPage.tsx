@@ -207,6 +207,26 @@ export default function ReportPage() {
     }
   };
 
+  const handleExportDOCX = async () => {
+    if (!result || !assessment || !config) return;
+    const completeness = getCompleteness(result);
+    if (completeness.confidence === 'low' && !assessment.is_simulation) {
+      toast({ title: 'Completude insuficiente', description: 'Complete mais questões antes de exportar.', variant: 'destructive' });
+      return;
+    }
+    setExportingDocx(true);
+    try {
+      const { exportReportToDOCX } = await import('@/utils/docx-export');
+      const startupName = (assessment as any).company?.name || 'Organização';
+      await exportReportToDOCX({ assessment, config, result, answers, startupName });
+    } catch (err) {
+      console.error('DOCX export error:', err);
+      toast({ title: 'Erro ao exportar Word', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setExportingDocx(false);
+    }
+  };
+
   if (!result || !config || !assessment) return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
