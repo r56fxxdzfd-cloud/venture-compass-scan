@@ -335,7 +335,7 @@ export default function ReportPage() {
                 <TooltipContent>Gerar apresentação em PowerPoint (slides sem cortes)</TooltipContent>
               </Tooltip>
             )}
-            {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
+            {false && (assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
@@ -355,7 +355,7 @@ export default function ReportPage() {
                 <TooltipContent>Gerar documento Word (cards não quebram entre páginas)</TooltipContent>
               </Tooltip>
             )}
-            {isSimulation && (
+            {false && isSimulation && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
