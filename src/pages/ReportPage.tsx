@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2, Presentation } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Presentation, FileText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -46,6 +46,7 @@ export default function ReportPage() {
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
   const [exportingPpt, setExportingPpt] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [founderRedFlags, setFounderRedFlags] = useState<FounderRedFlag[]>([]);
 
   useEffect(() => {
@@ -206,6 +207,26 @@ export default function ReportPage() {
     }
   };
 
+  const handleExportDOCX = async () => {
+    if (!result || !assessment || !config) return;
+    const completeness = getCompleteness(result);
+    if (completeness.confidence === 'low' && !assessment.is_simulation) {
+      toast({ title: 'Completude insuficiente', description: 'Complete mais questões antes de exportar.', variant: 'destructive' });
+      return;
+    }
+    setExportingDocx(true);
+    try {
+      const { exportReportToDOCX } = await import('@/utils/docx-export');
+      const startupName = (assessment as any).company?.name || 'Organização';
+      await exportReportToDOCX({ assessment, config, result, answers, startupName });
+    } catch (err) {
+      console.error('DOCX export error:', err);
+      toast({ title: 'Erro ao exportar Word', description: 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setExportingDocx(false);
+    }
+  };
+
   if (!result || !config || !assessment) return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
@@ -295,6 +316,16 @@ export default function ReportPage() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
+              </Tooltip>
+            )}
+            {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportDOCX} disabled={exportingDocx}>
+                    {exportingDocx ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando Word...</> : <><FileText className="mr-1 h-3 w-3" /> Exportar Word</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar documento Word (cards não quebram entre páginas)</TooltipContent>
               </Tooltip>
             )}
             {isSimulation && (
