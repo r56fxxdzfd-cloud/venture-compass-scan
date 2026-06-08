@@ -28,21 +28,24 @@ const SEV_COLOR: Record<string, string> = {
   medium_high: C.warning, medium: C.warning, low: C.textMuted,
 };
 
+type ChartImage = { dataUrl: string; width: number; height: number } | null;
+
 export async function exportReportToDOCX(opts: {
   assessment: Assessment;
   config: ConfigJSON;
   result: AssessmentResult;
   answers: Answer[];
   startupName: string;
+  chartImages?: { radar?: ChartImage; matrix?: ChartImage; blocks?: ChartImage };
 }) {
   const docx = await import('docx');
   const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
     HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
-    PageBreak, LevelFormat,
+    PageBreak, LevelFormat, ImageRun, Footer, PageNumber,
   } = docx;
 
-  const { assessment, config, result, answers, startupName } = opts;
+  const { assessment, config, result, answers, startupName, chartImages } = opts;
   const stage = assessment.stage || 'seed';
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
   const completeness = getCompleteness(result);
@@ -123,6 +126,32 @@ export async function exportReportToDOCX(opts: {
   // Spacer paragraph between cards (so consecutive tables aren't glued)
   const spacer = () => new Paragraph({ children: [t('')], spacing: { after: 160 } });
 
+  // dataUrl (image/png base64) -> Uint8Array
+  const dataUrlToBytes = (dataUrl: string): Uint8Array => {
+    const b64 = dataUrl.split(',')[1] || '';
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  };
+
+  // Build an embedded image paragraph scaled to the content width (max 600px).
+  const imageParagraph = (img: ChartImage, maxWidthPx = 600): any | null => {
+    if (!img) return null;
+    const ratio = img.height / img.width;
+    const w = Math.min(maxWidthPx, img.width);
+    const h = Math.round(w * ratio);
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new ImageRun({
+        type: 'png',
+        data: dataUrlToBytes(img.dataUrl),
+        transformation: { width: w, height: h },
+        altText: { title: 'Gráfico', description: 'Gráfico do relatório', name: 'chart' },
+      } as any)],
+    });
+  };
+
   // ====== Build document body ======
   const body: any[] = [];
 
@@ -185,6 +214,14 @@ export async function exportReportToDOCX(opts: {
   ])));
   body.push(spacer());
 
+  // --- Radar (image)
+  const radarImgPara = imageParagraph(chartImages?.radar ?? null);
+  if (radarImgPara) {
+    body.push(h2('Radar · Atual vs Benchmark vs Potencial'));
+    body.push(card([radarImgPara]));
+    body.push(spacer());
+  }
+
   // --- Red Flags (each = own card)
   body.push(h2('Red Flags'));
   if (result.red_flags.length === 0) {
@@ -208,22 +245,27 @@ export async function exportReportToDOCX(opts: {
     });
   }
 
-  // --- Matriz Risco × Impacto (textual)
+  // --- Matriz Risco × Impacto (image when available, fallback to text list)
   const matrixPoints = compute2x2Matrix(config, result, stage);
-  if (matrixPoints.length > 0) {
+  const matrixImgPara = imageParagraph(chartImages?.matrix ?? null);
+  if (matrixPoints.length > 0 || matrixImgPara) {
     body.push(h2('Matriz Risco × Impacto'));
-    body.push(card([
-      p([t('Itens priorizados por risco e impacto potencial (10 mais relevantes).', { size: 18, color: C.textMuted })], { spacing: { after: 160 } }),
-      ...matrixPoints.slice(0, 12).map((pt, i) => {
-        const color = pt.type === 'red_flag' ? C.danger : C.primary;
-        const tag = pt.type === 'red_flag' ? 'Red Flag' : 'Dimensão';
-        return p([
-          t(`${i + 1}. `, { bold: true, size: 20, color }),
-          t(pt.label, { bold: true, size: 20, color: C.text }),
-          t(`  ·  ${tag}  ·  Risco ${pt.risk}  ·  Impacto ${pt.impact}`, { size: 18, color: C.textMuted }),
-        ]);
-      }),
-    ]));
+    if (matrixImgPara) {
+      body.push(card([matrixImgPara]));
+    } else {
+      body.push(card([
+        p([t('Itens priorizados por risco e impacto potencial.', { size: 18, color: C.textMuted })], { spacing: { after: 160 } }),
+        ...matrixPoints.slice(0, 12).map((pt, i) => {
+          const color = pt.type === 'red_flag' ? C.danger : C.primary;
+          const tag = pt.type === 'red_flag' ? 'Red Flag' : 'Dimensão';
+          return p([
+            t(`${i + 1}. `, { bold: true, size: 20, color }),
+            t(pt.label, { bold: true, size: 20, color: C.text }),
+            t(`  ·  ${tag}  ·  Risco ${pt.risk}  ·  Impacto ${pt.impact}`, { size: 18, color: C.textMuted }),
+          ]);
+        }),
+      ]));
+    }
     body.push(spacer());
   }
 
@@ -433,6 +475,19 @@ export async function exportReportToDOCX(opts: {
           size: { width: 12240, height: 15840 },
           margin: { top: 1080, right: 1080, bottom: 1080, left: 1080, header: 540, footer: 540 },
         },
+      },
+      footers: {
+        default: new Footer({
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              t(`Darwin Growth · ${startupName} · ${dateStr}  ·  Página `, { size: 16, color: C.textMuted }),
+              new TextRun({ children: [PageNumber.CURRENT], size: 16, color: C.textMuted, font: 'Arial' }),
+              t(' de ', { size: 16, color: C.textMuted }),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: C.textMuted, font: 'Arial' }),
+            ],
+          })],
+        }),
       },
       children: body,
     }],
