@@ -218,7 +218,34 @@ export default function ReportPage() {
     try {
       const { exportReportToDOCX } = await import('@/utils/docx-export');
       const startupName = (assessment as any).company?.name || 'Organização';
-      await exportReportToDOCX({ assessment, config, result, answers, startupName });
+
+      // Capture chart sections as PNGs for embedding
+      const html2canvas = (await import('html2canvas')).default;
+      const captureEl = async (selector: string) => {
+        const el = document.querySelector(selector) as HTMLElement | null;
+        if (!el) return null;
+        const canvas = await html2canvas(el, {
+          backgroundColor: '#0B1220',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+        });
+        return {
+          dataUrl: canvas.toDataURL('image/png'),
+          width: canvas.width,
+          height: canvas.height,
+        };
+      };
+      const [radarImg, matrixImg, blocksImg] = await Promise.all([
+        captureEl('#section-radar'),
+        captureEl('#section-matrix'),
+        captureEl('#section-blocks'),
+      ]);
+
+      await exportReportToDOCX({
+        assessment, config, result, answers, startupName,
+        chartImages: { radar: radarImg, matrix: matrixImg, blocks: blocksImg },
+      });
     } catch (err) {
       console.error('DOCX export error:', err);
       toast({ title: 'Erro ao exportar Word', description: 'Tente novamente.', variant: 'destructive' });
