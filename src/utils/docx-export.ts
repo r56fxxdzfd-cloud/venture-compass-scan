@@ -28,21 +28,24 @@ const SEV_COLOR: Record<string, string> = {
   medium_high: C.warning, medium: C.warning, low: C.textMuted,
 };
 
+type ChartImage = { dataUrl: string; width: number; height: number } | null;
+
 export async function exportReportToDOCX(opts: {
   assessment: Assessment;
   config: ConfigJSON;
   result: AssessmentResult;
   answers: Answer[];
   startupName: string;
+  chartImages?: { radar?: ChartImage; matrix?: ChartImage; blocks?: ChartImage };
 }) {
   const docx = await import('docx');
   const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
     HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
-    PageBreak, LevelFormat,
+    PageBreak, LevelFormat, ImageRun, Footer, PageNumber, Header,
   } = docx;
 
-  const { assessment, config, result, answers, startupName } = opts;
+  const { assessment, config, result, answers, startupName, chartImages } = opts;
   const stage = assessment.stage || 'seed';
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
   const completeness = getCompleteness(result);
