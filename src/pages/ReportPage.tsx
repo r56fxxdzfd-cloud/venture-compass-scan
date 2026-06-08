@@ -318,6 +318,16 @@ export default function ReportPage() {
                 <TooltipContent>Gerar e baixar o relatório completo em PDF</TooltipContent>
               </Tooltip>
             )}
+            {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleExportDOCX} disabled={exportingDocx}>
+                    {exportingDocx ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Gerando Word...</> : <><FileText className="mr-1 h-3 w-3" /> Exportar Word</>}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar documento Word (cards não quebram entre páginas)</TooltipContent>
+              </Tooltip>
+            )}
             {isSimulation && (
               <Tooltip>
                 <TooltipTrigger asChild>
