@@ -335,7 +335,7 @@ export default function ReportPage() {
                 <TooltipContent>Gerar apresentação em PowerPoint (slides sem cortes)</TooltipContent>
               </Tooltip>
             )}
-            {(assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
+            {false && (assessment.status === 'completed' && completeness.confidence !== 'low' && !isSimulation) && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
