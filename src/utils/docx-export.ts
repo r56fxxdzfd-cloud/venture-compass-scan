@@ -245,22 +245,27 @@ export async function exportReportToDOCX(opts: {
     });
   }
 
-  // --- Matriz Risco × Impacto (textual)
+  // --- Matriz Risco × Impacto (image when available, fallback to text list)
   const matrixPoints = compute2x2Matrix(config, result, stage);
-  if (matrixPoints.length > 0) {
+  const matrixImgPara = imageParagraph(chartImages?.matrix ?? null);
+  if (matrixPoints.length > 0 || matrixImgPara) {
     body.push(h2('Matriz Risco × Impacto'));
-    body.push(card([
-      p([t('Itens priorizados por risco e impacto potencial (10 mais relevantes).', { size: 18, color: C.textMuted })], { spacing: { after: 160 } }),
-      ...matrixPoints.slice(0, 12).map((pt, i) => {
-        const color = pt.type === 'red_flag' ? C.danger : C.primary;
-        const tag = pt.type === 'red_flag' ? 'Red Flag' : 'Dimensão';
-        return p([
-          t(`${i + 1}. `, { bold: true, size: 20, color }),
-          t(pt.label, { bold: true, size: 20, color: C.text }),
-          t(`  ·  ${tag}  ·  Risco ${pt.risk}  ·  Impacto ${pt.impact}`, { size: 18, color: C.textMuted }),
-        ]);
-      }),
-    ]));
+    if (matrixImgPara) {
+      body.push(card([matrixImgPara]));
+    } else {
+      body.push(card([
+        p([t('Itens priorizados por risco e impacto potencial.', { size: 18, color: C.textMuted })], { spacing: { after: 160 } }),
+        ...matrixPoints.slice(0, 12).map((pt, i) => {
+          const color = pt.type === 'red_flag' ? C.danger : C.primary;
+          const tag = pt.type === 'red_flag' ? 'Red Flag' : 'Dimensão';
+          return p([
+            t(`${i + 1}. `, { bold: true, size: 20, color }),
+            t(pt.label, { bold: true, size: 20, color: C.text }),
+            t(`  ·  ${tag}  ·  Risco ${pt.risk}  ·  Impacto ${pt.impact}`, { size: 18, color: C.textMuted }),
+          ]);
+        }),
+      ]));
+    }
     body.push(spacer());
   }
 
