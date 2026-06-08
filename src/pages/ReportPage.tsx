@@ -355,7 +355,7 @@ export default function ReportPage() {
                 <TooltipContent>Gerar documento Word (cards não quebram entre páginas)</TooltipContent>
               </Tooltip>
             )}
-            {isSimulation && (
+            {false && isSimulation && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={exporting}>
