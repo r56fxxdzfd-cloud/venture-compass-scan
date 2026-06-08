@@ -31,7 +31,7 @@ export function ReportHeader({
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <img src={logoDarwin} alt="Darwin Growth" className="h-12 w-auto object-contain shrink-0 dark:brightness-100 brightness-0" />
+            <img src={logoDarwin} alt="Darwin Growth" className="h-12 w-auto object-contain shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">{startupName}</h2>
