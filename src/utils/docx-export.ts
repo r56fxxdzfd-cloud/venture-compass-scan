@@ -126,6 +126,32 @@ export async function exportReportToDOCX(opts: {
   // Spacer paragraph between cards (so consecutive tables aren't glued)
   const spacer = () => new Paragraph({ children: [t('')], spacing: { after: 160 } });
 
+  // dataUrl (image/png base64) -> Uint8Array
+  const dataUrlToBytes = (dataUrl: string): Uint8Array => {
+    const b64 = dataUrl.split(',')[1] || '';
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  };
+
+  // Build an embedded image paragraph scaled to the content width (max 600px).
+  const imageParagraph = (img: ChartImage, maxWidthPx = 600): any | null => {
+    if (!img) return null;
+    const ratio = img.height / img.width;
+    const w = Math.min(maxWidthPx, img.width);
+    const h = Math.round(w * ratio);
+    return new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new ImageRun({
+        type: 'png',
+        data: dataUrlToBytes(img.dataUrl),
+        transformation: { width: w, height: h },
+        altText: { title: 'Gráfico', description: 'Gráfico do relatório', name: 'chart' },
+      } as any)],
+    });
+  };
+
   // ====== Build document body ======
   const body: any[] = [];
 
