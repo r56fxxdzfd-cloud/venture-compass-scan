@@ -42,7 +42,7 @@ export async function exportReportToDOCX(opts: {
   const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
     HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
-    PageBreak, LevelFormat, ImageRun, Footer, PageNumber, Header,
+    PageBreak, LevelFormat, ImageRun, Footer, PageNumber,
   } = docx;
 
   const { assessment, config, result, answers, startupName, chartImages } = opts;
