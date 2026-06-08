@@ -476,6 +476,19 @@ export async function exportReportToDOCX(opts: {
           margin: { top: 1080, right: 1080, bottom: 1080, left: 1080, header: 540, footer: 540 },
         },
       },
+      footers: {
+        default: new Footer({
+          children: [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              t(`Darwin Growth · ${startupName} · ${dateStr}  ·  Página `, { size: 16, color: C.textMuted }),
+              new TextRun({ children: [PageNumber.CURRENT], size: 16, color: C.textMuted, font: 'Arial' }),
+              t(' de ', { size: 16, color: C.textMuted }),
+              new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: C.textMuted, font: 'Arial' }),
+            ],
+          })],
+        }),
+      },
       children: body,
     }],
   });
