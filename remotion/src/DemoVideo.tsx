@@ -33,13 +33,13 @@ const DIM = "rgba(255,255,255,0.65)";
 // Durations chosen to match narration cadence
 const SCENES: { d: number; c: string; [k: string]: any }[] = [
   { d: 90, c: "logo" },
-  { d: 90, c: "hook" },
-  { d: 120, c: "shot", img: "dashboard.png", title: "Diagnóstico em minutos", sub: "Avalie a maturidade da operação", focus: { x: 0.55, y: 0.45, z: 1.08 } },
+  { d: 75, c: "hook" },
+  { d: 105, c: "shot", img: "dashboard.png", title: "Diagnóstico em minutos", sub: "Avalie a maturidade real do negócio", focus: { x: 0.55, y: 0.45, z: 1.08 } },
   { d: 120, c: "shot", img: "report-1.png", title: "Relatório executivo", sub: "Score, confiança e narrativa", focus: { x: 0.5, y: 0.4, z: 1.05 } },
-  { d: 120, c: "shot", img: "report-radar.png", title: "9 Dimensões", sub: "Atual · Benchmark · Potencial", focus: { x: 0.5, y: 0.5, z: 1.05 } },
-  { d: 120, c: "split", imgs: ["report-redflags.png", "report-matrix.png"], title: "Riscos e prioridades", sub: "Red Flags + Matriz Risco × Impacto" },
-  { d: 120, c: "shot", img: "report-pauta.png", title: "Plano acionável", sub: "Quick wins · Pauta · Roadmap", focus: { x: 0.55, y: 0.5, z: 1.05 } },
-  { d: 120, c: "outro" },
+  { d: 105, c: "shot", img: "report-radar.png", title: "9 Dimensões", sub: "Atual · Benchmark · Potencial", focus: { x: 0.5, y: 0.5, z: 1.05 } },
+  { d: 105, c: "split", imgs: ["report-redflags.png", "report-matrix.png"], title: "Riscos e prioridades", sub: "Red Flags + Matriz Risco × Impacto" },
+  { d: 105, c: "shot", img: "report-pauta.png", title: "Plano acionável", sub: "Quick wins · Pauta · Roadmap", focus: { x: 0.55, y: 0.5, z: 1.05 } },
+  { d: 195, c: "outro" },
 ];
 
 export const TOTAL_FRAMES = SCENES.reduce((s, x) => s + x.d, 0); // 900
@@ -244,8 +244,9 @@ export const DemoVideo: React.FC = () => {
           </Sequence>
         );
       })}
-      <Audio src={staticFile("audio/music30.mp3")} volume={0.22} />
-      <Audio src={staticFile("audio/vo30.mp3")} volume={1} />
+      <Audio src={staticFile("audio/music30.mp3")} volume={0.18} />
+      <Audio src={staticFile("audio/vo30b.mp3")} volume={1} />
+
     </AbsoluteFill>
   );
 };
