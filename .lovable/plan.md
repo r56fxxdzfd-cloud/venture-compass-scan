@@ -1,55 +1,65 @@
-# Vídeo Demo Darwin — 30s, Diagnóstico + Relatório
+# Vídeo 45s — White-label "OS de Conselhos" (Darwin Growth como case)
 
-Vídeo de 30 segundos (1920x1080, 30fps = 900 frames), aesthetic **Dynamic SaaS** (cortes rápidos, springs energéticos, paleta Glass Aurora: navy #0a0f1f, verde #4ade80, roxo #a78bfa), com **narração PT-BR (ElevenLabs)** + **trilha de fundo (ElevenLabs Music)**.
+Vídeo de 45s (1920×1080, 30fps = 1350 frames), Glass Aurora, pitch B2B para empresas que oferecem conselho/board/mentoria e querem uma plataforma própria. Darwin Growth aparece como **case real** (vertical startups), não como produto sendo vendido. Voice George (PT-BR), trilha contínua sem cortes.
 
-## Storyboard (8 cenas)
+## Posicionamento
 
-| # | Dur | Cena | Narração PT-BR |
-|---|-----|------|----------------|
-| 1 | 3s | Logo Darwin + tagline "Diagnóstico que vira ação" | "Darwin. Diagnóstico que vira ação." |
-| 2 | 3s | Hook: "Sua startup está pronta para escalar?" tipografia grande | "Sua startup está pronta para escalar?" |
-| 3 | 4s | Screenshot dashboard + zoom no card de score | "Em minutos, descubra o nível de maturidade do seu negócio." |
-| 4 | 4s | Screenshot relatório (report-1.png) com KPIs animando | "Score consolidado, nível de confiança e narrativa executiva." |
-| 5 | 4s | Radar chart (report-radar.png) com highlight nas dimensões | "Nove dimensões avaliadas contra benchmark e potencial." |
-| 6 | 4s | Red Flags (report-redflags.png) + Matriz (report-matrix.png) split | "Identifique riscos críticos e priorize onde agir primeiro." |
-| 7 | 4s | Pauta sugerida (report-pauta.png) — Quick Wins / Roadmap | "Receba um plano acionável — quick wins, pauta e roadmap." |
-| 8 | 4s | Logo + URL diagnosticostartups.com | "Darwin. Conselhos coletivos que aceleram o crescimento." |
+- Vendedor: plataforma white-label "Sistema Operacional de Conselhos".
+- Prova: "veja o Darwin Growth — implementação real para conselhos de startups".
+- Promessa dupla:
+  1. **Tangibilizar a oferta** ao lead (diagnóstico → relatório → pauta).
+  2. **Organizar o conselheiro** (portfólio, agenda, acompanhamento, retenção).
+- Sem mencionar "Darwin" como marca do vendedor — Darwin entra rotulado como "Case: vertical Startups".
+
+## Roteiro (10 cenas, ~45s)
+
+| # | Dur (frames) | Cena | Voice-over PT-BR |
+|---|--------------|------|------------------|
+| 1 | 3s (90) | Tipografia: "Sistema Operacional de Conselhos" | "Existe uma forma de transformar a sua oferta de conselho em um produto tangível." |
+| 2 | 4s (120) | Hook: "Como o seu conselho prova valor antes da venda?" | "Como o seu conselho prova valor antes mesmo de fechar o contrato?" |
+| 3 | 4s (120) | Card "Case real · Vertical Startups" + screenshot dashboard | "Este é um case real: uma plataforma de conselhos para startups, construída sobre o nosso OS." |
+| 4 | 5s (150) | report-1.png — KPIs + narrativa | "Em minutos, o lead recebe um diagnóstico executivo com score, confiança e narrativa." |
+| 5 | 4s (120) | report-radar.png — 9 dimensões | "Nove dimensões, comparadas a benchmark e potencial." |
+| 6 | 5s (150) | Split: report-redflags + report-matrix | "Red flags e matriz risco × impacto mostram onde o conselho precisa agir primeiro." |
+| 7 | 4s (120) | report-pauta.png — quick wins / pauta / roadmap | "E já entregam a pauta da próxima reunião — quick wins e roadmap." |
+| 8 | 5s (150) | counselor-center + counselor-overview (split) | "Para os conselheiros: portfólio inteiro em uma tela. Agenda, foco e prioridades." |
+| 9 | 4s (120) | meeting-detail + meeting-actions | "Cada reunião com pauta, decisões e ações acompanhadas — retenção maior, churn menor." |
+| 10 | 7s (210) | CTA tipográfico | "Esta plataforma pode ser o Sistema Operacional do seu conselho — white-label, no seu posicionamento." |
+
+CTA visual cena 10 (3 linhas stagger):
+- "Seu Sistema Operacional de Conselhos"
+- "White-label · sua marca · seu método"
+- "Tangibilize a venda. Organize o conselho. Retenha mais clientes."
+
+Rótulos on-screen das cenas 3-9: badge discreto "Case: vertical Startups" no canto, em vez do "Diagnóstico Darwin" usado no vídeo anterior. Logo Darwin **não** aparece no header dessas cenas.
 
 ## Áudio
 
-- **Voiceover**: gerar via ElevenLabs TTS (voz PT-BR — `JBFqnCBsd6RMkjVDRZzb`/George ou similar com bom PT) usando o skill `ai-gateway` ou chamada direta. Salvar em `remotion/public/audio/vo.mp3`.
-- **Trilha**: gerar via ElevenLabs Music — prompt "modern uplifting electronic SaaS background, subtle drive, no vocals, 30s". Salvar em `remotion/public/audio/music.mp3`.
-- No Remotion: dois `<Audio>` no `MainVideo` — música em volume 0.25, voiceover em volume 1.0.
-- Renderizar com `muted: false` (precisa instalar/usar build ffmpeg com aac) — alternativa: render vídeo mudo + `ffmpeg -i video.mp4 -i music.mp3 -i vo.mp3 -filter_complex amix` para mux final.
+- **VO** (`vo45.mp3`): ElevenLabs `JBFqnCBsd6RMkjVDRZzb` (George), `eleven_multilingual_v2`, stability 0.5, similarity 0.8, style 0.3, speed 1.05. ~42-43s falados.
+- **Trilha** (`music45.mp3`): ElevenLabs Music, prompt "modern cinematic uplifting corporate B2B SaaS, warm pads + subtle pulse, no vocals, continuous flow, 50s". Volume 0.16.
+- Mix ffmpeg `amix` + `afade=t=out:st=43:d=2` na trilha. Sem cortes intermediários.
 
 ## Implementação técnica
 
-1. Reutilizar projeto `remotion/` existente (já configurado).
-2. Criar `remotion/src/DemoVideo.tsx` (novo, não substitui MainVideo) — 900 frames, 30fps.
-3. Estrutura: `<TransitionSeries>` com 8 sequências, transições `fade`/`slide` curtas (10-15 frames).
-4. Layers persistentes: gradient aurora animado no fundo (radial verde+roxo), partículas sutis.
-5. Tipografia: Space Grotesk (700) + DM Sans (400) via `@remotion/google-fonts`.
-6. Motion system:
-   - Entrada padrão: spring `{damping:18, stiffness:140}` com fade+translateY 30px
-   - Hero (cena 1, 8): scale 0.8→1 com damping 12
-   - Highlights nos screenshots: caixa verde glow aparecendo após 12 frames
-7. Adicionar composition `demo` no `Root.tsx` (mantém `main` antiga).
-8. Script de render: `remotion/scripts/render-demo.mjs` — bundla, renderiza com puppeteer, output `/mnt/documents/darwin-demo-v2.mp4`.
-9. Pós-processamento ffmpeg para mixar áudio:
-   ```
-   ffmpeg -y -i video.mp4 -i music.mp3 -i vo.mp3 \
-     -filter_complex "[1:a]volume=0.22[m];[2:a]volume=1.0[v];[m][v]amix=inputs=2:duration=longest[a]" \
-     -map 0:v -map "[a]" -c:v copy -c:a aac -shortest darwin-demo-v2.mp4
-   ```
+1. `remotion/src/DemoVideoB2B.tsx` — novo arquivo, mantém `DemoVideo.tsx` anterior.
+2. `remotion/src/Root.tsx` — adiciona composition `demo-b2b` (1350 frames).
+3. Reusa `AuroraBg`, `Shot`, `Split`, `HookScene` de `DemoVideo.tsx`. Adapta:
+   - `Chrome`: substitui logo Darwin por badge "Case · Vertical Startups" (cor purple suave) e remove o "Darwin" no canto.
+   - Cena 1 e 10: tipografia pura (sem logo Darwin).
+4. Cena 10 (`CTAScene`): 3 linhas Space Grotesk 700, stagger 12 frames, glow verde no termo "Sistema Operacional".
+5. Áudio: dois `<Audio>` (music45 0.16, vo45 1.0).
+6. Script render: `remotion/scripts/render-demo-b2b.mjs` → `/mnt/documents/darwin-demo-b2b-v1-muted.mp4` → mix ffmpeg → `darwin-os-conselhos-v1.mp4`.
+7. Áudio via curl direto na API ElevenLabs (`xi-api-key` = `ELEVENLABS_API_KEY`, mesmo padrão do vo30b.mp3).
 
 ## Entregáveis
 
-- `remotion/src/DemoVideo.tsx`, `remotion/src/Root.tsx` (adiciona composition)
-- `remotion/scripts/render-demo.mjs`
-- `remotion/public/audio/vo.mp3`, `music.mp3` (gerados via ElevenLabs)
-- MP4 final em `/mnt/documents/darwin-demo-v2.mp4` (~30s, com som)
-- Tag `<presentation-artifact>` para download
+- `remotion/src/DemoVideoB2B.tsx`, edit `Root.tsx`
+- `remotion/scripts/render-demo-b2b.mjs`
+- `remotion/public/audio/vo45.mp3`, `music45.mp3`
+- `/mnt/documents/darwin-os-conselhos-v1.mp4` (~45s, áudio contínuo)
+- `<presentation-artifact>` para download
 
-## Pré-requisito
+## Pré-requisitos
 
-Conector **ElevenLabs** precisa estar linkado ao projeto (para TTS PT-BR + Music). Verifico antes; se faltar, peço a conexão.
+- Conector ElevenLabs já linkado.
+- Imagens necessárias já existem em `remotion/public/images/`: dashboard, report-1, report-radar, report-redflags, report-matrix, report-pauta, counselor-center, counselor-overview, meeting-detail, meeting-actions.
