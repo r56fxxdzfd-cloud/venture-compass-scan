@@ -26,6 +26,9 @@ import type { Founder, FounderAssessment } from '@/types/founder';
 import type { CouncilAction, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
+import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
+import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
+import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
@@ -43,7 +46,7 @@ export default function StartupDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin, isAnalyst, user } = useAuth();
+  const { isAdmin, isAnalyst, isAdvisor, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
@@ -58,6 +61,8 @@ export default function StartupDetailPage() {
   const [actions, setActions] = useState<CouncilAction[]>([]);
 
   const canWrite = isAdmin || isAnalyst;
+  // Conselheiro atribuído alcança esta página (RLS) — pode operar plano/reuniões.
+  const canManageOps = isAdmin || isAnalyst || isAdvisor;
 
   // New assessment dialog
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -75,8 +80,14 @@ export default function StartupDetailPage() {
   useEffect(() => {
     if (!id) return;
     const load = async () => {
-      const { data: companyData } = await supabase.from('companies').select('*').eq('id', id).single();
-      if (companyData) setCompany(companyData as Company);
+      const { data: companyData } = await supabase.from('companies').select('*').eq('id', id).maybeSingle();
+      if (!companyData) {
+        // RLS pode retornar 0 linhas (ex.: conselheiro sem atribuição). Não é erro.
+        setCompany(null);
+        setLoading(false);
+        return;
+      }
+      setCompany(companyData as Company);
 
       // Load founders & founder assessments
       const currentSem = getCurrentSemester();
@@ -221,7 +232,7 @@ export default function StartupDetailPage() {
     }
   };
 
-  if (loading || !company) return (
+  if (loading) return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Skeleton className="h-8 w-8 rounded" />
@@ -231,6 +242,23 @@ export default function StartupDetailPage() {
         <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-4 w-full" />)}</CardContent></Card>
         <Card><CardHeader><Skeleton className="h-4 w-24" /></CardHeader><CardContent className="space-y-2">{[1,2,3].map(i=><Skeleton key={i} className="h-12 w-full rounded-lg" />)}</CardContent></Card>
       </div>
+      <BackToTopFooter />
+    </div>
+  );
+
+  if (!company) return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate('/app/startups')}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-xl font-bold">Organização não encontrada</h1>
+      </div>
+      <Card>
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          Esta organização não existe ou você não tem acesso a ela. Conselheiros só visualizam organizações que lhes foram atribuídas.
+        </CardContent>
+      </Card>
       <BackToTopFooter />
     </div>
   );
@@ -614,6 +642,15 @@ export default function StartupDetailPage() {
           </Card>
         );
       })()}
+
+      {/* Conselheiros (atribuição de advisors) — apenas JV Admin/Super Admin */}
+      {isAdmin && <AdvisorsSection companyId={company.id} />}
+
+      {/* Plano de ação (action_items, nível company) */}
+      <ActionPlanSection companyId={company.id} canManage={canManageOps} />
+
+      {/* Reuniões (meeting_logs, nível company) */}
+      <MeetingLogsSection companyId={company.id} canManage={canManageOps} />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
