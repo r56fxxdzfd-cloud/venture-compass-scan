@@ -14,6 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
+      action_items: {
+        Row: {
+          assessment_id: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dimension_id: string | null
+          done_definition: string | null
+          due_date: string | null
+          effort: string | null
+          first_step: string | null
+          id: string
+          owner_label: string | null
+          priority: number | null
+          source_action_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_id?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dimension_id?: string | null
+          done_definition?: string | null
+          due_date?: string | null
+          effort?: string | null
+          first_step?: string | null
+          id?: string
+          owner_label?: string | null
+          priority?: number | null
+          source_action_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_id?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dimension_id?: string | null
+          done_definition?: string | null
+          due_date?: string | null
+          effort?: string | null
+          first_step?: string | null
+          id?: string
+          owner_label?: string | null
+          priority?: number | null
+          source_action_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "action_items_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_items_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "action_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advisor_assignments: {
+        Row: {
+          advisor_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          advisor_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          advisor_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advisor_assignments_advisor_id_fkey"
+            columns: ["advisor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advisor_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advisor_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answers: {
         Row: {
           assessment_id: string
@@ -831,6 +959,117 @@ export type Database = {
           },
         ]
       }
+      intake_submissions: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          imported_at: string | null
+          label: string | null
+          payload: Json | null
+          status: string
+          submitted_at: string | null
+          token: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          imported_at?: string | null
+          label?: string | null
+          payload?: Json | null
+          status?: string
+          submitted_at?: string | null
+          token: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          imported_at?: string | null
+          label?: string | null
+          payload?: Json | null
+          status?: string
+          submitted_at?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_submissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_logs: {
+        Row: {
+          attendees: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          decisions: string | null
+          id: string
+          meeting_date: string
+          next_steps: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          attendees?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          id?: string
+          meeting_date?: string
+          next_steps?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attendees?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          id?: string
+          meeting_date?: string
+          next_steps?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved_at: string | null
@@ -1009,6 +1248,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      current_profile_role: { Args: never; Returns: string }
       get_unconfirmed_user_ids: {
         Args: never
         Returns: {
@@ -1024,11 +1264,15 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_analyst: { Args: { _user_id: string }; Returns: boolean }
+      is_advisor_of: { Args: { p_company_id: string }; Returns: boolean }
+      is_approved: { Args: never; Returns: boolean }
       is_approved_member: { Args: { _user_id: string }; Returns: boolean }
       is_demo_admin: { Args: { _user_id: string }; Returns: boolean }
       is_demo_user: { Args: { _user_id: string }; Returns: boolean }
       is_jv_admin: { Args: { _user_id: string }; Returns: boolean }
       is_jv_member: { Args: { _user_id: string }; Returns: boolean }
+      is_jv_operator: { Args: never; Returns: boolean }
+      is_jv_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
