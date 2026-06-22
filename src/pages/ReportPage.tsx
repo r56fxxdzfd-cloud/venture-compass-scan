@@ -11,6 +11,7 @@ import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import type { ConfigJSON, Answer, Assessment, AssessmentResult } from '@/types/darwin';
 import type { Founder, FounderAssessment, FounderPillarScore } from '@/types/founder';
 import type { FounderRedFlag } from '@/components/report/ReportSections';
@@ -40,6 +41,9 @@ export default function ReportPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, isAnalyst, isAdvisor } = useAuth();
+  const canManageActions = isAdmin || isAnalyst || isAdvisor;
+  const [actionItemSourceIds, setActionItemSourceIds] = useState<Set<string>>(new Set());
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
@@ -66,6 +70,10 @@ export default function ReportPage() {
       setAnswers(loadedAnswers);
       const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model });
       setResult(res);
+
+      // Quais quick wins já viraram action_items nesta company (evita duplicar)
+      const { data: aiRows } = await supabase.from('action_items').select('source_action_id').eq('company_id', a.company_id);
+      setActionItemSourceIds(new Set((aiRows || []).map((r: any) => r.source_action_id).filter(Boolean) as string[]));
 
       // Fetch founder red flags for this company
       const companyId = a.company_id;
@@ -438,7 +446,15 @@ export default function ReportPage() {
       </div>
 
       <div id="section-quickwins">
-        <QuickWinsSection config={config} result={result} stage={stage} />
+        <QuickWinsSection
+          config={config}
+          result={result}
+          stage={stage}
+          companyId={(assessment as any).company_id || (assessment as any).company?.id}
+          assessmentId={assessment.id}
+          canManage={canManageActions}
+          existingSourceIds={actionItemSourceIds}
+        />
       </div>
 
       <div id="section-matrix">

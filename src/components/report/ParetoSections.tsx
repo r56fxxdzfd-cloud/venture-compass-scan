@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2, Info } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Zap, Calendar, Target, AlertTriangle, Flag, CheckCircle2, Info, Plus, Check, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, AssessmentResult, Answer } from '@/types/darwin';
 import {
   computeParetoActions, selectTop5,
@@ -35,9 +40,49 @@ function EffortBadge({ effort }: { effort: 'S' | 'M' | 'L' }) {
 // ======== Quick Wins (Step 7 rendering) ========
 export function QuickWinsSection({
   config, result, stage,
-}: { config: ConfigJSON; result: AssessmentResult; stage: string }) {
+  companyId, assessmentId, canManage = false, existingSourceIds,
+}: {
+  config: ConfigJSON; result: AssessmentResult; stage: string;
+  companyId?: string; assessmentId?: string; canManage?: boolean;
+  existingSourceIds?: Set<string>;
+}) {
   const scored = computeParetoActions(config, result, stage);
   const top5 = selectTop5(scored, result, config);
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [added, setAdded] = useState<Set<string>>(() => new Set(existingSourceIds || []));
+  const [pending, setPending] = useState<string | null>(null);
+
+  const showAddButton = canManage && !!companyId;
+
+  const handleAdd = async (action: ScoredAction) => {
+    if (!companyId) return;
+    if (added.has(action.id)) return;
+    setPending(action.id);
+    const { error } = await supabase.from('action_items').insert({
+      company_id: companyId,
+      assessment_id: assessmentId ?? null,
+      source_action_id: action.id,
+      title: action.title,
+      description: action.description ?? null,
+      first_step: action.first_step ?? null,
+      done_definition: action.done_definition ?? null,
+      dimension_id: action.dimension_id ?? null,
+      effort: action.effort ?? null,
+      priority: action.pareto_score ?? null,
+      status: 'todo',
+      created_by: user?.id ?? null,
+    });
+    setPending(null);
+    // 23505 = unique violation (já existe esta ação na company) → trata como adicionada
+    if (error && error.code !== '23505') {
+      toast({ title: 'Erro ao adicionar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setAdded((prev) => new Set(prev).add(action.id));
+    toast({ title: error ? 'Ação já estava no plano' : 'Adicionada ao plano de ação' });
+  };
 
   if (top5.length === 0) return null;
 
@@ -144,6 +189,29 @@ export function QuickWinsSection({
                   Score: {action.pareto_score}
                 </span>
               </div>
+
+              {/* Adicionar ao plano de ação (somente operadores/conselheiro) */}
+              {showAddButton && (
+                <div className="flex justify-end" data-html2canvas-ignore="true">
+                  {added.has(action.id) ? (
+                    <Button variant="outline" size="sm" className="h-7 text-xs" disabled>
+                      <Check className="h-3 w-3 mr-1" /> No plano de ação
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={pending === action.id}
+                      onClick={() => handleAdd(action)}
+                    >
+                      {pending === action.id
+                        ? <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Adicionando...</>
+                        : <><Plus className="h-3 w-3 mr-1" /> Adicionar ao plano de ação</>}
+                    </Button>
+                  )}
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
