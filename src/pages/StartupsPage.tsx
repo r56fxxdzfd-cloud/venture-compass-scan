@@ -10,10 +10,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import type { Company } from '@/types/darwin';
 import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { IntakeInbox } from '@/components/startup/IntakeInbox';
 
 export default function StartupsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -21,11 +23,12 @@ export default function StartupsPage() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
-  const { canOperatePlatform, canOperateDemo, isDemoUser } = useAuth();
+  const { canOperatePlatform, canOperateDemo, isDemoUser, isAnalyst } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const canWrite = canOperatePlatform || canOperateDemo;
+  const isOperator = canOperatePlatform || isAnalyst; // admin/analyst → acesso a Intakes
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false });
@@ -219,6 +222,14 @@ export default function StartupsPage() {
         </div>
       </section>
 
+      <Tabs defaultValue="portfolio" className="space-y-6">
+        {isOperator && (
+          <TabsList>
+            <TabsTrigger value="portfolio">Portfólio</TabsTrigger>
+            <TabsTrigger value="intakes">Intakes</TabsTrigger>
+          </TabsList>
+        )}
+        <TabsContent value="portfolio" className="space-y-6">
       {companies.length > 0 && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -327,6 +338,13 @@ export default function StartupsPage() {
           )}
         </>
       )}
+        </TabsContent>
+        {isOperator && (
+          <TabsContent value="intakes">
+            <IntakeInbox onImported={fetchCompanies} />
+          </TabsContent>
+        )}
+      </Tabs>
       <BackToTopFooter />
     </div>
   );

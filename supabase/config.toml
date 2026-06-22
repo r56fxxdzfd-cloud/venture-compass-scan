@@ -2,3 +2,9 @@ project_id = "zazebhtkxojegimdfqry"
 
 [functions.resend-confirmation]
 verify_jwt = false
+
+[functions.intake-validate]
+verify_jwt = false
+
+[functions.intake-submit]
+verify_jwt = false

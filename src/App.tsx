@@ -32,6 +32,7 @@ import AgendaTemplatesPage from "./pages/AgendaTemplatesPage";
 import ProgressReportPage from "./pages/ProgressReportPage";
 import CounselorCenterPage from "./pages/CounselorCenterPage";
 import CounselorOverviewPage from "./pages/CounselorOverviewPage";
+import IntakePage from "./pages/IntakePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="/login" element={<AnimatedPage><LoginPage /></AnimatedPage>} />
         <Route path="/waiting-approval" element={<AnimatedPage><WaitingApprovalPage /></AnimatedPage>} />
+        <Route path="/intake/:token" element={<AnimatedPage><IntakePage /></AnimatedPage>} />
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
