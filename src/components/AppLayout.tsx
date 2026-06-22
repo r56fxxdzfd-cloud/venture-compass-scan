@@ -28,7 +28,7 @@ const adminItems = [
 
 
 export function AppLayout({ children }: {children: React.ReactNode;}) {
-  const { profile, signOut, isAdmin, isSuperAdmin, isDemoUser, isDemoAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isSuperAdmin, isDemoUser, isDemoAdmin, isAdvisor } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,7 +36,9 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const isDemoMode = isDemoUser || isDemoAdmin;
-  const visibleNavItems = isDemoMode ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
+  // Conselheiro (advisor) e modo demo não acessam ferramentas internas de metodologia/simulador.
+  const hideInternalTools = isDemoMode || isAdvisor;
+  const visibleNavItems = hideInternalTools ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
 
   // Fetch pending approval count for super_admin
   useEffect(() => {

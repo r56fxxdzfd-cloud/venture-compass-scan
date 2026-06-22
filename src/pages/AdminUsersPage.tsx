@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning, RefreshCw } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, Shield, MailWarning, RefreshCw, Building2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
@@ -29,8 +30,33 @@ export default function AdminUsersPage() {
   const [approveModal, setApproveModal] = useState<{ open: boolean; userId: string; name: string }>({ open: false, userId: '', name: '' });
   const [selectedRole, setSelectedRole] = useState<AppRole>('demo_user');
   const [resendingFor, setResendingFor] = useState<string | null>(null);
+  const [assignModal, setAssignModal] = useState<{ open: boolean; advisorId: string; name: string }>({ open: false, advisorId: '', name: '' });
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [assignedCompanyIds, setAssignedCompanyIds] = useState<Set<string>>(new Set());
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
+
+  const openAssignModal = async (advisorId: string, name: string) => {
+    setAssignModal({ open: true, advisorId, name });
+    const [{ data: comps }, { data: assigns }] = await Promise.all([
+      supabase.from('companies').select('id, name').order('name', { ascending: true }),
+      supabase.from('advisor_assignments').select('company_id').eq('advisor_id', advisorId),
+    ]);
+    setCompanies((comps || []) as { id: string; name: string }[]);
+    setAssignedCompanyIds(new Set((assigns || []).map((a) => a.company_id)));
+  };
+
+  const toggleAssignment = async (companyId: string, checked: boolean) => {
+    if (checked) {
+      const { error } = await supabase.from('advisor_assignments').insert({ company_id: companyId, advisor_id: assignModal.advisorId, created_by: currentUser?.id });
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+      setAssignedCompanyIds((prev) => new Set(prev).add(companyId));
+    } else {
+      const { error } = await supabase.from('advisor_assignments').delete().eq('company_id', companyId).eq('advisor_id', assignModal.advisorId);
+      if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+      setAssignedCompanyIds((prev) => { const n = new Set(prev); n.delete(companyId); return n; });
+    }
+  };
 
   const fetchUsers = async () => {
     const [{ data: profiles }, { data: roles }, { data: unconfirmed }] = await Promise.all([
@@ -42,7 +68,7 @@ export default function AdminUsersPage() {
     const unconfirmedSet = new Set((unconfirmed || []).map((u: any) => u.user_id));
 
     if (profiles) {
-      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_admin', 'demo_user', 'jv_analyst', 'jv_viewer'];
+      const rolePriority: AppRole[] = ['super_admin', 'jv_admin', 'demo_admin', 'jv_advisor', 'demo_user', 'jv_analyst', 'jv_viewer'];
       const mapped = profiles.map((p: any) => {
         const userRoles = roles?.filter((r: any) => r.user_id === p.id) || [];
         const bestRole = rolePriority
@@ -182,6 +208,7 @@ export default function AdminUsersPage() {
     jv_admin: 'JV Admin',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
+    jv_advisor: 'Conselheiro',
     demo_admin: 'Demo Admin',
     demo_user: 'Demo',
   };
@@ -348,6 +375,7 @@ export default function AdminUsersPage() {
                                       <SelectContent>
                                         <SelectItem value="demo_user">Demo</SelectItem>
                                         <SelectItem value="demo_admin">Demo Admin</SelectItem>
+                                        <SelectItem value="jv_advisor">Conselheiro</SelectItem>
                                         <SelectItem value="jv_admin">JV Admin</SelectItem>
                                         <SelectItem value="user">User</SelectItem>
                                         {isSuperAdmin && (
@@ -368,6 +396,11 @@ export default function AdminUsersPage() {
                           <Badge variant="outline" className="text-xs">
                             {u.role ? roleLabels[u.role] : 'Sem role'}
                           </Badge>
+                        )}
+                        {u.role === 'jv_advisor' && (
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => openAssignModal(u.id, u.full_name || 'Conselheiro')}>
+                            <Building2 className="h-3.5 w-3.5" /> Startups
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -427,6 +460,12 @@ export default function AdminUsersPage() {
                     <p className="text-xs text-muted-foreground">Cria e edita dados apenas no ambiente demo</p>
                   </div>
                 </SelectItem>
+                <SelectItem value="jv_advisor">
+                  <div>
+                    <p className="font-medium">Conselheiro</p>
+                    <p className="text-xs text-muted-foreground">Vê e opera apenas as startups atribuídas a ele</p>
+                  </div>
+                </SelectItem>
                 <SelectItem value="user">
                   <div>
                     <p className="font-medium">User</p>
@@ -460,6 +499,37 @@ export default function AdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Atribuir startups a um conselheiro */}
+      <Dialog open={assignModal.open} onOpenChange={(open) => setAssignModal((prev) => ({ ...prev, open }))}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Startups de {assignModal.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Marque as organizações que este conselheiro pode acompanhar. As mudanças são salvas na hora.
+          </p>
+          <div className="max-h-[55vh] space-y-1 overflow-y-auto py-2">
+            {companies.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma organização cadastrada.</p>
+            ) : (
+              companies.map((c) => (
+                <label key={c.id} className="flex items-center gap-3 rounded-md border p-2.5 text-sm cursor-pointer hover:bg-secondary/40">
+                  <Checkbox
+                    checked={assignedCompanyIds.has(c.id)}
+                    onCheckedChange={(v) => toggleAssignment(c.id, v === true)}
+                  />
+                  <span>{c.name}</span>
+                </label>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setAssignModal({ open: false, advisorId: '', name: '' })}>Concluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <BackToTopFooter />
     </div>
   );

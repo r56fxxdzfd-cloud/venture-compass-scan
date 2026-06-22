@@ -18,6 +18,7 @@ interface AuthContextType {
   isAnalyst: boolean;
   isViewer: boolean;
   isJVAdmin: boolean;
+  isAdvisor: boolean;
   isDemoUser: boolean;
   isDemoAdmin: boolean;
   canOperateDemo: boolean;
@@ -148,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: hasRole('jv_admin') || hasRole('super_admin'),
         isSuperAdmin: hasRole('super_admin'),
         isJVAdmin: hasRole('jv_admin') || hasRole('super_admin'),
+        isAdvisor: hasRole('jv_advisor'),
         isDemoUser: hasRole('demo_user'),
         isDemoAdmin: hasRole('demo_admin'),
         canOperateDemo: hasRole('demo_admin') || hasRole('jv_admin') || hasRole('super_admin'),

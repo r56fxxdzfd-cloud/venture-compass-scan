@@ -1,4 +1,80 @@
-export type AppRole = 'super_admin' | 'jv_admin' | 'demo_admin' | 'demo_user' | 'jv_analyst' | 'jv_viewer';
+export type AppRole = 'super_admin' | 'jv_admin' | 'demo_admin' | 'demo_user' | 'jv_analyst' | 'jv_viewer' | 'jv_advisor';
+
+export type ActionItemStatus = 'todo' | 'doing' | 'done' | 'blocked';
+
+export interface ActionItem {
+  id: string;
+  company_id: string;
+  assessment_id: string | null;
+  source_action_id: string | null;
+  title: string;
+  description: string | null;
+  first_step: string | null;
+  done_definition: string | null;
+  dimension_id: string | null;
+  owner_label: string | null;
+  status: ActionItemStatus;
+  effort: 'S' | 'M' | 'L' | null;
+  priority: number | null;
+  due_date: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MeetingLog {
+  id: string;
+  company_id: string;
+  meeting_date: string;
+  attendees: string | null;
+  decisions: string | null;
+  next_steps: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type IntakeStatus = 'pending' | 'submitted' | 'imported' | 'expired';
+
+export interface IntakeSubmission {
+  id: string;
+  token: string;
+  status: IntakeStatus;
+  label: string | null;
+  payload: IntakePayload | null;
+  company_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  submitted_at: string | null;
+  imported_at: string | null;
+  expires_at: string | null;
+}
+
+export interface IntakePayload {
+  company_name?: string;
+  founders?: string;
+  stage?: string;
+  business_model?: string;
+  contact?: string;
+  sector?: string;
+  legal_name?: string;
+  cnpj?: string;
+  runway_months?: string;
+  burn_monthly?: string;
+  headcount?: string;
+  metrics?: string;
+  notes?: string;
+  [key: string]: string | undefined;
+}
+
+export interface AdvisorAssignment {
+  id: string;
+  company_id: string;
+  advisor_id: string;
+  created_by: string | null;
+  created_at: string;
+}
 
 export type ProfileStatus = 'pending' | 'approved' | 'rejected';
 
