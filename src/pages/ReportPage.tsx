@@ -3,10 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2, Presentation, FileText } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Presentation, FileText, SlidersHorizontal, Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CONTEXT_NUMERIC_FIELDS, missingContextFields } from '@/utils/context-fields';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
 import { getCompleteness } from '@/utils/report-helpers';
@@ -43,7 +49,14 @@ export default function ReportPage() {
   const { toast } = useToast();
   const { isAdmin, isAnalyst, isAdvisor } = useAuth();
   const canManageActions = isAdmin || isAnalyst || isAdvisor;
+  const canEditContext = isAdmin || isAnalyst; // escrita em assessments = operador
   const [actionItemSourceIds, setActionItemSourceIds] = useState<Set<string>>(new Set());
+  // Edição de contexto pós-criação
+  const [ctxOpen, setCtxOpen] = useState(false);
+  const [ctxFields, setCtxFields] = useState<Record<string, string>>({});
+  const [ctxCustomer, setCtxCustomer] = useState('');
+  const [ctxRevenue, setCtxRevenue] = useState('');
+  const [savingCtx, setSavingCtx] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
@@ -262,6 +275,46 @@ export default function ReportPage() {
     }
   };
 
+  const openEditContext = () => {
+    if (!assessment) return;
+    const ctx = (assessment.context_numeric as Record<string, number>) || {};
+    const prefill: Record<string, string> = {};
+    CONTEXT_NUMERIC_FIELDS.forEach((f) => {
+      if (ctx[f.key] !== undefined && ctx[f.key] !== null) prefill[f.key] = String(ctx[f.key]);
+    });
+    setCtxFields(prefill);
+    setCtxCustomer(assessment.customer_type || '');
+    setCtxRevenue(assessment.revenue_model || '');
+    setCtxOpen(true);
+  };
+
+  const saveContext = async () => {
+    if (!assessment || !config || !id) return;
+    setSavingCtx(true);
+    const contextNumeric: Record<string, number> = {};
+    CONTEXT_NUMERIC_FIELDS.forEach((f) => {
+      const v = parseFloat(ctxFields[f.key] ?? '');
+      if (!isNaN(v)) contextNumeric[f.key] = v;
+    });
+    const { error } = await supabase.from('assessments').update({
+      context_numeric: contextNumeric,
+      customer_type: ctxCustomer || null,
+      revenue_model: ctxRevenue || null,
+    }).eq('id', id);
+    setSavingCtx(false);
+    if (error) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      return;
+    }
+    // Atualiza estado e recalcula o relatório ao vivo
+    const updated = { ...assessment, context_numeric: contextNumeric, customer_type: ctxCustomer || null, revenue_model: ctxRevenue || null } as Assessment;
+    setAssessment(updated);
+    const res = calculateAssessmentResult(config, answers, updated.stage || 'seed', contextNumeric, { revenue_model: updated.revenue_model, customer_type: updated.customer_type, business_model: updated.business_model });
+    setResult(res);
+    setCtxOpen(false);
+    toast({ title: 'Dados de contexto atualizados' });
+  };
+
   if (!result || !config || !assessment) return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
@@ -301,6 +354,7 @@ export default function ReportPage() {
   const completeness = getCompleteness(result);
   const startupName = (assessment as any).company?.name || 'Organização';
   const isSimulation = assessment.is_simulation;
+  const missingCtx = missingContextFields(assessment.context_numeric as Record<string, number>);
 
   const scrollTo = (elId: string) => {
     document.getElementById(elId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -395,6 +449,34 @@ export default function ReportPage() {
         <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
       </div>
 
+      {/* Aviso de dados de contexto não informados + edição (operadores) */}
+      {(missingCtx.length > 0 || canEditContext) && (
+        <div className="print-safe rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                {missingCtx.length > 0 ? (
+                  <>
+                    <p className="font-medium">Dados de contexto não informados ({missingCtx.length})</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Não considerados em alguns red flags: {missingCtx.map((f) => f.label).join(' · ')}.
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-medium">Todos os dados de contexto foram informados.</p>
+                )}
+              </div>
+            </div>
+            {canEditContext && (
+              <Button variant="outline" size="sm" onClick={openEditContext} data-html2canvas-ignore="true">
+                <SlidersHorizontal className="h-3.5 w-3.5 mr-1" /> {missingCtx.length > 0 ? 'Preencher dados' : 'Editar dados de contexto'}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div id="section-overall">
         <OverallScoreCard result={result} config={config} stage={stage} answers={answers} />
       </div>
@@ -471,6 +553,67 @@ export default function ReportPage() {
           ⚠ SIMULAÇÃO — Este relatório é baseado em dados simulados.
         </div>
       )}
+
+      {/* Editar dados de contexto (operadores) — atualiza sem refazer o diagnóstico */}
+      <Dialog open={ctxOpen} onOpenChange={setCtxOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto" data-html2canvas-ignore="true">
+          <DialogHeader>
+            <DialogTitle>Editar dados de contexto</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Preencha o que tiver disponível. Salvar recalcula o relatório (red flags e alertas) sem refazer o diagnóstico.
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Tipo de Cliente</Label>
+                <Select value={ctxCustomer} onValueChange={setCtxCustomer}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="B2B">B2B</SelectItem>
+                    <SelectItem value="B2C">B2C</SelectItem>
+                    <SelectItem value="B2B2C">B2B2C</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Modelo de Receita</Label>
+                <Select value={ctxRevenue} onValueChange={setCtxRevenue}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="non_recurring">Não recorrente</SelectItem>
+                    <SelectItem value="recurring">Recorrente</SelectItem>
+                    <SelectItem value="subscription">Assinatura</SelectItem>
+                    <SelectItem value="usage_based">Baseado em uso</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Separator />
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {CONTEXT_NUMERIC_FIELDS.map((f) => (
+                <div key={f.key} className="space-y-1">
+                  <Label className="text-xs">{f.label}</Label>
+                  <Input
+                    type="number"
+                    className="h-8 text-xs"
+                    value={ctxFields[f.key] || ''}
+                    onChange={(e) => setCtxFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    placeholder="—"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCtxOpen(false)}>Cancelar</Button>
+            <Button onClick={saveContext} disabled={savingCtx}>
+              {savingCtx ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

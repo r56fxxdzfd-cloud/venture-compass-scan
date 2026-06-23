@@ -29,6 +29,7 @@ import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
+import { CONTEXT_NUMERIC_FIELDS } from '@/utils/context-fields';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
@@ -152,12 +153,25 @@ export default function StartupDetailPage() {
   }, [id]);
 
   // ---- New Assessment Dialog ----
-  const openNewDialog = () => {
+  const openNewDialog = async () => {
     setNewStage(company?.stage || 'seed');
     setNewCustomerType('');
     setNewRevenueModel('');
     setNumericFields({});
     setNewDialogOpen(true);
+    // Auto-preenche o que já temos do cadastro inicial (intake): headcount é o
+    // único dado numérico em comum entre o formulário e o contexto do diagnóstico.
+    const { data: intake } = await supabase
+      .from('intake_submissions')
+      .select('payload')
+      .eq('company_id', id)
+      .eq('status', 'imported')
+      .order('imported_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const rawHc = (intake?.payload as { headcount?: string } | null)?.headcount;
+    const hc = rawHc ? String(rawHc).replace(/\D/g, '') : '';
+    if (hc) setNumericFields((prev) => ({ ...prev, headcount: hc }));
   };
 
   const handleCreateAssessment = async () => {
@@ -263,16 +277,7 @@ export default function StartupDetailPage() {
     </div>
   );
 
-  const numericFieldDefs = [
-    { key: 'runway_months', label: 'Runway (meses)' },
-    { key: 'burn_monthly', label: 'Burn Mensal (R$)' },
-    { key: 'headcount', label: 'Headcount' },
-    { key: 'gross_margin_pct', label: 'Margem Bruta (%)' },
-    { key: 'cac', label: 'CAC (R$)' },
-    { key: 'ltv', label: 'LTV (R$)' },
-    { key: 'revenue_concentration_top1_pct', label: 'Concentração Top 1 cliente (%)' },
-    { key: 'revenue_concentration_top3_pct', label: 'Concentração Top 3 clientes (%)' },
-  ];
+  const numericFieldDefs = CONTEXT_NUMERIC_FIELDS;
 
   const totalQuestions = 45;
   const latestAssessment = assessments[0];
