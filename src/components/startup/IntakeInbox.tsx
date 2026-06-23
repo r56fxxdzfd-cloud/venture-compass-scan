@@ -46,6 +46,31 @@ function randomToken(): string {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Cópia robusta: tenta a Clipboard API (contexto seguro) e cai para o método
+// legado (execCommand) — funciona mesmo quando a ativação por gesto é perdida.
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* tenta o fallback abaixo */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Inbox JV de intakes: gerar link, acompanhar status, revisar e importar. */
 export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const { user } = useAuth();
@@ -67,13 +92,19 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
 
   const copyLink = async (token: string) => {
     const url = `${window.location.origin}/intake/${token}`;
-    try { await navigator.clipboard.writeText(url); toast({ title: 'Link copiado', description: url }); }
-    catch { toast({ title: 'Link', description: url }); }
+    const copied = await copyToClipboard(url);
+    toast(copied
+      ? { title: 'Link copiado', description: url }
+      : { title: 'Copie o link manualmente', description: url });
   };
 
   const generate = async () => {
     setCreating(true);
     const token = randomToken();
+    const url = `${window.location.origin}/intake/${token}`;
+    // Copia DENTRO do gesto do clique, antes de qualquer await de rede — senão o
+    // navegador (ex.: Safari) perde a ativação por gesto e bloqueia a cópia.
+    const copied = await copyToClipboard(url);
     const expires = new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const { error } = await supabase.from('intake_submissions').insert({
       token, status: 'pending', label: label || null, expires_at: expires, created_by: user?.id,
@@ -81,7 +112,9 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
     setCreating(false);
     if (error) { toast({ title: 'Erro ao gerar link', description: error.message, variant: 'destructive' }); return; }
     setLabel('');
-    await copyLink(token);
+    toast(copied
+      ? { title: 'Link gerado e copiado', description: url }
+      : { title: 'Link gerado (copie manualmente)', description: url });
     load();
   };
 
