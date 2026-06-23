@@ -247,7 +247,7 @@ export default function StartupDetailPage() {
   const toggleDemoDay = async () => {
     if (!company) return;
     const next = !company.demo_day_selected;
-    const { error } = await supabase.from('companies').update({ demo_day_selected: next }).eq('id', company.id);
+    const { error } = await supabase.from('companies').update({ demo_day_selected: next } as never).eq('id', company.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setCompany({ ...company, demo_day_selected: next });
     toast({ title: next ? 'Marcada para o Demo Day' : 'Removida do Demo Day' });
