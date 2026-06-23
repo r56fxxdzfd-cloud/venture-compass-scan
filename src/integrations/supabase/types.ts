@@ -1253,7 +1253,6 @@ export type Database = {
       }
       current_profile_role: { Args: never; Returns: string }
       delete_company: { Args: { p_company_id: string }; Returns: undefined }
-      set_company_archived: { Args: { p_company_id: string; p_archived: boolean }; Returns: undefined }
       get_unconfirmed_user_ids: {
         Args: never
         Returns: {
@@ -1279,6 +1278,10 @@ export type Database = {
       is_jv_operator: { Args: never; Returns: boolean }
       is_jv_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      set_company_archived: {
+        Args: { p_archived: boolean; p_company_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
