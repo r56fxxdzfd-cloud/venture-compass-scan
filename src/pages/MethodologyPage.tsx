@@ -30,6 +30,45 @@ function safeString(value: unknown): string {
   return '—';
 }
 
+// Monta o documento (markdown) com todas as perguntas do diagnóstico:
+// empresa (por dimensão) + fundadores (pilares de liderança).
+function buildQuestionsMarkdown(config: ConfigJSON, version: ConfigVersion | null): string {
+  const L: string[] = [];
+  L.push('# Perguntas do Diagnóstico — Growth OS');
+  if (version) {
+    L.push(`Versão: ${version.version_name}${version.published_at ? ` · publicada em ${new Date(version.published_at).toLocaleDateString('pt-BR')}` : ''}`);
+  }
+  L.push('');
+  L.push('## Empresa — por dimensão');
+  const dims = [...(config.dimensions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  let totalQ = 0;
+  for (const d of dims) {
+    const qs = (config.questions || [])
+      .filter((q) => q.dimension_id === d.id && q.is_active !== false)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    totalQ += qs.length;
+    L.push('');
+    L.push(`### ${d.label} (${d.id}) — ${qs.length} pergunta(s)`);
+    qs.forEach((q, i) => {
+      L.push(`${i + 1}. ${q.text}`);
+      const def = q.tooltip?.definition;
+      if (def) L.push(`   - _${def}_`);
+    });
+  }
+  L.push('');
+  L.push(`_Total de perguntas da empresa: ${totalQ}_`);
+  L.push('');
+  L.push('## Fundadores — pilares de liderança');
+  for (const p of PILLARS) {
+    const w = p.weight ? `peso ${Math.round(p.weight * 100)}%` : 'contexto (não pontua)';
+    L.push('');
+    L.push(`### ${p.number}. ${p.name} — ${w}`);
+    if (p.description) L.push(`_${p.description}_`);
+    (PILLAR_QUESTIONS[p.number] || []).forEach((q, i) => L.push(`${i + 1}. ${q}`));
+  }
+  return L.join('\n');
+}
+
 export default function MethodologyPage() {
   const [config, setConfig] = useState<ConfigJSON | null>(null);
   const [version, setVersion] = useState<ConfigVersion | null>(null);
@@ -37,6 +76,21 @@ export default function MethodologyPage() {
   const [exportProgress, setExportProgress] = useState('');
   const [expandedDimensions, setExpandedDimensions] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const exportQuestions = useCallback(() => {
+    if (!config) return;
+    const md = buildQuestionsMarkdown(config, version);
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `perguntas-diagnostico-growth-os-${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({ title: 'Perguntas exportadas', description: 'Arquivo .md baixado (abre no Word/Docs).' });
+  }, [config, version, toast]);
 
   const handleExportPDF = useCallback(async () => {
     if (!version || !config) return;
@@ -287,10 +341,15 @@ export default function MethodologyPage() {
               </p>
             </div>
             <div data-print-hide="true" className="shrink-0 print:hidden flex flex-col items-end gap-1">
-              <Button size="sm" variant="outline" className="rounded-full" onClick={handleExportPDF} disabled={exporting}>
-                {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-                {exporting ? 'Gerando...' : 'Exportar PDF'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="rounded-full" onClick={exportQuestions}>
+                  <Download className="h-4 w-4 mr-1.5" /> Exportar perguntas
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-full" onClick={handleExportPDF} disabled={exporting}>
+                  {exporting ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
+                  {exporting ? 'Gerando...' : 'Exportar PDF'}
+                </Button>
+              </div>
               {exportProgress && <p className="text-[10px] text-muted-foreground">{exportProgress}</p>}
             </div>
           </div>
