@@ -287,6 +287,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          archived_at: string | null
           business_model: string | null
           cnpj: string | null
           created_at: string | null
@@ -298,6 +299,7 @@ export type Database = {
           stage: string | null
         }
         Insert: {
+          archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           stage?: string | null
         }
         Update: {
+          archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
@@ -1249,6 +1252,7 @@ export type Database = {
         Returns: boolean
       }
       current_profile_role: { Args: never; Returns: string }
+      delete_company: { Args: { p_company_id: string }; Returns: undefined }
       get_unconfirmed_user_ids: {
         Args: never
         Returns: {
@@ -1274,6 +1278,10 @@ export type Database = {
       is_jv_operator: { Args: never; Returns: boolean }
       is_jv_staff: { Args: never; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      set_company_archived: {
+        Args: { p_archived: boolean; p_company_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
