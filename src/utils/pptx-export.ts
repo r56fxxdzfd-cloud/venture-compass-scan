@@ -598,7 +598,7 @@ export async function exportReportToPPTX(opts: {
     ].join('\n'),
     { x: MARGIN, y: 3.0, w: SLIDE_W - MARGIN * 2, h: 3.0, fontSize: 18, color: C.text, paraSpaceAfter: 12 }
   );
-  s8.addText('Darwin · Conselho OS', {
+  s8.addText('Darwin · Growth OS', {
     x: MARGIN, y: SLIDE_H - 0.9, w: SLIDE_W - MARGIN * 2, h: 0.4,
     fontSize: 12, color: C.textMuted, align: 'center',
   });

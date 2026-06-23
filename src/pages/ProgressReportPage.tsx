@@ -365,7 +365,7 @@ export default function ProgressReportPage() {
       <ol className='list-decimal pl-5 text-sm space-y-1'>{summary.nextFocus.map((item, idx) => <li key={idx}>{item}</li>)}</ol>}
     </CardContent></Card>
     <BackToTopFooter />
-    <div className='hidden print:block print-report-footer'>Relatório gerado pelo Darwin Conselho OS — uso executivo.</div>
+    <div className='hidden print:block print-report-footer'>Relatório gerado pelo Darwin Growth OS — uso executivo.</div>
   </div>;
 }
 

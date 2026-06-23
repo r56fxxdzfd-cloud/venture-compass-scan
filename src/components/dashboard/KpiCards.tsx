@@ -35,7 +35,7 @@ const cards: CardDef[] = [
   {
     key: 'companies',
     label: 'Organizações acompanhadas',
-    sublabel: 'portfólio ativo no Conselho OS',
+    sublabel: 'portfólio ativo no Growth OS',
     icon: Building2,
     iconWrap: 'bg-primary/10 border border-primary/25',
     iconColor: 'text-primary',

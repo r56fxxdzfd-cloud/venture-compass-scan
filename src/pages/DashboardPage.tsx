@@ -37,7 +37,7 @@ const quickAccessCards = [
   { label: 'Novo Diagnóstico', description: 'Iniciar fluxo em uma organização', href: '/app/startups', icon: ClipboardList },
   { label: 'Registrar Encontro', description: 'Registrar reunião de conselho', href: '/app/agenda', icon: Plus },
   { label: 'Templates de Pauta', description: 'Usar pautas recomendadas', href: '/app/agenda/templates', icon: FileStack },
-  { label: 'Metodologia', description: 'Consultar método Conselho OS', href: '/app/methodology', icon: BookOpen },
+  { label: 'Metodologia', description: 'Consultar método Growth OS', href: '/app/methodology', icon: BookOpen },
 ];
 
 type Company = { id: string; name: string; created_at: string | null };
