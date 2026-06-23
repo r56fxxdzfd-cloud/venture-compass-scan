@@ -291,7 +291,6 @@ export type Database = {
           business_model: string | null
           cnpj: string | null
           created_at: string | null
-          demo_day_selected: boolean
           id: string
           is_demo: boolean
           legal_name: string | null
@@ -304,7 +303,6 @@ export type Database = {
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
-          demo_day_selected?: boolean
           id?: string
           is_demo?: boolean
           legal_name?: string | null
@@ -317,7 +315,6 @@ export type Database = {
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
-          demo_day_selected?: boolean
           id?: string
           is_demo?: boolean
           legal_name?: string | null
