@@ -47,7 +47,7 @@ export default function StartupDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin, isAnalyst, isAdvisor, user } = useAuth();
+  const { isAdmin, isAnalyst, isAdvisor, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
@@ -72,6 +72,12 @@ export default function StartupDetailPage() {
   const [newRevenueModel, setNewRevenueModel] = useState('');
   const [numericFields, setNumericFields] = useState<Record<string, string>>({});
   const [creating, setCreating] = useState(false);
+
+  // Super Admin: arquivar / excluir
+  const [archiving, setArchiving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Edit company dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -211,6 +217,32 @@ export default function StartupDetailPage() {
     }
   };
 
+  // ---- Super Admin: arquivar / excluir ----
+  const handleArchive = async (archive: boolean) => {
+    if (!company) return;
+    setArchiving(true);
+    const { error } = await supabase.rpc('set_company_archived', { p_company_id: company.id, p_archived: archive });
+    setArchiving(false);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (archive) {
+      toast({ title: 'Organização arquivada' });
+      navigate('/app/startups');
+    } else {
+      setCompany({ ...company, archived_at: null });
+      toast({ title: 'Organização reativada' });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!company) return;
+    setDeleting(true);
+    const { error } = await supabase.rpc('delete_company', { p_company_id: company.id });
+    setDeleting(false);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Organização excluída permanentemente' });
+    navigate('/app/startups');
+  };
+
   // ---- Edit Company Dialog ----
   const openEditDialog = () => {
     if (!company) return;
@@ -336,7 +368,7 @@ export default function StartupDetailPage() {
           <div className="flex items-start justify-between gap-3">
             <div>
             <h1 className="text-3xl font-bold tracking-tight leading-tight">{company.name}</h1>
-            <p className="text-sm text-muted-foreground mt-1">Perfil executivo da organização acompanhada pelo Conselho OS.</p>
+            <p className="text-sm text-muted-foreground mt-1">Perfil executivo da organização acompanhada pelo Growth OS.</p>
             </div>
             {canWrite && (
               <TooltipProvider>
@@ -355,6 +387,7 @@ export default function StartupDetailPage() {
             {company.stage && <Badge variant="secondary" className="executive-pill">{stageLabels[company.stage] || company.stage}</Badge>}
             {company.sector && <Badge variant="outline" className="executive-pill">{company.sector}</Badge>}
             <Badge variant={latestStatusVariant} className="executive-pill">Status geral: {lastResult?.level || latestStatusLabel}</Badge>
+            {company.archived_at && <Badge variant="destructive" className="executive-pill">Arquivada</Badge>}
           </div>
         </div>
         </div>
@@ -657,6 +690,29 @@ export default function StartupDetailPage() {
       {/* Reuniões (meeting_logs, nível company) */}
       <MeetingLogsSection companyId={company.id} canManage={canManageOps} />
 
+      {/* Zona de Super Admin — arquivar / excluir */}
+      {isSuperAdmin && (
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <p className="executive-section-title text-xs text-destructive">Zona de Super Admin</p>
+            <CardTitle className="text-sm">Arquivar ou excluir organização</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Arquivar esconde a organização da lista principal (reversível). Excluir remove permanentemente todo o histórico — diagnósticos, founders, ações e reuniões. Não há como desfazer.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {company.archived_at ? (
+                <Button variant="outline" size="sm" disabled={archiving} onClick={() => handleArchive(false)}>Desarquivar</Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled={archiving} onClick={() => handleArchive(true)}>{archiving ? 'Arquivando...' : 'Arquivar'}</Button>
+              )}
+              <Button variant="destructive" size="sm" onClick={() => { setDeleteConfirm(''); setDeleteOpen(true); }}>Excluir permanentemente</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-sm">Informações</CardTitle></CardHeader>
@@ -858,6 +914,30 @@ export default function StartupDetailPage() {
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSaveCompany} disabled={editSaving}>
               {editSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excluir permanentemente (Super Admin) — confirmação por digitação */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir {company.name}?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Esta ação é <strong className="text-destructive">permanente</strong> e remove todo o histórico ligado a esta organização (diagnósticos, founders, ações, reuniões). Não há como desfazer.
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Digite <strong>{company.name}</strong> para confirmar</Label>
+              <Input value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder={company.name} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" disabled={deleting || deleteConfirm.trim() !== company.name.trim()} onClick={handleDelete}>
+              {deleting ? 'Excluindo...' : 'Excluir permanentemente'}
             </Button>
           </DialogFooter>
         </DialogContent>

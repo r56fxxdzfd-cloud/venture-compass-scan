@@ -19,11 +19,12 @@ import { IntakeInbox } from '@/components/startup/IntakeInbox';
 
 export default function StartupsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [archived, setArchived] = useState<Company[]>([]);
   const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, { diagnostics: number; lastAssessmentStatus: string; lastAssessmentDate: string; meetings: number; openActions: number; criticalActions: number }>>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
-  const { canOperatePlatform, canOperateDemo, isDemoUser, isAnalyst } = useAuth();
+  const { canOperatePlatform, canOperateDemo, isDemoUser, isAnalyst, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -31,7 +32,12 @@ export default function StartupsPage() {
   const isOperator = canOperatePlatform || isAnalyst; // admin/analyst → acesso a Intakes
 
   const fetchCompanies = async () => {
-    const { data } = await supabase.from('companies').select('*').order('created_at', { ascending: false });
+    // Lista principal esconde organizações arquivadas
+    const { data } = await supabase.from('companies').select('*').is('archived_at', null).order('created_at', { ascending: false });
+    if (isSuperAdmin) {
+      const { data: arch } = await supabase.from('companies').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false });
+      setArchived((arch || []) as Company[]);
+    }
     if (!data) return;
     const companiesData = data as Company[];
     setCompanies(companiesData);
@@ -93,7 +99,15 @@ export default function StartupsPage() {
     setPortfolioMetrics(metrics);
   };
 
-  useEffect(() => { fetchCompanies(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchCompanies(); }, [isSuperAdmin]);
+
+  const handleUnarchive = async (companyId: string) => {
+    const { error } = await supabase.rpc('set_company_archived', { p_company_id: companyId, p_archived: false });
+    if (error) { toast({ title: 'Erro ao desarquivar', description: error.message, variant: 'destructive' }); return; }
+    toast({ title: 'Organização reativada' });
+    fetchCompanies();
+  };
 
   const handleCreate = async () => {
     const { error } = await supabase.from('companies').insert({
@@ -135,7 +149,7 @@ export default function StartupsPage() {
               <Sparkles className="h-3 w-3" /> Portfólio
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Conselho OS.</p>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Growth OS.</p>
           </div>
           {canWrite && (
             <Dialog open={open} onOpenChange={setOpen}>
@@ -227,6 +241,7 @@ export default function StartupsPage() {
           <TabsList>
             <TabsTrigger value="portfolio">Portfólio</TabsTrigger>
             <TabsTrigger value="intakes">Intakes</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="archived">Arquivadas {archived.length > 0 && `(${archived.length})`}</TabsTrigger>}
           </TabsList>
         )}
         <TabsContent value="portfolio" className="space-y-6">
@@ -342,6 +357,27 @@ export default function StartupsPage() {
         {isOperator && (
           <TabsContent value="intakes">
             <IntakeInbox onImported={fetchCompanies} />
+          </TabsContent>
+        )}
+        {isSuperAdmin && (
+          <TabsContent value="archived" className="space-y-3">
+            {archived.length === 0 ? (
+              <div className="executive-surface rounded-xl text-center py-12 text-sm text-muted-foreground">
+                Nenhuma organização arquivada.
+              </div>
+            ) : (
+              archived.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Arquivada em {c.archived_at ? new Date(c.archived_at).toLocaleDateString('pt-BR') : '—'}
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => handleUnarchive(c.id)}>Desarquivar</Button>
+                </div>
+              ))
+            )}
           </TabsContent>
         )}
       </Tabs>

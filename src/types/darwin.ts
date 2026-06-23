@@ -108,6 +108,7 @@ export interface Company {
   business_model: string | null;
   created_at: string;
   is_demo?: boolean;
+  archived_at?: string | null;
 }
 
 export interface ConfigVersion {

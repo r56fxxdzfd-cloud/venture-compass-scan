@@ -287,6 +287,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          archived_at: string | null
           business_model: string | null
           cnpj: string | null
           created_at: string | null
@@ -298,6 +299,7 @@ export type Database = {
           stage: string | null
         }
         Insert: {
+          archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
@@ -309,6 +311,7 @@ export type Database = {
           stage?: string | null
         }
         Update: {
+          archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
           created_at?: string | null
@@ -1249,6 +1252,8 @@ export type Database = {
         Returns: boolean
       }
       current_profile_role: { Args: never; Returns: string }
+      delete_company: { Args: { p_company_id: string }; Returns: undefined }
+      set_company_archived: { Args: { p_company_id: string; p_archived: boolean }; Returns: undefined }
       get_unconfirmed_user_ids: {
         Args: never
         Returns: {
