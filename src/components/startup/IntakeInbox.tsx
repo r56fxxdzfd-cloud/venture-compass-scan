@@ -118,10 +118,12 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
     load();
   };
 
-  const expire = async (id: string) => {
-    const { error } = await supabase.from('intake_submissions').update({ status: 'expired' }).eq('id', id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    load();
+  const remove = async (id: string, hasData: boolean) => {
+    if (hasData && !window.confirm('Excluir este intake? Os dados enviados pelo fundador serão removidos permanentemente.')) return;
+    const { error } = await supabase.from('intake_submissions').delete().eq('id', id);
+    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    setRows((prev) => prev.filter((r) => r.id !== id));
+    toast({ title: 'Intake excluído' });
   };
 
   const importIntake = async () => {
@@ -204,11 +206,15 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
                 {r.status === 'submitted' && (
                   <Button size="sm" onClick={() => { setImportStage(''); setReview(r); }}><Eye className="h-3.5 w-3.5 mr-1" /> Revisar</Button>
                 )}
-                {(r.status === 'pending' || r.status === 'submitted') && (
-                  <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={() => expire(r.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  title="Excluir intake"
+                  onClick={() => remove(r.id, r.status === 'submitted' || r.status === 'imported')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           ))}
