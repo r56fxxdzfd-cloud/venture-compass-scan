@@ -52,19 +52,23 @@ export interface IntakeSubmission {
 }
 
 export interface IntakePayload {
-  company_name?: string;
+  // Perguntas do Formulário Inicial Darwin Growth
+  full_name?: string;        // 1. Nome completo
+  company_name?: string;     // 2. Nome da empresa
+  role?: string;             // 3. Cargo atual
+  email?: string;            // 4. E-mail
+  whatsapp?: string;         // 5. WhatsApp
+  birth_date?: string;       // 6. Data de nascimento (DD/MM/AAAA)
+  summary?: string;          // 7. Resumo da empresa
+  stage_label?: string;      // 8. Estágio informado (Validação/Tração/...)
+  headcount?: string;        // 9. Nº de colaboradores
+  revenue_2025?: string;     // 10. Faturamento 2025
+  revenue_goal_2026?: string;// 11. Meta de faturamento 2026
+  // Chaves canônicas mantidas p/ compatibilidade com a edge function publicada
   founders?: string;
   stage?: string;
   business_model?: string;
   contact?: string;
-  sector?: string;
-  legal_name?: string;
-  cnpj?: string;
-  runway_months?: string;
-  burn_monthly?: string;
-  headcount?: string;
-  metrics?: string;
-  notes?: string;
   [key: string]: string | undefined;
 }
 

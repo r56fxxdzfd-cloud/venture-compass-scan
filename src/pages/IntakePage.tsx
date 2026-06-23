@@ -13,14 +13,34 @@ import type { IntakePayload } from '@/types/darwin';
 
 type Phase = 'loading' | 'invalid' | 'form' | 'submitting' | 'done';
 
+const STAGE_OPTIONS = ['Validação', 'Tração', 'Crescimento', 'Expansão', 'Consolidação'];
+const STEPS = 3;
+
 const EMPTY: IntakePayload = {
-  company_name: '', legal_name: '', cnpj: '', sector: '',
-  founders: '', stage: '', business_model: '', contact: '',
-  runway_months: '', burn_monthly: '', headcount: '', metrics: '', notes: '',
+  full_name: '', company_name: '', role: '', email: '', whatsapp: '', birth_date: '',
+  summary: '', stage_label: '', headcount: '', revenue_2025: '', revenue_goal_2026: '',
 };
 
-const REQUIRED: (keyof IntakePayload)[] = ['company_name', 'founders', 'stage', 'business_model', 'contact'];
-const STEPS = 3;
+// ---- Máscaras (sem libs) ----
+const maskPhone = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : '';
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+const maskDate = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+};
+const maskBRL = (v: string) => {
+  const d = v.replace(/\D/g, '');
+  if (!d) return '';
+  return 'R$ ' + parseInt(d, 10).toLocaleString('pt-BR');
+};
+const maskDigits = (v: string) => v.replace(/\D/g, '').slice(0, 7);
+const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim());
 
 export default function IntakePage() {
   const { token } = useParams();
@@ -31,7 +51,6 @@ export default function IntakePage() {
   const [form, setForm] = useState<IntakePayload>(EMPTY);
   const [error, setError] = useState('');
 
-  // Carrega rascunho local (autosave)
   useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
@@ -39,14 +58,12 @@ export default function IntakePage() {
     } catch { /* ignore */ }
   }, [storageKey]);
 
-  // Autosave
   useEffect(() => {
     if (phase === 'form') {
       try { localStorage.setItem(storageKey, JSON.stringify(form)); } catch { /* ignore */ }
     }
   }, [form, phase, storageKey]);
 
-  // Valida o token na montagem
   useEffect(() => {
     let active = true;
     const validate = async () => {
@@ -70,17 +87,28 @@ export default function IntakePage() {
   const set = (k: keyof IntakePayload, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
   const stepValid = (s: number): boolean => {
-    if (s === 0) return !!form.company_name?.trim();
-    if (s === 1) return !!form.founders?.trim() && !!form.stage?.trim() && !!form.business_model?.trim() && !!form.contact?.trim();
+    if (s === 0) return !!form.full_name?.trim() && emailOk(form.email || '');
+    if (s === 1) return !!form.company_name?.trim() && !!form.summary?.trim() && !!form.stage_label?.trim();
     return true;
   };
-  const allValid = REQUIRED.every((k) => !!form[k]?.toString().trim());
+  const allValid =
+    !!form.full_name?.trim() && emailOk(form.email || '') &&
+    !!form.company_name?.trim() && !!form.summary?.trim() && !!form.stage_label?.trim();
 
   const handleSubmit = async () => {
     setError('');
-    if (!allValid) { setError('Preencha os campos obrigatórios.'); return; }
+    if (!allValid) { setError('Preencha os campos obrigatórios (com e-mail válido).'); return; }
     setPhase('submitting');
-    const { data, error: fnError } = await supabase.functions.invoke('intake-submit', { body: { token, payload: form } });
+    // Preenche também as chaves canônicas que a edge function publicada valida.
+    const contact = [form.email, form.whatsapp].filter((x) => x && x.trim()).join(' · ');
+    const payload: IntakePayload = {
+      ...form,
+      founders: form.full_name,
+      business_model: form.summary,
+      stage: form.stage_label,
+      contact,
+    };
+    const { data, error: fnError } = await supabase.functions.invoke('intake-submit', { body: { token, payload } });
     if (fnError || !data?.ok) {
       setPhase('form');
       setError(data?.error || 'Não foi possível enviar. Tente novamente.');
@@ -95,7 +123,7 @@ export default function IntakePage() {
       <div className="w-full max-w-xl">
         <div className="mb-6 flex items-center gap-2 justify-center text-muted-foreground">
           <Building2 className="h-5 w-5" />
-          <span className="text-sm font-semibold tracking-wide">Conselho OS — Cadastro inicial</span>
+          <span className="text-sm font-semibold tracking-wide">Darwin Growth — Cadastro inicial</span>
         </div>
 
         {phase === 'loading' && (
@@ -105,31 +133,27 @@ export default function IntakePage() {
         )}
 
         {phase === 'invalid' && (
-          <Card>
-            <CardContent className="py-10 text-center space-y-3">
-              <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
-              <p className="text-sm text-muted-foreground">{invalidReason}</p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="py-10 text-center space-y-3">
+            <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+            <p className="text-sm text-muted-foreground">{invalidReason}</p>
+          </CardContent></Card>
         )}
 
         {phase === 'done' && (
-          <Card>
-            <CardContent className="py-10 text-center space-y-3">
-              <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-              <h2 className="text-lg font-semibold">Recebemos suas informações!</h2>
-              <p className="text-sm text-muted-foreground">
-                Obrigado. A equipe do conselho vai revisar e dar os próximos passos. Você já pode fechar esta página.
-              </p>
-            </CardContent>
-          </Card>
+          <Card><CardContent className="py-10 text-center space-y-3">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+            <h2 className="text-lg font-semibold">Recebemos suas informações!</h2>
+            <p className="text-sm text-muted-foreground">
+              Obrigado. A equipe da Darwin Growth vai revisar e dar os próximos passos. Você já pode fechar esta página.
+            </p>
+          </CardContent></Card>
         )}
 
         {(phase === 'form' || phase === 'submitting') && (
           <Card>
             <CardHeader className="space-y-3">
               <CardTitle className="text-lg">
-                {step === 0 ? 'Sobre a empresa' : step === 1 ? 'Negócio e contato' : 'Dados complementares (opcional)'}
+                {step === 0 ? 'Sobre você' : step === 1 ? 'Sobre a empresa' : 'Números'}
               </CardTitle>
               <Progress value={((step + 1) / STEPS) * 100} className="h-1.5" />
               <p className="text-xs text-muted-foreground">Passo {step + 1} de {STEPS}</p>
@@ -137,55 +161,38 @@ export default function IntakePage() {
             <CardContent className="space-y-4">
               {step === 0 && (
                 <>
-                  <Field label="Nome da empresa" required value={form.company_name || ''} onChange={(v) => set('company_name', v)} />
-                  <Field label="Razão social" value={form.legal_name || ''} onChange={(v) => set('legal_name', v)} />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="CNPJ" value={form.cnpj || ''} onChange={(v) => set('cnpj', v)} />
-                    <Field label="Setor" value={form.sector || ''} onChange={(v) => set('sector', v)} />
-                  </div>
+                  <Field label="Nome completo" required value={form.full_name || ''} onChange={(v) => set('full_name', v)} />
+                  <Field label="Cargo atual na empresa" value={form.role || ''} onChange={(v) => set('role', v)} />
+                  <Field label="E-mail" required type="email" inputMode="email" value={form.email || ''} onChange={(v) => set('email', v)} />
+                  <Field label="WhatsApp" inputMode="tel" placeholder="(11) 99999-9999" value={form.whatsapp || ''} onChange={(v) => set('whatsapp', maskPhone(v))} />
+                  <Field label="Data de nascimento" inputMode="numeric" placeholder="DD/MM/AAAA" value={form.birth_date || ''} onChange={(v) => set('birth_date', maskDate(v))} />
                 </>
               )}
 
               {step === 1 && (
                 <>
+                  <Field label="Nome da empresa" required value={form.company_name || ''} onChange={(v) => set('company_name', v)} />
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Fundadores <span className="text-destructive">*</span></Label>
-                    <Textarea rows={2} value={form.founders || ''} placeholder="Nomes e papéis dos fundadores" onChange={(e) => set('founders', e.target.value)} />
+                    <Label className="text-xs">Resumo da empresa <span className="text-destructive">*</span></Label>
+                    <Textarea rows={3} value={form.summary || ''} placeholder="O que ela faz, qual problema resolve e para quem gera valor" onChange={(e) => set('summary', e.target.value)} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Estágio <span className="text-destructive">*</span></Label>
-                    <Select value={form.stage || ''} onValueChange={(v) => set('stage', v)}>
+                    <Label className="text-xs">Em qual estágio a empresa se encontra? <span className="text-destructive">*</span></Label>
+                    <Select value={form.stage_label || ''} onValueChange={(v) => set('stage_label', v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pre_seed">Pre-Seed</SelectItem>
-                        <SelectItem value="seed">Seed</SelectItem>
-                        <SelectItem value="series_a">Series A</SelectItem>
+                        {STAGE_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Modelo de negócio <span className="text-destructive">*</span></Label>
-                    <Textarea rows={2} value={form.business_model || ''} placeholder="Como a empresa gera valor e receita" onChange={(e) => set('business_model', e.target.value)} />
-                  </div>
-                  <Field label="Contato (e-mail ou telefone)" required value={form.contact || ''} onChange={(v) => set('contact', v)} />
                 </>
               )}
 
               {step === 2 && (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Runway (meses)" value={form.runway_months || ''} onChange={(v) => set('runway_months', v)} />
-                    <Field label="Burn mensal (R$)" value={form.burn_monthly || ''} onChange={(v) => set('burn_monthly', v)} />
-                  </div>
-                  <Field label="Headcount" value={form.headcount || ''} onChange={(v) => set('headcount', v)} />
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Métricas principais</Label>
-                    <Textarea rows={2} value={form.metrics || ''} placeholder="MRR, churn, CAC, etc. (opcional)" onChange={(e) => set('metrics', e.target.value)} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Observações</Label>
-                    <Textarea rows={2} value={form.notes || ''} placeholder="Algo mais que devemos saber? (opcional)" onChange={(e) => set('notes', e.target.value)} />
-                  </div>
+                  <Field label="Quantos colaboradores a empresa possui?" inputMode="numeric" value={form.headcount || ''} onChange={(v) => set('headcount', maskDigits(v))} />
+                  <Field label="Faturamento 2025" inputMode="numeric" placeholder="R$ 0" value={form.revenue_2025 || ''} onChange={(v) => set('revenue_2025', maskBRL(v))} />
+                  <Field label="Meta de faturamento 2026" inputMode="numeric" placeholder="R$ 0" value={form.revenue_goal_2026 || ''} onChange={(v) => set('revenue_goal_2026', maskBRL(v))} />
                 </>
               )}
 
@@ -208,18 +215,23 @@ export default function IntakePage() {
         )}
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground/60">
-          Seus dados são usados apenas para a avaliação do conselho.
+          Seus dados são usados apenas para a avaliação da Darwin Growth.
         </p>
       </div>
     </div>
   );
 }
 
-function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (v: string) => void; required?: boolean }) {
+function Field({
+  label, value, onChange, required, type = 'text', placeholder, inputMode,
+}: {
+  label: string; value: string; onChange: (v: string) => void; required?: boolean;
+  type?: string; placeholder?: string; inputMode?: 'text' | 'email' | 'tel' | 'numeric';
+}) {
   return (
     <div className="space-y-1.5">
       <Label className="text-xs">{label} {required && <span className="text-destructive">*</span>}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} />
+      <Input type={type} inputMode={inputMode} placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Link2, Copy, Inbox, Eye, Trash2, Loader2 } from 'lucide-react';
@@ -14,6 +15,26 @@ import type { IntakeSubmission, IntakePayload } from '@/types/darwin';
 const STATUS_LABEL: Record<string, string> = {
   pending: 'Aguardando', submitted: 'Recebido', imported: 'Importado', expired: 'Expirado',
 };
+
+// Rótulos amigáveis das 11 perguntas do Formulário Inicial Darwin Growth (na ordem)
+const FIELD_LABELS: [keyof IntakePayload, string][] = [
+  ['full_name', 'Nome completo'],
+  ['role', 'Cargo atual'],
+  ['email', 'E-mail'],
+  ['whatsapp', 'WhatsApp'],
+  ['birth_date', 'Data de nascimento'],
+  ['company_name', 'Nome da empresa'],
+  ['summary', 'Resumo da empresa'],
+  ['stage_label', 'Estágio informado'],
+  ['headcount', 'Colaboradores'],
+  ['revenue_2025', 'Faturamento 2025'],
+  ['revenue_goal_2026', 'Meta de faturamento 2026'],
+];
+const SCORING_STAGES: { value: string; label: string }[] = [
+  { value: 'pre_seed', label: 'Pre-Seed' },
+  { value: 'seed', label: 'Seed' },
+  { value: 'series_a', label: 'Series A' },
+];
 const STATUS_VARIANT: Record<string, 'outline' | 'secondary' | 'default' | 'destructive'> = {
   pending: 'outline', submitted: 'secondary', imported: 'default', expired: 'destructive',
 };
@@ -34,6 +55,7 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const [label, setLabel] = useState('');
   const [creating, setCreating] = useState(false);
   const [review, setReview] = useState<IntakeSubmission | null>(null);
+  const [importStage, setImportStage] = useState('');
   const [importing, setImporting] = useState(false);
 
   const load = async () => {
@@ -74,16 +96,13 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
     const payload = (review.payload || {}) as IntakePayload;
     if (!payload.company_name) { toast({ title: 'Payload sem nome de empresa', variant: 'destructive' }); return; }
     setImporting(true);
-    const stage = (['pre_seed', 'seed', 'series_a'].includes(payload.stage || '')
-      ? payload.stage
-      : null) as 'pre_seed' | 'seed' | 'series_a' | null;
+    // Estágio de diagnóstico é escolhido pelo JV (não derivado do rótulo do formulário,
+    // que usa outra taxonomia). Sem escolha => fica nulo e pode ser definido depois.
+    const stage = (importStage || null) as 'pre_seed' | 'seed' | 'series_a' | null;
     const { data: comp, error: compErr } = await supabase.from('companies').insert({
       name: payload.company_name,
-      legal_name: payload.legal_name || null,
-      cnpj: payload.cnpj || null,
-      sector: payload.sector || null,
+      business_model: payload.summary || payload.business_model || null,
       stage,
-      business_model: payload.business_model || null,
     }).select().single();
     if (compErr || !comp) {
       setImporting(false);
@@ -150,7 +169,7 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
                   <Button variant="outline" size="sm" onClick={() => copyLink(r.token)}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar link</Button>
                 )}
                 {r.status === 'submitted' && (
-                  <Button size="sm" onClick={() => setReview(r)}><Eye className="h-3.5 w-3.5 mr-1" /> Revisar</Button>
+                  <Button size="sm" onClick={() => { setImportStage(''); setReview(r); }}><Eye className="h-3.5 w-3.5 mr-1" /> Revisar</Button>
                 )}
                 {(r.status === 'pending' || r.status === 'submitted') && (
                   <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" onClick={() => expire(r.id)}>
@@ -167,18 +186,33 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
       <Dialog open={!!review} onOpenChange={(open) => !open && setReview(null)}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Revisar intake</DialogTitle></DialogHeader>
-          {review && (
-            <div className="space-y-2 text-sm">
-              {Object.entries((review.payload || {}) as IntakePayload)
-                .filter(([, v]) => v != null && String(v).trim() !== '')
-                .map(([k, v]) => (
-                  <div key={k} className="flex gap-2 border-b border-border/50 py-1.5">
-                    <span className="w-40 shrink-0 text-xs uppercase tracking-wide text-muted-foreground">{k}</span>
-                    <span className="flex-1 break-words">{String(v)}</span>
-                  </div>
-                ))}
-            </div>
-          )}
+          {review && (() => {
+            const p = (review.payload || {}) as IntakePayload;
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="space-y-2">
+                  {FIELD_LABELS.filter(([k]) => p[k] && String(p[k]).trim() !== '').map(([k, lbl]) => (
+                    <div key={k} className="flex gap-2 border-b border-border/50 py-1.5">
+                      <span className="w-40 shrink-0 text-xs uppercase tracking-wide text-muted-foreground">{lbl}</span>
+                      <span className="flex-1 break-words">{String(p[k])}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="rounded-lg border border-primary/20 bg-primary/[0.04] p-3 space-y-1.5">
+                  <Label className="text-xs">Estágio para diagnóstico</Label>
+                  <Select value={importStage} onValueChange={setImportStage}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Definir agora (opcional)" /></SelectTrigger>
+                    <SelectContent>
+                      {SCORING_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground">
+                    O estágio informado pelo fundador (“{p.stage_label || '—'}”) usa outra escala. Escolha aqui o estágio da metodologia — ou deixe em branco e defina depois no cadastro.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setReview(null)}>Fechar</Button>
             <Button onClick={importIntake} disabled={importing}>
