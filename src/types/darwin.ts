@@ -109,6 +109,7 @@ export interface Company {
   created_at: string;
   is_demo?: boolean;
   archived_at?: string | null;
+  demo_day_selected?: boolean;
 }
 
 export interface ConfigVersion {

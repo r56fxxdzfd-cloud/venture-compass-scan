@@ -243,6 +243,16 @@ export default function StartupDetailPage() {
     navigate('/app/startups');
   };
 
+  // ---- Marcador Demo Day ----
+  const toggleDemoDay = async () => {
+    if (!company) return;
+    const next = !company.demo_day_selected;
+    const { error } = await supabase.from('companies').update({ demo_day_selected: next }).eq('id', company.id);
+    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    setCompany({ ...company, demo_day_selected: next });
+    toast({ title: next ? 'Marcada para o Demo Day' : 'Removida do Demo Day' });
+  };
+
   // ---- Edit Company Dialog ----
   const openEditDialog = () => {
     if (!company) return;
@@ -387,12 +397,18 @@ export default function StartupDetailPage() {
             {company.stage && <Badge variant="secondary" className="executive-pill">{stageLabels[company.stage] || company.stage}</Badge>}
             {company.sector && <Badge variant="outline" className="executive-pill">{company.sector}</Badge>}
             <Badge variant={latestStatusVariant} className="executive-pill">Status geral: {lastResult?.level || latestStatusLabel}</Badge>
+            {company.demo_day_selected && <Badge className="executive-pill bg-primary/80">Demo Day</Badge>}
             {company.archived_at && <Badge variant="destructive" className="executive-pill">Arquivada</Badge>}
           </div>
         </div>
         </div>
         <div className='flex flex-wrap gap-2'>
           {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
+          {canWrite && (
+            <Button variant={company.demo_day_selected ? 'default' : 'outline'} onClick={toggleDemoDay}>
+              {company.demo_day_selected ? '✓ Selecionada p/ Demo Day' : 'Marcar p/ Demo Day'}
+            </Button>
+          )}
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
           <Button asChild variant='secondary'><Link to={companyProgressLink}>Relatório de Progresso</Link></Button>

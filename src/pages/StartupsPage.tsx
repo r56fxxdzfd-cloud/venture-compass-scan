@@ -294,6 +294,9 @@ export default function StartupsPage() {
                         <div className="min-w-0 flex-1 space-y-2">
                           <p className="break-words text-base font-semibold leading-tight">{company.name}</p>
                           <div className="flex flex-wrap items-center gap-2">
+                            {company.demo_day_selected && (
+                              <span className="executive-pill text-xs bg-primary/80 text-primary-foreground">Demo Day</span>
+                            )}
                             {company.stage && (
                               <span className="executive-pill badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>
                             )}
