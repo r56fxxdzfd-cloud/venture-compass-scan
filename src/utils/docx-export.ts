@@ -447,6 +447,31 @@ export async function exportReportToDOCX(opts: {
   }));
   body.push(spacer());
 
+  // --- Observações do Conselho (answers.notes) agrupadas por dimensão
+  const obsByDim: { label: string; items: { q: string; note: string }[] }[] = (() => {
+    const map = new Map<string, { label: string; items: { q: string; note: string }[] }>();
+    answers.forEach((a) => {
+      if (!a.notes || !a.notes.trim()) return;
+      const q = config.questions?.find((qq) => qq.id === a.question_id);
+      const dimId = q?.dimension_id || 'outros';
+      const dimLabel = config.dimensions?.find((d) => d.id === dimId)?.label || dimId;
+      if (!map.has(dimId)) map.set(dimId, { label: dimLabel, items: [] });
+      map.get(dimId)!.items.push({ q: q?.text || a.question_id, note: a.notes.trim() });
+    });
+    return Array.from(map.values());
+  })();
+  if (obsByDim.length > 0) {
+    body.push(h2('Observações do Conselho'));
+    obsByDim.forEach((dim) => {
+      body.push(p([t(dim.label, { bold: true, size: 20, color: C.primary })]));
+      dim.items.forEach((it) => {
+        body.push(p([t(it.q, { size: 16, color: C.textMuted })]));
+        body.push(p([t(it.note, { size: 18, color: C.text })], { spacing: { after: 120 } }));
+      });
+    });
+    body.push(spacer());
+  }
+
   // --- Próximos passos
   body.push(h2('Próximos Passos'));
   body.push(card([

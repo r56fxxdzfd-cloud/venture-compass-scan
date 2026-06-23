@@ -369,7 +369,9 @@ function QuestionCard({
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
                 onClick={() => setShowNotes(!showNotes)}
               >
-                {showNotes ? 'Ocultar notas' : '+ Notas'}
+                {showNotes
+                  ? 'Ocultar observação'
+                  : (answer?.notes && answer.notes.trim() ? 'Observação do conselho ✓' : '+ Observação do conselho')}
               </button>
             </div>
 
@@ -386,7 +388,7 @@ function QuestionCard({
 
             {showNotes && (
               <Textarea
-                placeholder="Observações..."
+                placeholder="Observação do conselho sobre este tema (opcional) — aparece no relatório, na Análise por dimensão"
                 value={answer?.notes || ''}
                 onChange={(e) => onNotes(e.target.value)}
                 className="text-sm"

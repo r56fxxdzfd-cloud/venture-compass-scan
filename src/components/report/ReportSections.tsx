@@ -153,8 +153,22 @@ export function RadarSection({ result, config, stage }: { result: AssessmentResu
 }
 
 // ======== E. Dimension Bars + Gap Table ========
-export function DimensionScoresSection({ result, config, stage }: { result: AssessmentResult; config: ConfigJSON; stage: string }) {
+export function DimensionScoresSection({ result, config, stage, answers }: { result: AssessmentResult; config: ConfigJSON; stage: string; answers?: Answer[] }) {
   const gaps = computeGaps(result.dimension_scores, config, stage);
+
+  // Observações do conselho (answers.notes) agrupadas por dimensão
+  const observationsByDim = (() => {
+    const byDim = new Map<string, { label: string; items: { q: string; note: string }[] }>();
+    (answers || []).forEach((a) => {
+      if (!a.notes || !a.notes.trim()) return;
+      const q = config.questions?.find((qq) => qq.id === a.question_id);
+      const dimId = q?.dimension_id || 'outros';
+      const dimLabel = config.dimensions?.find((d) => d.id === dimId)?.label || dimId;
+      if (!byDim.has(dimId)) byDim.set(dimId, { label: dimLabel, items: [] });
+      byDim.get(dimId)!.items.push({ q: q?.text || a.question_id, note: a.notes.trim() });
+    });
+    return Array.from(byDim.values());
+  })();
 
   const barData = result.dimension_scores.map((ds) => ({
     name: ds.label,
@@ -211,6 +225,27 @@ export function DimensionScoresSection({ result, config, stage }: { result: Asse
                   ))}
                 </tbody>
               </table>
+            </div>
+          </>
+        )}
+
+        {observationsByDim.length > 0 && (
+          <>
+            <h4 className="text-sm font-semibold mt-4">Observações do conselho</h4>
+            <div className="space-y-2.5">
+              {observationsByDim.map((dim) => (
+                <div key={dim.label} className="rounded-lg border p-3">
+                  <p className="text-xs font-semibold text-primary">{dim.label}</p>
+                  <ul className="mt-1.5 space-y-1.5">
+                    {dim.items.map((it, i) => (
+                      <li key={i} className="text-xs">
+                        <span className="text-muted-foreground">{it.q}</span>
+                        <span className="mt-0.5 block border-l-2 border-primary/40 pl-2 text-foreground">{it.note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </>
         )}

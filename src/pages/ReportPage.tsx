@@ -490,7 +490,7 @@ export default function ReportPage() {
       </div>
 
       <div id="section-gaps">
-        <DimensionScoresSection result={result} config={config} stage={stage} />
+        <DimensionScoresSection result={result} config={config} stage={stage} answers={answers} />
       </div>
 
       <div id="section-redflags">
