@@ -126,7 +126,7 @@ export interface ConfigJSON {
   dimensions: ConfigDimension[];
   questions: ConfigQuestion[];
   weights_by_stage: Record<string, Record<string, number>>;
-  targets_by_stage: Record<string, Record<string, number>>;
+  targets_by_stage: Record<string, Record<string, StageTarget>>;
   methodology: string;
   simulator: {
     presets: ConfigPreset[];
@@ -136,6 +136,11 @@ export interface ConfigJSON {
   glossary?: Record<string, string>;
   action_library?: Record<string, ConfigParetoAction[]>;
 }
+
+export type StageTarget = number | {
+  benchmark?: number;
+  potential?: number;
+};
 
 export interface ConfigParetoAction {
   id: string;

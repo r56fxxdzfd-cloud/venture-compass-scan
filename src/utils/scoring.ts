@@ -1,4 +1,12 @@
-import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer, RedFlagTrigger } from '@/types/darwin';
+import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer, RedFlagTrigger, StageTarget } from '@/types/darwin';
+
+function resolveBenchmarkTarget(target: StageTarget | undefined, fallback = 3.5): number {
+  if (typeof target === 'number' && Number.isFinite(target)) return target;
+  if (target && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
+    return target.benchmark;
+  }
+  return fallback;
+}
 
 export function calculateDimensionScores(
   configJson: ConfigJSON,
@@ -6,10 +14,9 @@ export function calculateDimensionScores(
   stage: string
 ): DimensionScore[] {
   const rawTargets = configJson.targets_by_stage?.[stage] || {};
-  // targets_by_stage values can be numbers or objects like {benchmark: N, potential: N}
   const targets: Record<string, number> = {};
   for (const [k, v] of Object.entries(rawTargets)) {
-    targets[k] = typeof v === 'number' ? v : (typeof v === 'object' && v !== null ? ((v as any).benchmark ?? 3.5) : 3.5);
+    targets[k] = resolveBenchmarkTarget(v);
   }
 
   return configJson.dimensions.map((dim) => {

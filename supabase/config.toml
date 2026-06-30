@@ -1,5 +1,8 @@
 project_id = "zazebhtkxojegimdfqry"
 
+[functions.extract-council-meeting-notes]
+verify_jwt = true
+
 [functions.resend-confirmation]
 verify_jwt = false
 

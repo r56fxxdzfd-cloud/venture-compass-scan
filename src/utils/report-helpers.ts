@@ -1,4 +1,5 @@
 import type { ConfigJSON, DimensionScore, EvaluatedRedFlag, AssessmentResult, Answer } from '@/types/darwin';
+import type { StageTarget } from '@/types/darwin';
 
 // ---- Score conversion ----
 export function scoreTo100(score: number): number {
@@ -97,6 +98,22 @@ export function getSeverityCategory(severity: string): string {
   return 'Monitorar';
 }
 
+function resolveTargetBenchmark(target: StageTarget | undefined, fallback: number): number {
+  if (typeof target === 'number' && Number.isFinite(target)) return target;
+  if (target && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
+    return target.benchmark;
+  }
+  return fallback;
+}
+
+function resolveTargetPotential(target: StageTarget | undefined, fallback: number): number {
+  if (typeof target === 'number' && Number.isFinite(target)) return target;
+  if (target && typeof target.potential === 'number' && Number.isFinite(target.potential)) {
+    return target.potential;
+  }
+  return resolveTargetBenchmark(target, fallback);
+}
+
 // ---- Gap with priority ----
 export interface PrioritizedGap {
   dimension_id: string;
@@ -120,9 +137,12 @@ export function computeGaps(
   return dimensionScores
     .filter((d) => d.coverage > 0)
     .map((d) => {
+      const targetConfig = targets[d.dimension_id];
+      const target = resolveTargetBenchmark(targetConfig, d.target);
+      const potential = resolveTargetPotential(targetConfig, target);
       const s100 = scoreTo100(d.score);
-      const t100 = scoreTo100(d.target);
-      const potential100 = scoreTo100(targets[d.dimension_id] || d.target);
+      const t100 = scoreTo100(target);
+      const potential100 = scoreTo100(potential);
       const gap_potential = Math.max(0, potential100 - s100);
       const w = (weights[d.dimension_id] as number) || 1;
       return {
@@ -130,7 +150,7 @@ export function computeGaps(
         label: d.label,
         score: d.score,
         score100: s100,
-        target: d.target,
+        target,
         target100: t100,
         potential100,
         gap_potential,

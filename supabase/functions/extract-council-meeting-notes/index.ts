@@ -6,27 +6,90 @@ const corsHeaders = {
 };
 
 const OFFICIAL_DIMENSIONS = ['IC', 'PL', 'GR', 'EE', 'PM', 'FS', 'MN', 'GT', 'PT'];
+const MAX_TRANSCRIPT_CHARS = 80_000;
+
+type AccessQuery = {
+  eq: (column: string, value: string) => AccessQuery;
+  maybeSingle: () => PromiseLike<{ data: unknown | null; error: unknown }>;
+};
+
+type AccessClient = {
+  from: (table: string) => {
+    select: (columns: string) => AccessQuery;
+  };
+};
+
+function jsonResponse(body: Record<string, unknown>, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function requireCompanyAccess(
+  callerClient: AccessClient,
+  companyId: string,
+  meetingId?: string,
+) {
+  const { data: company, error: companyError } = await callerClient
+    .from('companies')
+    .select('id')
+    .eq('id', companyId)
+    .maybeSingle();
+
+  if (companyError || !company) return false;
+
+  if (!meetingId) return true;
+
+  const { data: meeting, error: meetingError } = await callerClient
+    .from('council_meetings')
+    .select('id')
+    .eq('id', meetingId)
+    .eq('company_id', companyId)
+    .maybeSingle();
+
+  return !meetingError && !!meeting;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get('authorization');
-    if (!authHeader) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!authHeader) return jsonResponse({ error: 'Unauthorized' }, 401);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!;
     const openAiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAiKey) return new Response(JSON.stringify({ error: 'OPENAI_API_KEY ausente no ambiente' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!openAiKey) return jsonResponse({ error: 'OPENAI_API_KEY ausente no ambiente' }, 500);
 
     const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
     const { data: { user } } = await callerClient.auth.getUser();
-    if (!user) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!user) return jsonResponse({ error: 'Unauthorized' }, 401);
 
-    const { mode, meeting_id, company_id, transcript_text, context } = await req.json();
+    const body = await req.json();
+    const mode = typeof body?.mode === 'string' ? body.mode : undefined;
+    const meeting_id = typeof body?.meeting_id === 'string' ? body.meeting_id : undefined;
+    const company_id = typeof body?.company_id === 'string' ? body.company_id : undefined;
+    const transcript_text = typeof body?.transcript_text === 'string' ? body.transcript_text : '';
+    const context = body?.context && typeof body.context === 'object' ? body.context : {};
     const isNewMeetingMode = mode === 'new_meeting';
     if ((!isNewMeetingMode && !meeting_id) || !company_id || !transcript_text?.trim()) {
-      return new Response(JSON.stringify({ error: 'company_id e transcript_text são obrigatórios; meeting_id é obrigatório quando mode != new_meeting' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return jsonResponse({ error: 'company_id e transcript_text são obrigatórios; meeting_id é obrigatório quando mode != new_meeting' }, 400);
+    }
+
+    const transcript = transcript_text.trim();
+    if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+      return jsonResponse({ error: `A transcrição excede o limite de ${MAX_TRANSCRIPT_CHARS} caracteres` }, 413);
+    }
+
+    const hasAccess = await requireCompanyAccess(
+      callerClient as unknown as AccessClient,
+      company_id,
+      isNewMeetingMode ? undefined : meeting_id,
+    );
+    if (!hasAccess) {
+      return jsonResponse({ error: 'Acesso negado para esta empresa ou reunião' }, 403);
     }
 
     const prompt = `Você é Assistente de Ata do Conselho. Gere JSON estritamente válido, sem markdown, com o schema exigido.
@@ -36,7 +99,7 @@ Regras: extraia apenas fatos suportados pela transcrição; não invente prazos;
       model: 'gpt-4.1-mini',
       input: [
         { role: 'system', content: prompt },
-        { role: 'user', content: JSON.stringify({ meeting_id, company_id, transcript_text, context }) },
+        { role: 'user', content: JSON.stringify({ meeting_id, company_id, transcript_text: transcript, context }) },
       ],
       text: {
         format: {
@@ -65,13 +128,16 @@ Regras: extraia apenas fatos suportados pela transcrição; não invente prazos;
     });
     if (!aiRes.ok) {
       const txt = await aiRes.text();
-      return new Response(JSON.stringify({ error: `Falha IA: ${txt}` }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.error('[extract-council-meeting-notes] OpenAI error:', txt);
+      return jsonResponse({ error: 'Falha ao gerar pré-ata com IA' }, 502);
     }
 
     const aiData = await aiRes.json();
     const content = aiData?.output?.[0]?.content?.[0]?.text || '{}';
-    return new Response(JSON.stringify({ draft: JSON.parse(content) }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return jsonResponse({ draft: JSON.parse(content) }, 200);
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const message = err instanceof Error ? err.message : 'Erro inesperado';
+    console.error('[extract-council-meeting-notes] Unexpected error:', message);
+    return jsonResponse({ error: 'Erro inesperado ao gerar pré-ata' }, 500);
   }
 });

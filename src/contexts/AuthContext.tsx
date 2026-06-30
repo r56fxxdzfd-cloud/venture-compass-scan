@@ -37,23 +37,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileStatus, setProfileStatus] = useState<ProfileStatus | null>(null);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
+
+    if (error) {
+      console.error('[Auth] Profile fetch error:', error);
+      setProfile(null);
+      setProfileStatus('pending');
+      return;
+    }
+
     if (data) {
       setProfile(data as unknown as Profile);
-      setProfileStatus((data as any).status as ProfileStatus);
+      setProfileStatus(data.status as ProfileStatus);
+      return;
     }
+
+    setProfile(null);
+    setProfileStatus('pending');
   };
 
   const fetchRoles = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
-    if (data) setRoles(data.map((r: any) => r.role as AppRole));
+
+    if (error) {
+      console.error('[Auth] Roles fetch error:', error);
+      setRoles([]);
+      return;
+    }
+
+    setRoles((data || []).map((r) => r.role as AppRole));
   };
 
   const refreshProfile = async () => {
