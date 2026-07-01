@@ -51,6 +51,7 @@ export default function StartupDetailPage() {
   const [company, setCompany] = useState<Company | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
+  const [assessmentQuestionTotals, setAssessmentQuestionTotals] = useState<Record<string, number>>({});
   const [lastResult, setLastResult] = useState<{ score100: number; level: string; levelColor: string; redFlagCount: number; assessmentId: string } | null>(null);
   const [founders, setFounders] = useState<Founder[]>([]);
   const [founderAssessments, setFounderAssessments] = useState<FounderAssessment[]>([]);
@@ -131,13 +132,33 @@ export default function StartupDetailPage() {
       if (assessData) {
         setAssessments(assessData as Assessment[]);
 
-        // Fetch answer counts for all assessments
+        // Fetch answer counts and real question totals for all assessments.
         const counts: Record<string, number> = {};
         for (const a of assessData) {
           const { count } = await supabase.from('answers').select('id', { count: 'exact', head: true }).eq('assessment_id', a.id);
           counts[a.id] = count || 0;
         }
         setAnswerCounts(counts);
+
+        const totalsByConfig: Record<string, number> = {};
+        const configIds = [...new Set(assessData.map((assessment: any) => assessment.config_version_id).filter(Boolean))];
+        if (configIds.length > 0) {
+          const { data: configRows } = await supabase
+            .from('config_versions')
+            .select('id, config_json')
+            .in('id', configIds);
+
+          (configRows || []).forEach((row: any) => {
+            const cfg = row.config_json as ConfigJSON | null;
+            totalsByConfig[row.id] = cfg?.questions?.filter((question) => question.is_active !== false).length || 45;
+          });
+        }
+
+        const totals: Record<string, number> = {};
+        assessData.forEach((assessment: any) => {
+          totals[assessment.id] = totalsByConfig[assessment.config_version_id] || 45;
+        });
+        setAssessmentQuestionTotals(totals);
 
         // Compute last completed assessment summary
         const lastCompleted = assessData.find((a: any) => a.status === 'completed');
@@ -321,11 +342,16 @@ export default function StartupDetailPage() {
 
   const numericFieldDefs = CONTEXT_NUMERIC_FIELDS;
 
-  const totalQuestions = 45;
+  const getAssessmentTotalQuestions = (assessmentId?: string | null) => {
+    if (!assessmentId) return 45;
+    return assessmentQuestionTotals[assessmentId] || 45;
+  };
   const inProgressAssessment = assessments.find((a) => a.status === 'in_progress');
   const inProgressAnswered = inProgressAssessment ? answerCounts[inProgressAssessment.id] || 0 : 0;
-  const inProgressPct = Math.min(100, Math.round((inProgressAnswered / totalQuestions) * 100));
+  const inProgressTotalQuestions = getAssessmentTotalQuestions(inProgressAssessment?.id);
+  const inProgressPct = Math.min(100, Math.round((inProgressAnswered / inProgressTotalQuestions) * 100));
   const inProgressLink = inProgressAssessment ? `/app/assessments/${inProgressAssessment.id}/questionnaire` : null;
+  const draftAssessments = assessments.filter((assessment) => assessment.status === 'in_progress');
   const latestAssessment = assessments[0];
   const latestStatusLabel = latestAssessment?.status === 'completed' ? 'Concluído' : latestAssessment?.status === 'in_progress' ? 'Em andamento' : 'Sem diagnóstico';
   const latestStatusVariant = latestAssessment?.status === 'completed' ? 'default' : 'secondary';
@@ -441,9 +467,14 @@ export default function StartupDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Progress value={inProgressPct} className="h-1.5 w-36" />
-                  <span className="font-mono">{inProgressAnswered}/{totalQuestions}</span>
+                  <span className="font-mono">{inProgressAnswered}/{inProgressTotalQuestions}</span>
                   <span>criado em {new Date(inProgressAssessment.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
+                {draftAssessments.length > 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    Há {draftAssessments.length} diagnósticos em rascunho nesta organização. A lista abaixo permite retomar cada um.
+                  </p>
+                )}
               </div>
             </div>
             <Button asChild size="sm">
@@ -455,7 +486,7 @@ export default function StartupDetailPage() {
 
 
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-6'>
-        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Diagnósticos</p><p className='text-2xl font-bold'>{assessments.length}</p></CardContent></Card>
+        <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Diagnósticos</p><p className='text-2xl font-bold'>{assessments.length}</p><p className='text-xs text-muted-foreground'>{draftAssessments.length > 0 ? `${draftAssessments.length} em rascunho` : 'Sem rascunho aberto'}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Último score/status</p><p className='text-2xl font-bold'>{lastResult ? `${lastResult.score100}` : '—'}</p><p className='text-xs text-muted-foreground'>{lastResult?.level || 'Sem diagnóstico concluído'}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Encontros registrados</p><p className='text-2xl font-bold'>{councilStats.meetings}</p></CardContent></Card>
         <Card className='executive-card'><CardContent className='p-4'><p className='text-xs text-muted-foreground'>Ações abertas</p><p className='text-2xl font-bold'>{councilStats.open}</p></CardContent></Card>
@@ -810,7 +841,8 @@ export default function StartupDetailPage() {
               <div className="space-y-2">
                 {assessments.map((a, i) => {
                   const count = answerCounts[a.id] || 0;
-                  const pct = Math.min(100, Math.round((count / totalQuestions) * 100));
+                  const total = getAssessmentTotalQuestions(a.id);
+                  const pct = Math.min(100, Math.round((count / total) * 100));
                   return (
                     <motion.div
                       key={a.id}
@@ -844,7 +876,7 @@ export default function StartupDetailPage() {
                             {a.status === 'in_progress' && (
                               <div className="flex items-center gap-2 mt-1">
                                 <Progress value={pct} className="flex-1 h-1.5" />
-                                <span className="text-[10px] text-muted-foreground font-mono">{count}/{totalQuestions}</span>
+                                <span className="text-[10px] text-muted-foreground font-mono">{count}/{total}</span>
                                 <span className="text-[10px] font-medium text-amber-500">incompleto</span>
                               </div>
                             )}

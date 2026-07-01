@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, HelpCircle, Check, Eye, Info } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Check, Eye, Info, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
@@ -37,6 +37,7 @@ export default function QuestionnairePage() {
   const [saving, setSaving] = useState(false);
   const [activeDim, setActiveDim] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [assessmentMeta, setAssessmentMeta] = useState<{ status: 'in_progress' | 'completed'; companyId?: string; companyName?: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -44,11 +45,19 @@ export default function QuestionnairePage() {
     const load = async () => {
       const { data: assessment } = await supabase
         .from('assessments')
-        .select('config_version_id')
+        .select('config_version_id, status, company_id, company:companies(id, name)')
         .eq('id', id)
         .single();
 
       if (!assessment) return;
+      const assessmentCompany = Array.isArray((assessment as any).company)
+        ? (assessment as any).company[0]
+        : (assessment as any).company;
+      setAssessmentMeta({
+        status: (assessment as any).status || 'in_progress',
+        companyId: (assessment as any).company_id,
+        companyName: assessmentCompany?.name,
+      });
 
       const { data: configVersion } = await supabase
         .from('config_versions')
@@ -59,20 +68,28 @@ export default function QuestionnairePage() {
       if (configVersion) {
         const cfg = configVersion.config_json as unknown as ConfigJSON;
         setConfig(cfg);
-        if (cfg.dimensions.length > 0) setActiveDim(cfg.dimensions[0].id);
-      }
 
-      const { data: existingAnswers } = await supabase
-        .from('answers')
-        .select('*')
-        .eq('assessment_id', id);
+        const { data: existingAnswers } = await supabase
+          .from('answers')
+          .select('*')
+          .eq('assessment_id', id);
 
-      if (existingAnswers) {
         const map: Record<string, { value: number | null; is_na: boolean; notes: string }> = {};
-        existingAnswers.forEach((a: any) => {
+        (existingAnswers || []).forEach((a: any) => {
           map[a.question_id] = { value: a.value, is_na: a.is_na, notes: a.notes || '' };
         });
         setAnswers(map);
+
+        const existingRows = answerStateToRows(map, id);
+        const answerable = getAnswerableQuestions(cfg, existingRows);
+        const firstIncompleteDimension = cfg.dimensions.find((dim) => {
+          const dimQuestions = answerable.filter((question) => question.dimension_id === dim.id && question.is_active !== false);
+          return dimQuestions.length > 0 && dimQuestions.some((question) => {
+            const answer = map[question.id];
+            return !answer || (answer.value === null && !answer.is_na);
+          });
+        });
+        if (cfg.dimensions.length > 0) setActiveDim(firstIncompleteDimension?.id || cfg.dimensions[0].id);
       }
     };
     load();
@@ -88,13 +105,15 @@ export default function QuestionnairePage() {
   const setNotes = (questionId: string, notes: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [questionId]: { ...prev[questionId], notes },
+      [questionId]: { value: prev[questionId]?.value ?? null, is_na: prev[questionId]?.is_na ?? false, notes },
     }));
   };
 
   const saveAnswers = useCallback(async () => {
     if (!id) return;
     setSaving(true);
+    const scrollContainer = document.getElementById('app-main-scroll');
+    const previousScrollTop = scrollContainer?.scrollTop ?? null;
 
     const upserts = Object.entries(answers).map(([question_id, ans]) => ({
       assessment_id: id,
@@ -104,11 +123,22 @@ export default function QuestionnairePage() {
       notes: ans.notes || null,
     }));
 
+    const errors: string[] = [];
     for (const upsert of upserts) {
-      await supabase.from('answers').upsert(upsert, { onConflict: 'assessment_id,question_id' });
+      const { error } = await supabase.from('answers').upsert(upsert, { onConflict: 'assessment_id,question_id' });
+      if (error) errors.push(error.message);
     }
 
     setSaving(false);
+    if (previousScrollTop !== null) {
+      requestAnimationFrame(() => {
+        scrollContainer?.scrollTo({ top: previousScrollTop });
+      });
+    }
+    if (errors.length > 0) {
+      toast({ title: 'Erro ao salvar respostas', description: errors[0], variant: 'destructive' });
+      return;
+    }
     const now = new Date();
     setLastSavedAt(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     toast({ title: 'Respostas salvas' });
@@ -202,7 +232,14 @@ export default function QuestionnairePage() {
           </Tooltip>
         </TooltipProvider>
         <div className="flex-1">
-          <h1 className="text-xl font-bold">Questionário</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-bold">Questionário</h1>
+            {assessmentMeta?.status === 'in_progress' && <Badge variant="secondary" className="executive-pill">Rascunho</Badge>}
+            {assessmentMeta?.status === 'completed' && <Badge className="executive-pill">Concluído</Badge>}
+          </div>
+          {assessmentMeta?.companyName && (
+            <p className="mt-0.5 text-xs text-muted-foreground">{assessmentMeta.companyName}</p>
+          )}
           <div className="flex items-center gap-3 mt-1">
             <Progress value={progressPct} className="flex-1 h-2" />
             <span className="text-xs text-muted-foreground font-mono">
@@ -212,7 +249,10 @@ export default function QuestionnairePage() {
         </div>
         <div className="flex items-center gap-2">
           {lastSavedAt && (
-            <span className="text-[10px] text-muted-foreground">Salvo às {lastSavedAt}</span>
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+              Salvo às {lastSavedAt}
+            </span>
           )}
           <TooltipProvider>
             <Tooltip>
@@ -356,6 +396,7 @@ function QuestionCard({
   onNotes: (notes: string) => void;
 }) {
   const [showNotes, setShowNotes] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const tooltip = question.tooltip;
 
   return (
@@ -369,23 +410,29 @@ function QuestionCard({
             <div className="flex items-start gap-2">
               <p className="text-base font-medium leading-relaxed">{question.text}</p>
               {tooltip && (tooltip.definition || tooltip.why) && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        aria-label="Explicação da pergunta"
-                      >
-                        <HelpCircle className="h-4 w-4 shrink-0" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" align="start" sideOffset={8} className="max-w-[min(20rem,calc(100vw-2rem))] whitespace-normal">
-                      {tooltip.definition && <p className="text-xs mb-1"><strong>Definição:</strong> {tooltip.definition}</p>}
-                      {tooltip.why && <p className="text-xs"><strong>Por quê:</strong> {tooltip.why}</p>}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <span
+                  className="relative mt-0.5 inline-flex shrink-0"
+                  onMouseEnter={() => setHelpOpen(true)}
+                  onMouseLeave={() => setHelpOpen(false)}
+                >
+                  <button
+                    type="button"
+                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label="Explicação da pergunta"
+                    aria-expanded={helpOpen}
+                    onClick={() => setHelpOpen((open) => !open)}
+                    onFocus={() => setHelpOpen(true)}
+                    onBlur={() => setHelpOpen(false)}
+                  >
+                    <HelpCircle className="h-4 w-4 shrink-0" />
+                  </button>
+                  {helpOpen && (
+                    <span className="absolute right-0 top-6 z-40 w-80 max-w-[calc(100vw-3rem)] rounded-md border bg-popover px-3 py-2 text-left text-popover-foreground shadow-lg">
+                      {tooltip.definition && <span className="mb-1 block text-xs leading-snug"><strong>Definição:</strong> {tooltip.definition}</span>}
+                      {tooltip.why && <span className="block text-xs leading-snug"><strong>Por quê:</strong> {tooltip.why}</span>}
+                    </span>
+                  )}
+                </span>
               )}
             </div>
 

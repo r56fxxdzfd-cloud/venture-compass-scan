@@ -34,11 +34,12 @@ export default function StartupsPage() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
-  const { canOperatePlatform, canOperateDemo, isDemoUser, isAnalyst, isSuperAdmin } = useAuth();
+  const { canOperatePlatform, isDemoUser, isDemoAdmin, isAnalyst, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const canWrite = canOperatePlatform || canOperateDemo;
+  const isDemoOnly = (isDemoUser || isDemoAdmin) && !canOperatePlatform && !isAnalyst && !isSuperAdmin;
+  const canCreateOrganization = (canOperatePlatform || isAnalyst || isSuperAdmin) && !isDemoOnly;
   const isOperator = canOperatePlatform || isAnalyst; // admin/analyst → acesso a Intakes
 
   const fetchCompanies = async () => {
@@ -121,6 +122,15 @@ export default function StartupsPage() {
   };
 
   const handleCreate = async () => {
+    if (!canCreateOrganization) {
+      toast({
+        title: 'Ação indisponível no modo demo',
+        description: 'No modo demo, use uma das organizações disponíveis para testar diagnósticos e relatórios.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const { error } = await supabase.from('companies').insert({
       name: form.name,
       legal_name: form.legal_name || null,
@@ -162,7 +172,7 @@ export default function StartupsPage() {
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Growth OS.</p>
           </div>
-          {canWrite && (
+          {canCreateOrganization && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="w-full rounded-full sm:w-auto">
@@ -244,6 +254,11 @@ export default function StartupsPage() {
             </DialogContent>
             </Dialog>
           )}
+          {isDemoOnly && (
+            <Button size="sm" className="w-full rounded-full sm:w-auto" disabled title="No modo demo, use uma das organizações disponíveis.">
+              <Plus className="mr-2 h-4 w-4" /> Nova Organização indisponível no demo
+            </Button>
+          )}
         </div>
       </section>
 
@@ -279,10 +294,15 @@ export default function StartupsPage() {
               ? 'Quando houver empresas marcadas como demo (is_demo = true), elas aparecerão aqui.'
               : 'Comece cadastrando uma organização para iniciar diagnósticos, agenda e acompanhamento executivo.'}
           </p>
-          {canWrite && (
+          {canCreateOrganization && (
             <Button onClick={() => setOpen(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova Organização
             </Button>
+          )}
+          {isDemoOnly && (
+            <div className="mx-auto max-w-md rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-muted-foreground">
+              No modo demo, a criação de organizações fica bloqueada. Use uma organização demo existente para testar o fluxo.
+            </div>
           )}
         </div>
       ) : (

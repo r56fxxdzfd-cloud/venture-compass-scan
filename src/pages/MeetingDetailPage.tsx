@@ -202,6 +202,7 @@ export default function MeetingDetailPage() {
   const [generatingDraft, setGeneratingDraft] = useState(false);
   const [applyingDraft, setApplyingDraft] = useState(false);
   const [lastAppliedDraftFingerprint, setLastAppliedDraftFingerprint] = useState<string | null>(null);
+  const [savingProgress, setSavingProgress] = useState(false);
 
 
   const load = async () => {
@@ -343,10 +344,22 @@ export default function MeetingDetailPage() {
     load();
   };
 
-  const saveDimensionProgress = async (dimensionId: string) => {
+  const hasDimensionProgressContent = (current: DimensionForm | undefined, existing?: CouncilDimensionProgress) => {
+    if (!current) return false;
+    return !!existing
+      || current.initial_score !== null
+      || current.current_perceived_score !== null
+      || !!current.evidence_note?.trim()
+      || !!current.counselor_comment?.trim()
+      || current.trend !== 'stable';
+  };
+
+  const saveDimensionProgress = async (dimensionId: string, options: { silent?: boolean } = {}) => {
     if (!meeting) return;
     const current = formByDimension[dimensionId];
     if (!current) return;
+    const scrollContainer = document.getElementById('app-main-scroll');
+    const previousScrollTop = scrollContainer?.scrollTop ?? null;
     const payload = {
       meeting_id: meeting.id,
       company_id: meeting.company_id,
@@ -354,10 +367,51 @@ export default function MeetingDetailPage() {
       evidence_note: current.evidence_note || null,
       counselor_comment: current.counselor_comment || null,
     };
-    const { error } = await supabase.from('council_dimension_progress').upsert(payload, { onConflict: 'meeting_id,dimension_id' });
-    if (error) return toast({ title: 'Erro ao salvar evolução', description: error.message, variant: 'destructive' });
-    toast({ title: 'Evolução por dimensão atualizada' });
-    load();
+    const { data, error } = await supabase
+      .from('council_dimension_progress')
+      .upsert(payload, { onConflict: 'meeting_id,dimension_id' })
+      .select('*')
+      .single();
+    if (previousScrollTop !== null) {
+      requestAnimationFrame(() => {
+        scrollContainer?.scrollTo({ top: previousScrollTop });
+      });
+    }
+    if (error) {
+      toast({ title: 'Erro ao salvar evolução', description: error.message, variant: 'destructive' });
+      return false;
+    }
+    if (data) {
+      const savedRow = data as CouncilDimensionProgress;
+      setProgressRows((prev) => {
+        const exists = prev.some((row) => row.dimension_id === savedRow.dimension_id);
+        return exists
+          ? prev.map((row) => row.dimension_id === savedRow.dimension_id ? savedRow : row)
+          : [...prev, savedRow];
+      });
+    }
+    if (!options.silent) toast({ title: 'Evolução por dimensão atualizada' });
+    return true;
+  };
+
+  const saveFilledDimensionProgress = async () => {
+    const dimensionIds = dimensions
+      .filter((dimension) => hasDimensionProgressContent(formByDimension[dimension.id], progressRows.find((row) => row.dimension_id === dimension.id)))
+      .map((dimension) => dimension.id);
+
+    if (dimensionIds.length === 0) {
+      toast({ title: 'Nada para salvar', description: 'Preencha ao menos uma dimensão antes de salvar.' });
+      return;
+    }
+
+    setSavingProgress(true);
+    let savedCount = 0;
+    for (const dimensionId of dimensionIds) {
+      const saved = await saveDimensionProgress(dimensionId, { silent: true });
+      if (saved) savedCount += 1;
+    }
+    setSavingProgress(false);
+    toast({ title: `${savedCount} dimensão${savedCount === 1 ? '' : 'ões'} salva${savedCount === 1 ? '' : 's'}` });
   };
 
 
@@ -612,7 +666,14 @@ export default function MeetingDetailPage() {
       </div>
       <div className='print:hidden'>
       {dimensions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma dimensão ativa encontrada na metodologia publicada.</p> : <>
-        <p className='text-sm text-muted-foreground'>Registre apenas as dimensões discutidas neste encontro.</p>
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className='text-sm text-muted-foreground'>Registre apenas as dimensões discutidas neste encontro.</p>
+          {canOperateDemo && (
+            <Button size="sm" variant="outline" disabled={savingProgress} onClick={saveFilledDimensionProgress}>
+              {savingProgress ? 'Salvando...' : 'Salvar dimensões preenchidas'}
+            </Button>
+          )}
+        </div>
         <div className='space-y-4'>{dimensions.map((d) => {
           const row = formByDimension[d.id];
           if (!row) return null;
@@ -635,7 +696,7 @@ export default function MeetingDetailPage() {
             </div>
             <div className='flex items-center justify-between'>
               <p className='text-xs text-muted-foreground'>{existing ? 'Registro existente: atualização incremental.' : 'Sem registro ainda para esta dimensão.'}</p>
-              {canOperateDemo && <Button size='sm' onClick={() => saveDimensionProgress(d.id)}>{existing ? 'Atualizar dimensão' : 'Salvar dimensão'}</Button>}
+              {canOperateDemo && <Button size='sm' disabled={savingProgress} onClick={() => saveDimensionProgress(d.id)}>{existing ? 'Atualizar dimensão' : 'Salvar dimensão'}</Button>}
             </div>
           </div>;
         })}</div>
