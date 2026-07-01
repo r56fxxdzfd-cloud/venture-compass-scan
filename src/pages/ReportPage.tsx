@@ -14,6 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CONTEXT_NUMERIC_FIELDS, missingContextFields } from '@/utils/context-fields';
 import { calculateAssessmentResult } from '@/utils/scoring';
+import { filterSkippedAnswers } from '@/utils/question-flow';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
 import { getCompleteness } from '@/utils/report-helpers';
 import { useToast } from '@/hooks/use-toast';
@@ -80,7 +81,7 @@ export default function ReportPage() {
 
       const { data: answerRows } = await supabase.from('answers').select('*').eq('assessment_id', id);
       const loadedAnswers = (answerRows || []) as Answer[];
-      setAnswers(loadedAnswers);
+      setAnswers(filterSkippedAnswers(cfg, loadedAnswers));
       const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model });
       setResult(res);
 

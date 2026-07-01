@@ -322,6 +322,10 @@ export default function StartupDetailPage() {
   const numericFieldDefs = CONTEXT_NUMERIC_FIELDS;
 
   const totalQuestions = 45;
+  const inProgressAssessment = assessments.find((a) => a.status === 'in_progress');
+  const inProgressAnswered = inProgressAssessment ? answerCounts[inProgressAssessment.id] || 0 : 0;
+  const inProgressPct = Math.min(100, Math.round((inProgressAnswered / totalQuestions) * 100));
+  const inProgressLink = inProgressAssessment ? `/app/assessments/${inProgressAssessment.id}/questionnaire` : null;
   const latestAssessment = assessments[0];
   const latestStatusLabel = latestAssessment?.status === 'completed' ? 'Concluído' : latestAssessment?.status === 'in_progress' ? 'Em andamento' : 'Sem diagnóstico';
   const latestStatusVariant = latestAssessment?.status === 'completed' ? 'default' : 'secondary';
@@ -403,7 +407,12 @@ export default function StartupDetailPage() {
         </div>
         </div>
         <div className='flex flex-wrap gap-2'>
-          {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
+          {canWrite && inProgressLink && (
+            <Button asChild>
+              <Link to={inProgressLink}>Continuar diagnóstico</Link>
+            </Button>
+          )}
+          {canWrite && <Button variant={inProgressLink ? 'outline' : 'default'} onClick={openNewDialog}>Novo diagnóstico</Button>}
           {canWrite && (
             <Button variant={company.demo_day_selected ? 'default' : 'outline'} onClick={toggleDemoDay}>
               {company.demo_day_selected ? '✓ Selecionada p/ Demo Day' : 'Marcar p/ Demo Day'}
@@ -419,6 +428,30 @@ export default function StartupDetailPage() {
           )}
         </div>
       </div>
+
+      {inProgressAssessment && inProgressLink && (
+        <Card className="border-amber-500/35 bg-amber-500/10">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <div className="min-w-0 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-semibold">Diagnóstico iniciado e incompleto</p>
+                  <Badge variant="secondary" className="executive-pill">Rascunho</Badge>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Progress value={inProgressPct} className="h-1.5 w-36" />
+                  <span className="font-mono">{inProgressAnswered}/{totalQuestions}</span>
+                  <span>criado em {new Date(inProgressAssessment.created_at).toLocaleDateString('pt-BR')}</span>
+                </div>
+              </div>
+            </div>
+            <Button asChild size="sm">
+              <Link to={inProgressLink}>Continuar questionário</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
 
       <div className='grid gap-3 sm:grid-cols-2 xl:grid-cols-6'>
@@ -446,10 +479,23 @@ export default function StartupDetailPage() {
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">Score</p>
-              <p className="text-xl font-semibold">{lastResult ? `${lastResult.score100} · ${lastResult.level}` : 'Sem score disponível'}</p>
+              <p className="text-xl font-semibold">
+                {lastResult ? `${lastResult.score100} · ${lastResult.level}` : latestAssessment?.status === 'in_progress' ? 'Rascunho em andamento' : 'Sem score disponível'}
+              </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" disabled={!lastResult || !diagnosticReportLink}><Link to={diagnosticReportLink || '#'}>Ver Relatório de Diagnóstico</Link></Button>
+              {latestAssessment?.status === 'in_progress' && (
+                <Button asChild>
+                  <Link to={`/app/assessments/${latestAssessment.id}/questionnaire`}>Continuar questionário</Link>
+                </Button>
+              )}
+              {latestAssessment?.id && (
+                <Button asChild variant="outline">
+                  <Link to={`/app/assessments/${latestAssessment.id}/report`}>
+                    {latestAssessment.status === 'completed' ? 'Ver Relatório de Diagnóstico' : 'Ver relatório parcial'}
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="outline"><Link to={companyProgressLink}>Ver Relatório de Progresso</Link></Button>
               {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
             </div>
@@ -773,7 +819,9 @@ export default function StartupDetailPage() {
                       transition={{ delay: i * 0.06, duration: 0.3 }}
                     >
                       <div
-                        className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 hover:-translate-y-0.5 transition-all duration-200"
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-secondary/50 hover:-translate-y-0.5 transition-all duration-200 ${
+                          a.status === 'in_progress' ? 'border-amber-500/35 bg-amber-500/5' : ''
+                        }`}
                         onClick={() => navigate(
                           a.status === 'completed'
                             ? `/app/assessments/${a.id}/report`
@@ -797,12 +845,13 @@ export default function StartupDetailPage() {
                               <div className="flex items-center gap-2 mt-1">
                                 <Progress value={pct} className="flex-1 h-1.5" />
                                 <span className="text-[10px] text-muted-foreground font-mono">{count}/{totalQuestions}</span>
+                                <span className="text-[10px] font-medium text-amber-500">incompleto</span>
                               </div>
                             )}
                           </div>
                         </div>
                         <Badge variant={a.status === 'completed' ? 'default' : 'secondary'} className="ml-2 shrink-0">
-                          {a.status === 'completed' ? 'Ver relatório' : 'Continuar'}
+                          {a.status === 'completed' ? 'Ver relatório' : 'Continuar diagnóstico'}
                         </Badge>
                       </div>
                     </motion.div>
@@ -823,9 +872,22 @@ export default function StartupDetailPage() {
 
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Configuração do Diagnóstico</p>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="default" className="executive-pill">Obrigatório</Badge>
+                <span>Estágio da empresa.</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="outline" className="executive-pill">Opcional recomendado</Badge>
+                <span>Cliente, receita e contexto financeiro/operacional enriquecem red flags, benchmarks e recomendações.</span>
+              </div>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs">Estágio</Label>
+                <Label className="flex items-center gap-2 text-xs">
+                  Estágio
+                  <Badge variant="default" className="executive-pill text-[10px]">Obrigatório</Badge>
+                </Label>
                 <Select value={newStage} onValueChange={setNewStage}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -836,7 +898,10 @@ export default function StartupDetailPage() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Tipo de Cliente</Label>
+                <Label className="flex items-center gap-2 text-xs">
+                  Tipo de cliente
+                  <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
+                </Label>
                 <Select value={newCustomerType} onValueChange={setNewCustomerType}>
                   <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                   <SelectContent>
@@ -848,7 +913,10 @@ export default function StartupDetailPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Modelo de Receita</Label>
+              <Label className="flex items-center gap-2 text-xs">
+                Modelo de receita
+                <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
+              </Label>
               <Select value={newRevenueModel} onValueChange={setNewRevenueModel}>
                 <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
                 <SelectContent>
@@ -861,7 +929,10 @@ export default function StartupDetailPage() {
             </div>
 
             <Separator />
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
+              <p className="text-xs text-muted-foreground">Todos os campos abaixo são opcionais recomendados.</p>
+            </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {numericFieldDefs.map(f => (
                 <div key={f.key} className="space-y-1">

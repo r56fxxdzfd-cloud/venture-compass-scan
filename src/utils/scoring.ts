@@ -1,4 +1,5 @@
 import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer, RedFlagTrigger, StageTarget } from '@/types/darwin';
+import { filterSkippedAnswers, getAnswerableQuestions } from '@/utils/question-flow';
 
 function resolveBenchmarkTarget(target: StageTarget | undefined, fallback = 3.5): number {
   if (typeof target === 'number' && Number.isFinite(target)) return target;
@@ -18,12 +19,14 @@ export function calculateDimensionScores(
   for (const [k, v] of Object.entries(rawTargets)) {
     targets[k] = resolveBenchmarkTarget(v);
   }
+  const answerableQuestions = getAnswerableQuestions(configJson, answers);
+  const effectiveAnswers = filterSkippedAnswers(configJson, answers);
 
   return configJson.dimensions.map((dim) => {
-    const dimQuestions = configJson.questions.filter(
+    const dimQuestions = answerableQuestions.filter(
       (q) => q.dimension_id === dim.id && q.is_active !== false
     );
-    const dimAnswers = answers.filter((a) =>
+    const dimAnswers = effectiveAnswers.filter((a) =>
       dimQuestions.some((q) => q.id === a.question_id) && !a.is_na && a.value !== null
     );
 
@@ -152,9 +155,10 @@ export function calculateAssessmentResult(
   contextNumeric: Record<string, number>,
   assessmentContext?: { revenue_model?: string; customer_type?: string; business_model?: string }
 ): AssessmentResult {
-  const dimensionScores = calculateDimensionScores(configJson, answers, stage);
+  const effectiveAnswers = filterSkippedAnswers(configJson, answers);
+  const dimensionScores = calculateDimensionScores(configJson, effectiveAnswers, stage);
   const overall = calculateOverallScore(dimensionScores, configJson, stage);
-  const redFlags = evaluateRedFlags(configJson, dimensionScores, answers, contextNumeric, stage, assessmentContext);
+  const redFlags = evaluateRedFlags(configJson, dimensionScores, effectiveAnswers, contextNumeric, stage, assessmentContext);
 
   const deepDiveDimensions = dimensionScores
     .filter((ds) => ds.score > 0 && ds.score < 3.0)

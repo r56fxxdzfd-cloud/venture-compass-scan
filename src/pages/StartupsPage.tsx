@@ -5,8 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Building2, Sparkles, ArrowRight } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,10 +17,20 @@ import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { IntakeInbox } from '@/components/startup/IntakeInbox';
 
+interface PortfolioMetric {
+  diagnostics: number;
+  lastAssessmentId: string;
+  lastAssessmentStatus: string;
+  lastAssessmentDate: string;
+  meetings: number;
+  openActions: number;
+  criticalActions: number;
+}
+
 export default function StartupsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [archived, setArchived] = useState<Company[]>([]);
-  const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, { diagnostics: number; lastAssessmentStatus: string; lastAssessmentDate: string; meetings: number; openActions: number; criticalActions: number }>>({});
+  const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, PortfolioMetric>>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
@@ -79,7 +89,7 @@ export default function StartupsPage() {
       assessmentsByCompany.set(a.company_id, list);
     });
 
-    const metrics: Record<string, { diagnostics: number; lastAssessmentStatus: string; lastAssessmentDate: string; meetings: number; openActions: number; criticalActions: number }> = {};
+    const metrics: Record<string, PortfolioMetric> = {};
     companiesData.forEach((company) => {
       const compAssess = assessmentsByCompany.get(company.id) || [];
       const compMeetings = meetingsByCompany.get(company.id) || [];
@@ -88,6 +98,7 @@ export default function StartupsPage() {
       const criticalActions = relatedActions.filter((a: any) => a.status === 'blocked' || a.status === 'overdue').length;
       metrics[company.id] = {
         diagnostics: compAssess.length,
+        lastAssessmentId: compAssess[0]?.id || '',
         lastAssessmentStatus: compAssess[0]?.status || 'none',
         lastAssessmentDate: compAssess[0]?.created_at || '',
         meetings: compMeetings.length,
@@ -307,10 +318,15 @@ export default function StartupsPage() {
                         </div>
                       </div>
                       <div className="rounded-xl border border-border/70 bg-background/70 p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Último diagnóstico</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Último diagnóstico</p>
+                          {portfolioMetrics[company.id]?.lastAssessmentStatus === 'in_progress' && (
+                            <Badge variant="secondary" className="executive-pill text-[10px]">Incompleto</Badge>
+                          )}
+                        </div>
                         <p className="mt-1 text-sm text-foreground">
                           {portfolioMetrics[company.id]?.lastAssessmentDate
-                            ? `Último diagnóstico: ${new Date(portfolioMetrics[company.id].lastAssessmentDate).toLocaleDateString('pt-BR')}`
+                            ? `${portfolioMetrics[company.id]?.lastAssessmentStatus === 'in_progress' ? 'Iniciado em' : 'Último diagnóstico:'} ${new Date(portfolioMetrics[company.id].lastAssessmentDate).toLocaleDateString('pt-BR')}`
                             : 'Último diagnóstico: não disponível'}
                         </p>
                       </div>
@@ -339,6 +355,13 @@ export default function StartupsPage() {
                     </CardContent>
                   </Link>
                   <div className="mt-1 flex flex-col gap-2 px-5 pb-5 sm:flex-row sm:flex-wrap">
+                    {portfolioMetrics[company.id]?.lastAssessmentStatus === 'in_progress' && portfolioMetrics[company.id]?.lastAssessmentId && (
+                      <Button asChild size="sm" className="w-full sm:w-auto">
+                        <Link to={`/app/assessments/${portfolioMetrics[company.id].lastAssessmentId}/questionnaire`}>
+                          Continuar diagnóstico
+                        </Link>
+                      </Button>
+                    )}
                     <Button asChild size="sm" variant="secondary" className="w-full sm:w-auto">
                       <Link to={`/app/startups/${company.id}/progress`}>Relatório de Progresso</Link>
                     </Button>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -12,13 +12,28 @@ import { ArrowLeft, HelpCircle, Check, Eye, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
+import { getAnswerableQuestions, getSkippedQuestions } from '@/utils/question-flow';
+
+type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
+
+function answerStateToRows(answers: AnswerState, assessmentId: string | undefined): Answer[] {
+  return Object.entries(answers).map(([questionId, answer]) => ({
+    id: questionId,
+    assessment_id: assessmentId || '',
+    question_id: questionId,
+    value: answer.value,
+    is_na: answer.is_na,
+    notes: answer.notes || null,
+    created_at: '',
+  }));
+}
 
 export default function QuestionnairePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [config, setConfig] = useState<ConfigJSON | null>(null);
-  const [answers, setAnswers] = useState<Record<string, { value: number | null; is_na: boolean; notes: string }>>({});
+  const [answers, setAnswers] = useState<AnswerState>({});
   const [saving, setSaving] = useState(false);
   const [activeDim, setActiveDim] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
@@ -115,13 +130,29 @@ export default function QuestionnairePage() {
   const completeAssessment = async () => {
     await saveAnswers();
     await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
-    const answeredCount = Object.values(answers).filter((a) => a.value !== null || a.is_na).length;
-    const totalQuestions = config?.questions.filter((q) => q.is_active !== false).length || 45;
+    const flowAnswers = answerStateToRows(answers, id);
+    const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers).map((q) => q.id) : []);
+    const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableIds.has(questionId) && (a.value !== null || a.is_na)).length;
+    const totalQuestions = answerableIds.size || 45;
     toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas. Gerando relatório...` });
     setTimeout(() => {
       navigate(`/app/assessments/${id}/report`);
     }, 1500);
   };
+
+  const flowAnswers = useMemo(() => answerStateToRows(answers, id), [answers, id]);
+  const answerableQuestions = useMemo(
+    () => (config ? getAnswerableQuestions(config, flowAnswers) : []),
+    [config, flowAnswers]
+  );
+  const skippedQuestions = useMemo(
+    () => (config ? getSkippedQuestions(config, flowAnswers) : []),
+    [config, flowAnswers]
+  );
+  const answerableQuestionIds = useMemo(
+    () => new Set(answerableQuestions.map((q) => q.id)),
+    [answerableQuestions]
+  );
 
   if (!config) return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -153,8 +184,8 @@ export default function QuestionnairePage() {
     </div>
   );
 
-  const totalQuestions = config.questions.filter((q) => q.is_active !== false).length;
-  const answeredCount = Object.entries(answers).filter(([_, a]) => a && (a.value !== null || a.is_na)).length;
+  const totalQuestions = answerableQuestions.length;
+  const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableQuestionIds.has(questionId) && a && (a.value !== null || a.is_na)).length;
   const progressPct = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
 
   return (
@@ -207,7 +238,7 @@ export default function QuestionnairePage() {
       <Tabs value={activeDim} onValueChange={setActiveDim} className="executive-surface rounded-xl p-3 sm:p-4">
         <TabsList className="flex w-full flex-wrap h-auto gap-1 justify-start bg-muted/60">
           {config.dimensions.map((dim) => {
-            const dimQuestions = config.questions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
+            const dimQuestions = answerableQuestions.filter((q) => q.dimension_id === dim.id && q.is_active !== false);
             const dimAnswered = dimQuestions.filter((q) => answers[q.id] && (answers[q.id].value !== null || answers[q.id].is_na)).length;
             const isComplete = dimAnswered === dimQuestions.length && dimQuestions.length > 0;
 
@@ -222,7 +253,18 @@ export default function QuestionnairePage() {
 
         {config.dimensions.map((dim) => (
           <TabsContent key={dim.id} value={dim.id} className="space-y-4 mt-4">
-            {config.questions
+            {(() => {
+              const skippedInDimension = skippedQuestions.filter((item) => item.question.dimension_id === dim.id);
+              return skippedInDimension.length > 0 ? (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <p>
+                    {skippedInDimension.length} pergunta{skippedInDimension.length > 1 ? 's' : ''} pulada{skippedInDimension.length > 1 ? 's' : ''} por resposta anterior nesta dimensão.
+                  </p>
+                </div>
+              ) : null;
+            })()}
+            {answerableQuestions
               .filter((q) => q.dimension_id === dim.id && q.is_active !== false)
               .sort((a, b) => a.sort_order - b.sort_order)
               .map((question, idx) => (
@@ -329,10 +371,16 @@ function QuestionCard({
               {tooltip && (tooltip.definition || tooltip.why) && (
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <HelpCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-label="Explicação da pergunta"
+                      >
+                        <HelpCircle className="h-4 w-4 shrink-0" />
+                      </button>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    <TooltipContent side="top" align="start" sideOffset={8} className="max-w-[min(20rem,calc(100vw-2rem))] whitespace-normal">
                       {tooltip.definition && <p className="text-xs mb-1"><strong>Definição:</strong> {tooltip.definition}</p>}
                       {tooltip.why && <p className="text-xs"><strong>Por quê:</strong> {tooltip.why}</p>}
                     </TooltipContent>

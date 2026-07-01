@@ -157,6 +157,13 @@ export default function IntakePage() {
               </CardTitle>
               <Progress value={((step + 1) / STEPS) * 100} className="h-1.5" />
               <p className="text-xs text-muted-foreground">Passo {step + 1} de {STEPS}</p>
+              <div className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+                <span className="mr-2 font-semibold text-foreground">Obrigatório</span>
+                campos com *
+                <span className="mx-2 text-border">|</span>
+                <span className="mr-2 font-semibold text-foreground">Opcional recomendado</span>
+                melhora a leitura da avaliação.
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {step === 0 && (
