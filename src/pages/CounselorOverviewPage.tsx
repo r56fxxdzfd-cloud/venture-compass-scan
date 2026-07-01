@@ -85,6 +85,7 @@ const priorityLabel: Record<string, string> = {
 };
 
 const meetingTypeLabel: Record<string, string> = {
+  diagnostic_initial: 'Diagnóstico inicial',
   collective: 'Coletiva',
   individual: 'Individual',
   extraordinary: 'Extraordinária',

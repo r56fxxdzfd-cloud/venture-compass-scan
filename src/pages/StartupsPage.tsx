@@ -16,6 +16,7 @@ import type { Company } from '@/types/darwin';
 import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { IntakeInbox } from '@/components/startup/IntakeInbox';
+import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 
 interface PortfolioMetric {
   diagnostics: number;
@@ -130,6 +131,10 @@ export default function StartupsPage() {
       });
       return;
     }
+    if (form.cnpj && !isValidCnpj(form.cnpj)) {
+      toast({ title: 'CNPJ inválido', description: 'Confira os dígitos do CNPJ antes de criar a organização.', variant: 'destructive' });
+      return;
+    }
 
     const { error } = await supabase.from('companies').insert({
       name: form.name,
@@ -199,13 +204,7 @@ export default function StartupsPage() {
                     placeholder="00.000.000/0000-00"
                     maxLength={18}
                     onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '').slice(0, 14);
-                      let formatted = digits;
-                      if (digits.length > 2) formatted = digits.slice(0, 2) + '.' + digits.slice(2);
-                      if (digits.length > 5) formatted = formatted.slice(0, 6) + '.' + digits.slice(5);
-                      if (digits.length > 8) formatted = formatted.slice(0, 10) + '/' + digits.slice(8);
-                      if (digits.length > 12) formatted = formatted.slice(0, 15) + '-' + digits.slice(12);
-                      setForm({ ...form, cnpj: formatted });
+                      setForm({ ...form, cnpj: formatCnpj(e.target.value) });
                     }}
                   />
                 </div>

@@ -1,4 +1,4 @@
-export type MeetingType = 'collective' | 'individual' | 'extraordinary';
+export type MeetingType = 'diagnostic_initial' | 'collective' | 'individual' | 'extraordinary';
 export type ActionPriority = 'low' | 'medium' | 'high';
 export type ActionStatus = 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
 export type DimensionTrend = 'improving' | 'stable' | 'worsening' | 'insufficient_evidence';

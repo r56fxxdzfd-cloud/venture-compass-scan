@@ -39,6 +39,13 @@ const blockerSuggestions = ['Falta de responsável','Falta de dados','Falta de c
 
 const confidenceLabel = { high: 'Alta', medium: 'Média', low: 'Baixa' } as const;
 
+const meetingTypeLabel: Record<string, string> = {
+  diagnostic_initial: 'Diagnóstico inicial',
+  collective: 'Coletivo',
+  individual: 'Individual',
+  extraordinary: 'Extraordinário',
+};
+
 
 const actionStatusLabel: Record<string, string> = {
   not_started: 'Não iniciada',
@@ -598,7 +605,7 @@ export default function MeetingDetailPage() {
         <div className='grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3'>
           <p><strong>Organização:</strong> {companyName || '—'}</p>
           <p><strong>Data:</strong> {formatDateOnlyBR(meeting.meeting_date)}</p>
-          <p><strong>Tipo:</strong> {meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</p>
+          <p><strong>Tipo:</strong> {meetingTypeLabel[meeting.meeting_type] || meeting.meeting_type}</p>
           <p><strong>Saúde do ciclo:</strong> {cycleHealth}</p>
           <p><strong>Ações concluídas:</strong> {completedActions}/{totalActions}</p>
           <p><strong>Próxima pauta:</strong> {meeting.next_agenda || 'Não definida'}</p>
@@ -615,7 +622,7 @@ export default function MeetingDetailPage() {
       <Card className='executive-card'><CardContent className='p-4'><p className='text-sm font-semibold'>{cycleHealth}</p><p className='text-xs text-muted-foreground'>Saúde do ciclo (atrasos, travas, pauta, evolução e conclusão)</p></CardContent></Card>
     </div>
     <Card className='executive-panel print:break-inside-avoid'><CardHeader><CardTitle>Ata estruturada</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
-      <Badge className='executive-pill print:hidden'>{meeting.meeting_type === 'collective' ? 'Coletivo' : meeting.meeting_type === 'individual' ? 'Individual' : 'Extraordinário'}</Badge>
+      <Badge className='executive-pill print:hidden'>{meetingTypeLabel[meeting.meeting_type] || meeting.meeting_type}</Badge>
       <p><strong>Empresa:</strong> {companyName || '—'}</p>
       {!hasStructuredMinutesContent ? <div className='rounded-md border border-dashed p-3 text-muted-foreground'>
         <p className='font-medium'>Ata ainda não estruturada.</p>

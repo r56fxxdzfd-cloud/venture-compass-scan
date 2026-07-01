@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,18 @@ import { cn } from '@/lib/utils';
 
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
-const mt = { collective: 'Coletivo', individual: 'Individual', extraordinary: 'Extraordinário' } as const;
+const mt: Record<MeetingType, string> = {
+  diagnostic_initial: 'Diagnóstico inicial',
+  collective: 'Coletivo',
+  individual: 'Individual',
+  extraordinary: 'Extraordinário',
+};
+const meetingTypeOptions: { value: MeetingType; label: string }[] = [
+  { value: 'diagnostic_initial', label: 'Diagnóstico Inicial' },
+  { value: 'collective', label: 'Comitê de Crescimento Coletivo' },
+  { value: 'individual', label: 'Acompanhamento Individual' },
+  { value: 'extraordinary', label: 'Reunião Extraordinária' },
+];
 const mainTopics = ['Diagnóstico inicial','Revisão de execução','Finanças e sustentabilidade','Governança e riscos','Pessoas e liderança','Processos e métricas','Estratégia e foco','Captação e parcerias','Impacto e entrega','Revisão de ciclo','Outro'] as const;
 const trendLabels: Record<DimensionTrend | 'sem_trend', string> = {
   improving: 'Melhorando',
@@ -123,6 +134,7 @@ const getValidMeetingId = (meeting: Pick<CouncilMeeting, 'id'>) => {
 
 export default function AgendaPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [companies, setCompanies] = useState<Company[]>([]);
   const [meetings, setMeetings] = useState<CouncilMeeting[]>([]);
@@ -179,6 +191,27 @@ export default function AgendaPage() {
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const requestedCompany = params.get('company') || '';
+    const requestedNew = params.get('new');
+    const requestedType = params.get('type') as MeetingType | null;
+    const validType = meetingTypeOptions.some((option) => option.value === requestedType) ? requestedType : 'collective';
+
+    if (requestedCompany) setCompanyId(requestedCompany);
+    if (requestedNew === 'meeting') {
+      setForm((prev: any) => ({
+        ...prev,
+        company_id: requestedCompany || prev.company_id,
+        meeting_date: prev.meeting_date || todayDateOnly,
+        meeting_type: validType,
+        main_topic: validType === 'diagnostic_initial' ? 'Diagnóstico inicial' : (prev.main_topic || ''),
+        main_topic_choice: validType === 'diagnostic_initial' ? 'Diagnóstico inicial' : prev.main_topic_choice,
+      }));
+      setOpen(true);
+    }
+  }, [location.search, todayDateOnly]);
 
   const meetingsHealth = useMemo(() => {
     return meetings.map((m) => {
@@ -496,7 +529,7 @@ export default function AgendaPage() {
     </section>
     <Card className='executive-panel print:hidden'><CardContent className='p-3 grid md:grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2'>
       <Select value={companyId} onValueChange={setCompanyId}><SelectTrigger className='h-8 rounded-full text-xs'><SelectValue placeholder='Empresa/OS' /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-      <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger className='h-8 rounded-full text-xs'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem><SelectItem value='collective'>Coletivo</SelectItem><SelectItem value='individual'>Individual</SelectItem><SelectItem value='extraordinary'>Extraordinário</SelectItem></SelectContent></Select>
+      <Select value={typeFilter} onValueChange={setTypeFilter}><SelectTrigger className='h-8 rounded-full text-xs'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos os tipos</SelectItem>{meetingTypeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select>
       <Select value={actionStatus} onValueChange={setActionStatus}><SelectTrigger className='h-8 rounded-full text-xs'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos status de ação</SelectItem><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select>
       <Select value={meetingStatus} onValueChange={(v) => setMeetingStatus(v as any)}><SelectTrigger className='h-8 rounded-full text-xs'><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todos encontros</SelectItem><SelectItem value='critical'>Crítico</SelectItem><SelectItem value='attention'>Atenção</SelectItem><SelectItem value='healthy'>Saudável</SelectItem></SelectContent></Select>
       <Button size='sm' variant='ghost' className='h-8 rounded-full px-3 text-xs text-muted-foreground hover:text-foreground' onClick={() => { setCompanyId('all'); setTypeFilter('all'); setActionStatus('all'); setMeetingStatus('all'); }}>Limpar filtros</Button>
@@ -564,7 +597,7 @@ export default function AgendaPage() {
           <div className='grid gap-4 sm:grid-cols-[76px_1fr_124px] sm:items-center print:gap-2'>
             <div className='w-fit rounded-2xl border border-border/70 bg-background/75 px-3 py-2.5 text-center shadow-sm sm:w-full print:py-2'><p className='text-2xl font-extrabold leading-none'>{parsedDate ? String(parsedDate.day).padStart(2, '0') : '—'}</p><p className='mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground'>{parsedDate ? monthNamesPtBr[parsedDate.month - 1].slice(0, 3) : 'data'}</p><p className='mt-0.5 text-[10px] text-muted-foreground'>{parsedDate?.year || ''}</p></div>
             <div className='min-w-0 space-y-2'>
-              <div className='flex flex-wrap items-center gap-1.5'><Badge variant='secondary' className='executive-pill bg-background/70'>{comp}</Badge><Badge variant='outline' className='executive-pill border-primary/25 bg-primary/10 text-primary'>{mt[m.meeting_type as MeetingType]}</Badge>{alertBadge && <Badge variant='outline' className={cn('executive-pill font-semibold', timelineAlertBadgeClasses(alertBadge))}>{alertBadge}</Badge>}</div>
+              <div className='flex flex-wrap items-center gap-1.5'><Badge variant='secondary' className='executive-pill bg-background/70'>{comp}</Badge><Badge variant='outline' className='executive-pill border-primary/25 bg-primary/10 text-primary'>{mt[m.meeting_type as MeetingType] || m.meeting_type}</Badge>{alertBadge && <Badge variant='outline' className={cn('executive-pill font-semibold', timelineAlertBadgeClasses(alertBadge))}>{alertBadge}</Badge>}</div>
               <div className='grid gap-1 md:grid-cols-[minmax(0,1fr)_220px] md:items-end'><div><h4 className='line-clamp-1 font-bold leading-tight tracking-tight'>{m.title || m.main_topic || 'Encontro do comitê de crescimento'}</h4><p className='line-clamp-1 text-xs text-muted-foreground'>Tema: {m.main_topic || '—'}</p></div><div className='hidden text-right text-xs text-muted-foreground md:block'><span className='font-semibold text-foreground'>{completedCount}/{am.length}</span> ações · <span className='font-semibold text-foreground'>{dimCount}</span> dimensões</div></div>
               <div className='flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground md:hidden'><span><strong className='text-foreground'>{completedCount}/{am.length}</strong> ações</span><span><strong className='text-foreground'>{dimCount}</strong> dimensões avaliadas</span></div>
               <p className='line-clamp-1 text-xs text-muted-foreground'><strong className='text-foreground'>Próxima pauta:</strong> {m.next_agenda || '—'}</p>
@@ -603,7 +636,7 @@ export default function AgendaPage() {
       <div className='grid md:grid-cols-2 gap-3'>
         <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Data*</Label><Input type='date' value={form.meeting_date || ''} onChange={e => setForm({ ...form, meeting_date: e.target.value })} /></div>
-        <div><Label>Tipo de encontro*</Label><Select value={form.meeting_type || 'collective'} onValueChange={v => setForm({ ...form, meeting_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='collective'>Comitê de Crescimento Coletivo</SelectItem><SelectItem value='individual'>Acompanhamento Individual</SelectItem><SelectItem value='extraordinary'>Reunião Extraordinária</SelectItem></SelectContent></Select></div>
+        <div><Label>Tipo de encontro*</Label><Select value={form.meeting_type || 'collective'} onValueChange={v => setForm({ ...form, meeting_type: v, main_topic: v === 'diagnostic_initial' ? 'Diagnóstico inicial' : form.main_topic, main_topic_choice: v === 'diagnostic_initial' ? 'Diagnóstico inicial' : form.main_topic_choice })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{meetingTypeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Tema principal</Label><Select value={mainTopics.includes(form.main_topic) ? form.main_topic : 'Outro'} onValueChange={v => setForm({ ...form, main_topic: v === 'Outro' ? '' : v, main_topic_choice: v })}><SelectTrigger><SelectValue placeholder='Selecione o tema' /></SelectTrigger><SelectContent>{mainTopics.map(topic => <SelectItem key={topic} value={topic}>{topic}</SelectItem>)}</SelectContent></Select>{(form.main_topic_choice === 'Outro' || (!!form.main_topic && !mainTopics.includes(form.main_topic))) && <Input className='mt-2' placeholder='Descreva o tema principal' value={form.main_topic || ''} onChange={e => setForm({ ...form, main_topic: e.target.value, main_topic_choice: 'Outro' })} />}</div>
         <div className='md:col-span-2'><Label>Dimensões relacionadas</Label><div className='mt-2 flex flex-wrap gap-2'>{dimensionCatalog.map(dim => { const selected = form.related_dimensions?.includes(dim.id); return <button key={dim.id} type='button' onClick={() => setForm((prev: any) => ({ ...prev, related_dimensions: selected ? prev.related_dimensions.filter((id: string) => id !== dim.id) : [...(prev.related_dimensions || []), dim.id] }))} className={`rounded-full border px-3 py-1 text-xs ${selected ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>{dim.label}</button>; })}</div></div>
         <div className='md:col-span-2'><Label>Resumo executivo</Label><Input value={form.executive_summary || ''} onChange={e => setForm({ ...form, executive_summary: e.target.value })} /></div>
@@ -615,7 +648,7 @@ export default function AgendaPage() {
           <div className='grid md:grid-cols-2 gap-3'>
             <div><Label>Empresa*</Label><Select value={form.company_id || ''} onValueChange={v => setForm({ ...form, company_id: v })}><SelectTrigger><SelectValue placeholder='Selecione' /></SelectTrigger><SelectContent>{companies.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Data*</Label><Input type='date' value={form.meeting_date || ''} onChange={e => setForm({ ...form, meeting_date: e.target.value })} /></div>
-            <div><Label>Tipo de encontro*</Label><Select value={form.meeting_type || 'collective'} onValueChange={v => setForm({ ...form, meeting_type: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='collective'>Comitê de Crescimento Coletivo</SelectItem><SelectItem value='individual'>Acompanhamento Individual</SelectItem><SelectItem value='extraordinary'>Reunião Extraordinária</SelectItem></SelectContent></Select></div>
+            <div><Label>Tipo de encontro*</Label><Select value={form.meeting_type || 'collective'} onValueChange={v => setForm({ ...form, meeting_type: v, main_topic: v === 'diagnostic_initial' ? 'Diagnóstico inicial' : form.main_topic })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{meetingTypeOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Tema principal (opcional)</Label><Input value={form.main_topic || ''} onChange={(e) => setForm({ ...form, main_topic: e.target.value })} /></div>
             <div className='md:col-span-2'><Label>Dimensões relacionadas (opcional)</Label><div className='mt-2 flex flex-wrap gap-2'>{dimensionCatalog.map(dim => { const selected = form.related_dimensions?.includes(dim.id); return <button key={dim.id} type='button' onClick={() => setForm((prev: any) => ({ ...prev, related_dimensions: selected ? prev.related_dimensions.filter((id: string) => id !== dim.id) : [...(prev.related_dimensions || []), dim.id] }))} className={`rounded-full border px-3 py-1 text-xs ${selected ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'}`}>{dim.label}</button>; })}</div></div>
             <div className='md:col-span-2'><Label>Transcrição da reunião*</Label><Textarea className='min-h-[220px]' value={transcriptText} onChange={(e) => setTranscriptText(e.target.value)} placeholder='Cole aqui a transcrição completa da reunião.' /></div>

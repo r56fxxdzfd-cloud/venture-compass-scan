@@ -30,6 +30,7 @@ import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
 import { CONTEXT_NUMERIC_FIELDS } from '@/utils/context-fields';
+import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
@@ -290,6 +291,10 @@ export default function StartupDetailPage() {
 
   const handleSaveCompany = async () => {
     if (!company) return;
+    if (editForm.cnpj && !isValidCnpj(editForm.cnpj)) {
+      toast({ title: 'CNPJ inválido', description: 'Confira os dígitos do CNPJ antes de salvar.', variant: 'destructive' });
+      return;
+    }
     setEditSaving(true);
     const { error } = await supabase.from('companies').update({
       name: editForm.name,
@@ -445,7 +450,7 @@ export default function StartupDetailPage() {
             </Button>
           )}
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Comitê de Crescimento</Link></Button>
-          <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
+          <Button asChild variant='outline'><Link to={`/app/agenda?company=${company.id}`}>Ver Agenda</Link></Button>
           <Button asChild variant='secondary'><Link to={companyProgressLink}>Relatório de Progresso</Link></Button>
           {lastResult && diagnosticReportLink && (
             <Button asChild variant='outline'>
@@ -563,7 +568,7 @@ export default function StartupDetailPage() {
             <p><span className='text-muted-foreground'>Próxima pauta:</span> {upcomingAgenda}</p>
             <p><span className='text-muted-foreground'>Ações abertas/críticas:</span> <strong>{openActionsCount}</strong> / <strong className='text-destructive'>{criticalActionsCount}</strong></p>
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
+              <Button asChild variant='outline'><Link to={`/app/agenda?company=${company.id}`}>Abrir Agenda</Link></Button>
               <Button asChild variant='outline'><Link to={companyProgressLink}>Ver Relatório de Progresso</Link></Button>
             </div>
           </CardContent>
@@ -1007,7 +1012,7 @@ export default function StartupDetailPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">CNPJ</Label>
-              <Input value={editForm.cnpj} onChange={e => setEditForm(prev => ({ ...prev, cnpj: e.target.value }))} />
+              <Input value={editForm.cnpj} maxLength={18} onChange={e => setEditForm(prev => ({ ...prev, cnpj: formatCnpj(e.target.value) }))} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Setor</Label>

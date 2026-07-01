@@ -115,6 +115,7 @@ export default function CounselorCenterPage() {
 
   const suggestedTemplates = templates.filter(t => relatedDimensionIds.has(t.dimension_id));
   const recentMeetings = meetings.slice(0, 3);
+  const newMeetingHref = `/app/agenda?company=${company?.id || id || ''}&new=meeting&type=diagnostic_initial`;
 
   if (loading) {
     return (
@@ -156,7 +157,7 @@ export default function CounselorCenterPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild size="sm" className="rounded-full">
-              <Link to="/app/agenda"><Plus className="h-4 w-4 mr-2" /> Novo encontro</Link>
+              <Link to={newMeetingHref}><Plus className="h-4 w-4 mr-2" /> Novo encontro</Link>
             </Button>
             <Button asChild size="sm" variant="secondary" className="rounded-full">
               <Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso</Link>
@@ -197,7 +198,7 @@ export default function CounselorCenterPage() {
             </div>
             <p className="font-semibold text-base">Sem encontros registrados para esta empresa.</p>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">Registre o primeiro encontro para iniciar o acompanhamento da organização e liberar a visão executiva do comitê de crescimento.</p>
-            <Button asChild className="rounded-full"><Link to="/app/agenda">Registrar primeiro encontro</Link></Button>
+            <Button asChild className="rounded-full"><Link to={newMeetingHref}>Registrar primeiro encontro</Link></Button>
           </CardContent>
         </Card>
       ) : (
@@ -391,7 +392,7 @@ export default function CounselorCenterPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 lg:shrink-0">
-              <Button asChild className="rounded-full"><Link to="/app/agenda"><Plus className="h-4 w-4 mr-2" />Novo encontro</Link></Button>
+              <Button asChild className="rounded-full"><Link to={newMeetingHref}><Plus className="h-4 w-4 mr-2" />Novo encontro</Link></Button>
               <Button variant="outline" asChild className="rounded-full"><Link to={`/app/startups/${company.id}/progress`}>Ver Relatório de Progresso <ArrowUpRight className="h-3.5 w-3.5 ml-1" /></Link></Button>
               <Button variant="outline" asChild className="rounded-full"><Link to="/app/agenda/templates">Templates de Pauta</Link></Button>
             </div>
