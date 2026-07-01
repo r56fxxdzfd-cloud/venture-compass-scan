@@ -62,7 +62,7 @@ export default function StartupDetailPage() {
   const [actions, setActions] = useState<CouncilAction[]>([]);
 
   const canWrite = isAdmin || isAnalyst;
-  // Conselheiro atribuído alcança esta página (RLS) — pode operar plano/reuniões.
+  // Membro do Comitê de Crescimento atribuído alcança esta página (RLS) — pode operar plano/reuniões.
   const canManageOps = isAdmin || isAnalyst || isAdvisor;
 
   // New assessment dialog
@@ -89,7 +89,7 @@ export default function StartupDetailPage() {
     const load = async () => {
       const { data: companyData } = await supabase.from('companies').select('*').eq('id', id).maybeSingle();
       if (!companyData) {
-        // RLS pode retornar 0 linhas (ex.: conselheiro sem atribuição). Não é erro.
+        // RLS pode retornar 0 linhas (ex.: membro do comitê de crescimento sem atribuição). Não é erro.
         setCompany(null);
         setLoading(false);
         return;
@@ -312,7 +312,7 @@ export default function StartupDetailPage() {
       </div>
       <Card>
         <CardContent className="pt-6 text-sm text-muted-foreground">
-          Esta organização não existe ou você não tem acesso a ela. Conselheiros só visualizam organizações que lhes foram atribuídas.
+          Esta organização não existe ou você não tem acesso a ela. Membros do Comitê de Crescimento só visualizam organizações que lhes foram atribuídas.
         </CardContent>
       </Card>
       <BackToTopFooter />
@@ -418,7 +418,7 @@ export default function StartupDetailPage() {
               {company.demo_day_selected ? '✓ Selecionada p/ Demo Day' : 'Marcar p/ Demo Day'}
             </Button>
           )}
-          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
+          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Comitê de Crescimento</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Ver Agenda</Link></Button>
           <Button asChild variant='secondary'><Link to={companyProgressLink}>Relatório de Progresso</Link></Button>
           {lastResult && diagnosticReportLink && (
@@ -503,7 +503,7 @@ export default function StartupDetailPage() {
         </Card>
 
         <Card className='executive-panel'>
-          <CardHeader><p className='executive-section-title text-xs'>Conselho e evolução</p><CardTitle>Últimos encontros e governança</CardTitle></CardHeader>
+          <CardHeader><p className='executive-section-title text-xs'>Comitê de Crescimento e evolução</p><CardTitle>Últimos encontros e governança</CardTitle></CardHeader>
           <CardContent className='space-y-3 text-sm'>
             <div className="space-y-2">
               <p className="text-muted-foreground">Últimos encontros</p>
@@ -517,7 +517,7 @@ export default function StartupDetailPage() {
                     <div key={meeting.id} className="flex items-center justify-between rounded-md border px-3 py-2">
                       <div>
                         <p className="text-xs text-muted-foreground">{formatDateOnlyBR(meeting.meeting_date)}</p>
-                        <p className="font-medium">{meeting.title || meeting.executive_summary || 'Encontro de conselho'}</p>
+                        <p className="font-medium">{meeting.title || meeting.executive_summary || 'Encontro do comitê de crescimento'}</p>
                         <p className="max-w-full break-words text-xs text-muted-foreground">Próxima pauta: {meeting.next_agenda || 'Não definida'}</p>
                       </div>
                       <Button asChild size="sm" variant="ghost">
@@ -549,7 +549,7 @@ export default function StartupDetailPage() {
           </div>
           {relevantActions.length === 0 ? (
             <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-              Sem ações abertas no momento. Registre ações na Agenda ou na Central do Conselheiro para acompanhar pendências executivas.
+              Sem ações abertas no momento. Registre ações na Agenda ou na Central do Comitê de Crescimento para acompanhar pendências executivas.
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -567,7 +567,7 @@ export default function StartupDetailPage() {
                 <p className="text-muted-foreground">Responsável: {item.owner_name || 'Não definido'}</p>
                 <p className="text-muted-foreground">Dimensão: {item.related_dimension || 'Não informada'}</p>
                 <div className="mt-2">
-                  <Button asChild size="sm"><Link to={item.meeting_id ? `/app/agenda/${item.meeting_id}` : `/app/startups/${company.id}/counselor`}>{item.meeting_id ? 'Abrir encontro' : 'Abrir Central do Conselheiro'}</Link></Button>
+                  <Button asChild size="sm"><Link to={item.meeting_id ? `/app/agenda/${item.meeting_id}` : `/app/startups/${company.id}/counselor`}>{item.meeting_id ? 'Abrir encontro' : 'Abrir Central do Comitê de Crescimento'}</Link></Button>
                 </div>
               </div>
             ))}
@@ -743,7 +743,7 @@ export default function StartupDetailPage() {
         );
       })()}
 
-      {/* Conselheiros (atribuição de advisors) — apenas JV Admin/Super Admin */}
+      {/* Membros do Comitê de Crescimento (atribuição de advisors) — apenas JV Admin/Super Admin */}
       {isAdmin && <AdvisorsSection companyId={company.id} />}
 
       {/* Plano de ação (action_items, nível company) */}

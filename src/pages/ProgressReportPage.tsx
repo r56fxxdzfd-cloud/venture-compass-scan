@@ -191,7 +191,7 @@ export default function ProgressReportPage() {
     return {
       text1: normalizeSentence(`Desde o início do acompanhamento, a organização teve ${meetings.length} encontros e ${actionsByStatus.completed.length} ações concluídas.`),
       text15: progressDimensionRows.length === 0
-        ? 'Ainda não há evolução por dimensão registrada nos encontros do conselho.'
+        ? 'Ainda não há evolução por dimensão registrada nos encontros do comitê de crescimento.'
         : normalizeSentence(`Foram registradas ${progressDimensionRows.length} dimensões com evolução acompanhada.`),
       text2: positive.length ? normalizeSentence(`As dimensões com tendência positiva são: ${positive.join(', ')}.`) : '',
       text25: attentionDimensions.length ? normalizeSentence(`As dimensões em atenção são: ${attentionDimensions.join(', ')}.`) : '',
@@ -234,13 +234,13 @@ export default function ProgressReportPage() {
   return <div className='space-y-4 print-safe'>
     <div className='executive-surface rounded-xl p-5 print-safe'>
       <p className='executive-header'>Relatório de Progresso</p>
-      <p className='text-sm text-muted-foreground mt-1'>Evolução da organização ao longo dos encontros do conselho.</p>
+      <p className='text-sm text-muted-foreground mt-1'>Evolução da organização ao longo dos encontros do comitê de crescimento.</p>
       <div className='mt-2 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
         <h1 className='executive-section-title text-2xl font-bold'>{company.name}</h1>
         <div className='flex flex-col gap-2 print:hidden sm:flex-row sm:flex-wrap sm:items-center'>
           <Button asChild variant='outline'><Link to={`/app/startups/${company.id}`}>Voltar para organização</Link></Button>
           <Button asChild variant='outline'><Link to='/app/agenda'>Abrir Agenda</Link></Button>
-          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Conselheiro</Link></Button>
+          <Button asChild variant='outline'><Link to={`/app/startups/${company.id}/counselor`}>Abrir Central do Comitê de Crescimento</Link></Button>
           <Button variant='outline' onClick={() => window.print()}>Imprimir / Exportar PDF</Button>
         </div>
       </div>
@@ -255,7 +255,7 @@ export default function ProgressReportPage() {
     </div>
 
     {meetings.length === 0 && <Card className='executive-surface print-safe'><CardContent className='py-8 text-sm text-muted-foreground'>
-      Nenhum encontro de conselho foi registrado para esta empresa ainda. Registre o primeiro encontro na <Link className='underline text-primary' to='/app/agenda'>Agenda de Evolução</Link>.
+      Nenhum encontro do comitê de crescimento foi registrado para esta empresa ainda. Registre o primeiro encontro na <Link className='underline text-primary' to='/app/agenda'>Agenda de Evolução</Link>.
     </CardContent></Card>}
 
     <Card className='executive-surface print-safe'><CardHeader><CardTitle>Resumo executivo</CardTitle></CardHeader><CardContent className='space-y-2 text-sm'>
@@ -285,7 +285,7 @@ export default function ProgressReportPage() {
         dimensions={dimensions}
         progressRecords={progressRows}
         title='Radar de Evolução por Dimensão'
-        subtitle='Comparação entre o baseline inicial e a última leitura registrada pelo conselho.'
+        subtitle='Comparação entre o baseline inicial e a última leitura registrada pelo comitê de crescimento.'
       />
     </CardContent></Card>
 
@@ -315,7 +315,7 @@ export default function ProgressReportPage() {
         <p><strong>Baseline:</strong> {progress?.initial_score ?? 'sem evidência'} | <strong>Última leitura:</strong> {progress?.current_perceived_score ?? 'sem evidência'}</p>
         <p><strong>Variação:</strong> {(progress?.initial_score !== null && progress?.initial_score !== undefined && progress?.current_perceived_score !== null && progress?.current_perceived_score !== undefined) ? `${(progress.current_perceived_score - progress.initial_score) > 0 ? '+' : ''}${(progress.current_perceived_score - progress.initial_score).toFixed(1)}` : 'não disponível'}</p>
         <p><strong>Evidência:</strong> {progress?.evidence_note || 'sem evidência registrada'}</p>
-        <p><strong>Comentário do conselheiro:</strong> {progress?.counselor_comment || 'sem evidência registrada'}</p>
+        <p><strong>Comentário do membro do comitê de crescimento:</strong> {progress?.counselor_comment || 'sem evidência registrada'}</p>
         <p className='text-xs text-muted-foreground'>Última atualização: {progress?.updated_at ? new Date(progress.updated_at).toLocaleString('pt-BR') : '—'}</p>
       </div>)}</div>}
     </CardContent></Card>
@@ -327,8 +327,8 @@ export default function ProgressReportPage() {
       </p>
     </CardContent></Card>
 
-    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações do conselho</CardTitle></CardHeader><CardContent className='pt-2'>
-      {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações de conselho registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
+    <Card className='executive-surface print-safe'><CardHeader className='pb-2'><CardTitle>Ações do comitê de crescimento</CardTitle></CardHeader><CardContent className='pt-2'>
+      {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Sem ações do comitê de crescimento registradas. Crie ações na Agenda de Evolução para acompanhar execução entre encontros.</p> :
       <div className='space-y-3'>{statusOrder.map((status) => <div key={status} className={`space-y-1.5 ${actionsByStatus[status].length === 0 ? 'print:hidden' : ''}`}>
         <h3 className='font-semibold text-sm'>{actionStatusLabel[status]} ({actionsByStatus[status].length})</h3>
         {actionsByStatus[status].length === 0 ? <p className='text-xs text-muted-foreground'>Sem ações neste status.</p> : actionsByStatus[status].map(action => <div key={action.id} className='executive-card rounded-lg p-2.5 text-sm print:break-inside-avoid'>
@@ -349,7 +349,7 @@ export default function ProgressReportPage() {
         if (withContent.length === 0) return <div className='text-sm text-muted-foreground space-y-1'><p>Nenhuma ata estruturada registrada nos encontros analisados.</p><p>Use o Assistente de Ata para gerar pré-atas revisáveis a partir das transcrições.</p></div>;
         return <>
           {withContent.slice(0, 3).map((meeting) => <div key={meeting.id} className='executive-card rounded-lg p-2.5 text-sm'>
-            <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro de conselho'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
+            <p className='font-medium'>{meeting.title || meeting.main_topic || 'Encontro do comitê de crescimento'} • {formatDateOnlyBR(meeting.meeting_date)}</p>
             <p><strong>Decisões:</strong> {meeting.decisions || 'sem evidência registrada'}</p>
             <p><strong>Recomendações:</strong> {meeting.recommendations || 'sem evidência registrada'}</p>
             <p><strong>Principais travas:</strong> {meeting.key_blockers || 'sem evidência registrada'}</p>
@@ -386,7 +386,7 @@ function buildNextFocuses(progressRows: CouncilDimensionProgress[], actions: Cou
 
   progressRows.filter((d) => d.trend === 'worsening').forEach((d) => generalItems.push({ priority: 3, text: `Reverter tendência de queda em ${dimensionName(d.dimension_id)}.` }));
   progressRows.filter((d) => d.trend === 'stable' && (d.current_perceived_score ?? 99) <= 2.5).forEach((d) => generalItems.push({ priority: 4, text: `Acelerar evolução em ${dimensionName(d.dimension_id)} para sair de estabilidade baixa.` }));
-  if (!meetings.some((m) => !!m.next_agenda?.trim())) generalItems.push({ priority: 5, text: 'Definir próxima pauta do conselho.' });
+  if (!meetings.some((m) => !!m.next_agenda?.trim())) generalItems.push({ priority: 5, text: 'Definir próxima pauta do comitê de crescimento.' });
   progressRows.filter((d) => !d.evidence_note).forEach((d) => generalItems.push({ priority: 6, text: `Consolidar evidências de evolução em ${dimensionName(d.dimension_id)}.` }));
 
   const prioritized = [

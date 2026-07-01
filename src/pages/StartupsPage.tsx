@@ -331,7 +331,7 @@ export default function StartupsPage() {
                         </p>
                       </div>
                       <div className="rounded-xl border border-border/70 bg-background/70 p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Conselho</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Comitê de Crescimento</p>
                         <div className="mt-2 grid gap-2 sm:grid-cols-3">
                           <div className="rounded-lg border border-border/60 bg-background/60 p-2">
                             <p className="text-[11px] text-muted-foreground">Encontros</p>

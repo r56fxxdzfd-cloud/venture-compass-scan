@@ -73,7 +73,7 @@ export default function AttentionSection({ items, loading }: AttentionSectionPro
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="executive-section-title text-base flex items-center gap-2 text-foreground">
             <AlertTriangle className="h-4 w-4 text-primary" />
-            Prioridades do Conselho
+            Prioridades do Comitê de Crescimento
           </CardTitle>
           <Badge variant="outline" className="executive-pill">{items.length} itens de atenção</Badge>
         </div>

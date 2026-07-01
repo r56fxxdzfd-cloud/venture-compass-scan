@@ -86,7 +86,7 @@ export default function LoginPage() {
             <img src={logoDarwin} alt="Darwin Growth" className="h-20 w-auto object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
-            Diagnóstico completo de maturidade e plano de ação nos conselhos coletivos para organizações
+            Diagnóstico completo de maturidade e plano de ação nos comitês de crescimento coletivos para organizações
           </h2>
           <p className="text-white/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.

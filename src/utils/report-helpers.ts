@@ -167,7 +167,7 @@ export interface RoadmapAction {
   rationale: string;
   wave: 1 | 2 | 3;
   waveLabel: string;
-  source: 'Red flag' | 'Gap de dimensão' | 'Ação sugerida' | 'Pauta do conselho';
+  source: 'Red flag' | 'Gap de dimensão' | 'Ação sugerida' | 'Pauta do comitê de crescimento';
 }
 
 const WAVE_LIMITS: Record<1 | 2 | 3, number> = { 1: 2, 2: 3, 3: 3 };

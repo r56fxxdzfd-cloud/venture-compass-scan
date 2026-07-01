@@ -12,7 +12,7 @@ interface AdvisorRow { assignmentId: string; advisorId: string; name: string; }
 interface Candidate { id: string; name: string; }
 
 /**
- * Seção "Conselheiros" — apenas admin/analyst (operadores) atribuem/desatribuem
+ * Seção "Membros do Comitê de Crescimento" — apenas admin/analyst (operadores) atribuem/desatribuem
  * advisors a uma startup. A lista de candidatos depende de leitura de profiles,
  * disponível para JV Admin/Super Admin (RLS de profiles).
  */
@@ -42,7 +42,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
     setAssigned((assigns || []).map((a) => ({
       assignmentId: a.id,
       advisorId: a.advisor_id,
-      name: namesById.get(a.advisor_id) || 'Conselheiro',
+      name: namesById.get(a.advisor_id) || 'Membro do Comitê de Crescimento',
     })));
     const assignedIds = new Set((assigns || []).map((a) => a.advisor_id));
     setCandidates((roleRows || [])
@@ -70,7 +70,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
       return;
     }
     setSelected('');
-    toast({ title: 'Conselheiro atribuído' });
+    toast({ title: 'Membro do Comitê de Crescimento atribuído' });
     load();
   };
 
@@ -80,16 +80,16 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
       toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: 'Conselheiro removido' });
+    toast({ title: 'Membro do Comitê de Crescimento removido' });
     load();
   };
 
   return (
     <Card className="executive-panel">
       <CardHeader>
-        <p className="executive-section-title text-xs">Governança do conselho</p>
+        <p className="executive-section-title text-xs">Governança do comitê de crescimento</p>
         <CardTitle className="flex items-center gap-2 text-base">
-          <UserCog className="h-4 w-4 text-primary" /> Conselheiros
+          <UserCog className="h-4 w-4 text-primary" /> Membros do Comitê de Crescimento
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -99,7 +99,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
           <>
             <div className="flex flex-wrap gap-2">
               {assigned.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum conselheiro atribuído a esta organização.</p>
+                <p className="text-sm text-muted-foreground">Nenhum membro do comitê de crescimento atribuído a esta organização.</p>
               ) : (
                 assigned.map((a) => (
                   <Badge key={a.assignmentId} variant="secondary" className="gap-1.5 py-1 pl-2.5 pr-1">
@@ -121,7 +121,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <Select value={selected} onValueChange={setSelected}>
                 <SelectTrigger className="w-64">
-                  <SelectValue placeholder={candidates.length ? 'Selecionar conselheiro' : 'Nenhum conselheiro disponível'} />
+                  <SelectValue placeholder={candidates.length ? 'Selecionar membro do comitê de crescimento' : 'Nenhum membro do comitê de crescimento disponível'} />
                 </SelectTrigger>
                 <SelectContent>
                   {candidates.map((c) => (
@@ -134,7 +134,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Conselheiros (papel <span className="font-mono">jv_advisor</span>) só enxergam as organizações atribuídas aqui.
+              Membros do Comitê de Crescimento (papel <span className="font-mono">jv_advisor</span>) só enxergam as organizações atribuídas aqui.
             </p>
           </>
         )}

@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'Acesso negado para esta empresa ou reunião' }, 403);
     }
 
-    const prompt = `Você é Assistente de Ata do Conselho. Gere JSON estritamente válido, sem markdown, com o schema exigido.
+    const prompt = `Você é Assistente de Ata do Comitê de Crescimento. Gere JSON estritamente válido, sem markdown, com o schema exigido.
 Regras: extraia apenas fatos suportados pela transcrição; não invente prazos; owner_name/due_date vazios se incertos; use dimensões oficiais (${OFFICIAL_DIMENSIONS.join(', ')}); inferências devem ter confiança média/baixa; diferencie fatos explícitos de inferências em evidências; linguagem portuguesa executiva e conservadora; inclua source_excerpt curto para rastreabilidade.`;
 
     const payload = {

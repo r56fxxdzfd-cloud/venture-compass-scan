@@ -18,7 +18,7 @@ const routeLabels: Record<string, string> = {
   questionnaire: 'Questionário',
   report: 'Relatório',
   progress: 'Relatório de Progresso',
-  counselor: 'Central do Conselheiro',
+  counselor: 'Central do Comitê de Crescimento',
   founders: 'Lideranças',
   'founder-assessments': 'Avaliação de Liderança',
   new: 'Nova Avaliação',

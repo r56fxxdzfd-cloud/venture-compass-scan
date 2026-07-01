@@ -319,11 +319,11 @@ export async function exportReportToDOCX(opts: {
     });
   }
 
-  // --- Pauta do próximo conselho
+  // --- Pauta do próximo comitê de crescimento
   const agenda = generateMeetingAgenda(config, result, stage, answers.map(a => ({
     question_id: a.question_id, dimension_id: '', score: a.value, value: a.value,
   })) as any);
-  body.push(h2('Pauta · Próximo Conselho'));
+  body.push(h2('Pauta · Próximo Comitê de Crescimento'));
   if (agenda.length === 0) {
     body.push(card([p([t('Sem tópicos prioritários identificados.', { size: 20, color: C.textMuted })])]));
     body.push(spacer());
@@ -447,7 +447,7 @@ export async function exportReportToDOCX(opts: {
   }));
   body.push(spacer());
 
-  // --- Observações do Conselho (answers.notes) agrupadas por dimensão
+  // --- Observações do Comitê de Crescimento (answers.notes) agrupadas por dimensão
   const obsByDim: { label: string; items: { q: string; note: string }[] }[] = (() => {
     const map = new Map<string, { label: string; items: { q: string; note: string }[] }>();
     answers.forEach((a) => {
@@ -461,7 +461,7 @@ export async function exportReportToDOCX(opts: {
     return Array.from(map.values());
   })();
   if (obsByDim.length > 0) {
-    body.push(h2('Observações do Conselho'));
+    body.push(h2('Observações do Comitê de Crescimento'));
     obsByDim.forEach((dim) => {
       body.push(p([t(dim.label, { bold: true, size: 20, color: C.primary })]));
       dim.items.forEach((it) => {
@@ -475,7 +475,7 @@ export async function exportReportToDOCX(opts: {
   // --- Próximos passos
   body.push(h2('Próximos Passos'));
   body.push(card([
-    p([t('1. Compartilhar este diagnóstico com o time fundador e o conselho.', { size: 20, color: C.text })]),
+    p([t('1. Compartilhar este diagnóstico com o time fundador e o comitê de crescimento.', { size: 20, color: C.text })]),
     p([t('2. Executar as Quick Wins priorizadas nas próximas 4 semanas.', { size: 20, color: C.text })]),
     p([t('3. Endereçar Red Flags ativos antes do próximo ciclo.', { size: 20, color: C.text })]),
     p([t('4. Reavaliar maturidade em 90 dias para medir evolução.', { size: 20, color: C.text })]),

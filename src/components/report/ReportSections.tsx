@@ -156,7 +156,7 @@ export function RadarSection({ result, config, stage }: { result: AssessmentResu
 export function DimensionScoresSection({ result, config, stage, answers }: { result: AssessmentResult; config: ConfigJSON; stage: string; answers?: Answer[] }) {
   const gaps = computeGaps(result.dimension_scores, config, stage);
 
-  // Observações do conselho (answers.notes) agrupadas por dimensão
+  // Observações do comitê de crescimento (answers.notes) agrupadas por dimensão
   const observationsByDim = (() => {
     const byDim = new Map<string, { label: string; items: { q: string; note: string }[] }>();
     (answers || []).forEach((a) => {
@@ -231,7 +231,7 @@ export function DimensionScoresSection({ result, config, stage, answers }: { res
 
         {observationsByDim.length > 0 && (
           <>
-            <h4 className="text-sm font-semibold mt-4">Observações do conselho</h4>
+            <h4 className="text-sm font-semibold mt-4">Observações do comitê de crescimento</h4>
             <div className="space-y-2.5">
               {observationsByDim.map((dim) => (
                 <div key={dim.label} className="rounded-lg border p-3">
@@ -408,7 +408,7 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
       <CardContent className="pt-6 space-y-4">
         <h3 className="text-base font-semibold">Roadmap 6 Meses</h3>
         <p className="text-xs text-muted-foreground">
-          Plano preliminar de execução, sujeito a validação e ajustes no conselho.
+          Plano preliminar de execução, sujeito a validação e ajustes no comitê de crescimento.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
           {waves.map(({ wave, label, color }) => {
@@ -417,7 +417,7 @@ export function RoadmapSection({ result, config, stage }: { result: AssessmentRe
               <div key={wave} className={`rounded-lg border p-4 space-y-3 ${color}`}>
                 <p className="text-xs font-semibold uppercase tracking-wider">Wave {wave} — {label}</p>
                 {waveActions.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">A definir após validação no próximo conselho.</p>
+                  <p className="text-xs text-muted-foreground">A definir após validação no próximo comitê de crescimento.</p>
                 ) : (
                   waveActions.map((a, i) => (
                     <div key={i} className="space-y-1">

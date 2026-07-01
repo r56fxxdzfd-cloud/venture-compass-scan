@@ -440,7 +440,7 @@ export default function CounselorOverviewPage() {
   if (loading) {
     return (
       <Card className="executive-panel rounded-3xl">
-        <CardContent className="py-16 text-center text-muted-foreground">Carregando cockpit do conselheiro...</CardContent>
+        <CardContent className="py-16 text-center text-muted-foreground">Carregando cockpit do comitê de crescimento...</CardContent>
       </Card>
     );
   }
@@ -453,7 +453,7 @@ export default function CounselorOverviewPage() {
   ] as const;
 
   const operationalKpis = [
-    { label: 'Organizações acompanhadas', sublabel: 'em conselho', value: companies.length, tone: 'neutral', icon: Building2 },
+    { label: 'Organizações acompanhadas', sublabel: 'no comitê de crescimento', value: companies.length, tone: 'neutral', icon: Building2 },
     { label: 'Ações abertas', sublabel: 'em execução ou planejadas', value: kpis.open, tone: kpis.open > 0 ? 'attention' : 'neutral', icon: ListChecks },
   ] as const;
 
@@ -467,11 +467,11 @@ export default function CounselorOverviewPage() {
         <div className="relative grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="space-y-3 max-w-3xl">
             <span className="executive-pill inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
-              <Sparkles className="h-3 w-3" /> Cockpit do Conselheiro
+              <Sparkles className="h-3 w-3" /> Cockpit do Comitê de Crescimento
             </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central do Conselheiro</h1>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Central do Comitê de Crescimento</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              Priorize riscos, prepare reuniões e acompanhe a execução do conselho.
+              Priorize riscos, prepare reuniões e acompanhe a execução do comitê de crescimento.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-background/65 p-4 shadow-sm min-w-0 max-w-full">
@@ -586,7 +586,7 @@ export default function CounselorOverviewPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Ferramenta operacional</p>
-                <h2 className="mt-1 text-base font-bold tracking-tight">Assistente de Ata do Conselho</h2>
+                <h2 className="mt-1 text-base font-bold tracking-tight">Assistente de Ata do Comitê de Crescimento</h2>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Apoio complementar para transformar transcrições em pré-atas revisáveis.
                 </p>
@@ -609,7 +609,7 @@ export default function CounselorOverviewPage() {
           <header className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" /> Top prioridades do conselheiro
+                <Users className="h-4 w-4 text-primary" /> Top prioridades do membro do comitê de crescimento
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Ranking operacional por organização para decidir onde entrar primeiro.</p>
             </div>
@@ -621,7 +621,7 @@ export default function CounselorOverviewPage() {
           {companies.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 p-6 text-center">
               <p className="text-sm font-semibold text-foreground">Nenhuma organização cadastrada.</p>
-              <p className="text-xs text-muted-foreground mt-1">Cadastre uma organização para iniciar o acompanhamento do conselho.</p>
+              <p className="text-xs text-muted-foreground mt-1">Cadastre uma organização para iniciar o acompanhamento do comitê de crescimento.</p>
               <Button asChild size="sm" className="mt-4 rounded-full"><Link to="/app/startups">Cadastrar organização</Link></Button>
             </div>
           ) : (
@@ -809,7 +809,7 @@ export default function CounselorOverviewPage() {
           <header className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h2 className="text-lg font-bold tracking-tight flex items-center gap-2">
-                <Target className="h-4 w-4 text-muted-foreground" /> Mapa de foco do conselheiro
+                <Target className="h-4 w-4 text-muted-foreground" /> Mapa de foco do membro do comitê de crescimento
               </h2>
               <p className="text-xs text-muted-foreground mt-1">Heatmap compacto das 9 dimensões oficiais; ausência de sinal não é tratada como problema.</p>
             </div>

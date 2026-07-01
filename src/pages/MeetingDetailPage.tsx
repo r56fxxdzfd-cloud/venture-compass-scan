@@ -538,7 +538,7 @@ export default function MeetingDetailPage() {
     <Card className='executive-panel print:break-inside-avoid'>
       <CardContent className='p-4 space-y-3'>
         <div>
-          <p className='text-xs uppercase tracking-[0.12em] text-muted-foreground'>Encontro de conselho</p>
+          <p className='text-xs uppercase tracking-[0.12em] text-muted-foreground'>Encontro do comitê de crescimento</p>
           <h1 className='text-xl font-bold'>{meeting.title || meeting.main_topic || 'Encontro de acompanhamento'}</h1>
         </div>
         <div className='grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3'>
@@ -631,7 +631,7 @@ export default function MeetingDetailPage() {
             </div>
             <div className='grid md:grid-cols-2 gap-2'>
               <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } }))} /></div>
-              <div><Label>Comentário do conselheiro</Label><Textarea value={row.counselor_comment ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], counselor_comment: e.target.value || null } }))} /></div>
+              <div><Label>Comentário do membro do comitê de crescimento</Label><Textarea value={row.counselor_comment ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], counselor_comment: e.target.value || null } }))} /></div>
             </div>
             <div className='flex items-center justify-between'>
               <p className='text-xs text-muted-foreground'>{existing ? 'Registro existente: atualização incremental.' : 'Sem registro ainda para esta dimensão.'}</p>
@@ -654,7 +654,7 @@ export default function MeetingDetailPage() {
         <div><Label>Prazo</Label><Input type='date' value={newAction.due_date || ''} onChange={e => setNewAction({ ...newAction, due_date: e.target.value })} /></div>
         <div><Label>Status</Label><Select value={newAction.status} onValueChange={v => setNewAction({ ...newAction, status: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='not_started'>Não iniciada</SelectItem><SelectItem value='in_progress'>Em andamento</SelectItem><SelectItem value='completed'>Concluída</SelectItem><SelectItem value='blocked'>Travada</SelectItem></SelectContent></Select></div>
       </div>}
-      {canOperateDemo && <Button onClick={addAction}>Adicionar ação de conselho</Button>}
+      {canOperateDemo && <Button onClick={addAction}>Adicionar ação do comitê de crescimento</Button>}
       {actions.length === 0 ? <p className='text-sm text-muted-foreground'>Nenhuma ação vinculada. Sem ações fica impossível monitorar execução do encontro. Próximo passo: registre ao menos uma ação com responsável e prazo.</p> :
       <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-5'>{Object.entries(actionsByStatus).map(([status, rows]) => <div key={status} className='executive-card rounded p-2 space-y-2 print:break-inside-avoid'>
         <p className='text-sm font-semibold'>{actionStatusGroupLabels[status as keyof typeof actionStatusGroupLabels]}</p>
@@ -678,7 +678,7 @@ export default function MeetingDetailPage() {
       </div>}
     </CardContent></Card>
 
-    <Card className='executive-panel'><CardHeader><CardTitle>Assistente de Ata do Conselho</CardTitle></CardHeader><CardContent className='space-y-3'>
+    <Card className='executive-panel'><CardHeader><CardTitle>Assistente de Ata do Comitê de Crescimento</CardTitle></CardHeader><CardContent className='space-y-3'>
       <p className='hidden print:block text-xs text-muted-foreground'>Assistente de Ata disponível na versão digital.</p>
       {canOperateDemo && <div className='print:hidden space-y-3'>
       <p className='text-xs text-muted-foreground'>A IA gera um rascunho. Revise antes de aplicar ao encontro.</p>
@@ -699,7 +699,7 @@ export default function MeetingDetailPage() {
             <Textarea value={draft.key_progress} onChange={(e) => setDraft({ ...draft, key_progress: e.target.value })} placeholder='Principais avanços' />
             <Textarea value={draft.key_blockers} onChange={(e) => setDraft({ ...draft, key_blockers: e.target.value })} placeholder='Principais travas' />
             <Textarea value={draft.decisions} onChange={(e) => setDraft({ ...draft, decisions: e.target.value })} placeholder='Decisões tomadas' />
-            <Textarea value={draft.recommendations} onChange={(e) => setDraft({ ...draft, recommendations: e.target.value })} placeholder='Recomendações do conselho' />
+            <Textarea value={draft.recommendations} onChange={(e) => setDraft({ ...draft, recommendations: e.target.value })} placeholder='Recomendações do comitê de crescimento' />
             <Textarea value={draft.next_agenda} onChange={(e) => setDraft({ ...draft, next_agenda: e.target.value })} placeholder='Próxima pauta' />
           </TabsContent>
           <TabsContent value='actions' className='space-y-3'>

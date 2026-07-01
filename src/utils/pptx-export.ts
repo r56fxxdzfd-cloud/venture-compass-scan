@@ -437,7 +437,7 @@ export async function exportReportToPPTX(opts: {
   const roadmapActions = generateRoadmap(gapsForRoadmap, result.red_flags, config, result);
   if (roadmapActions.length > 0) {
     const sRoad = pptx.addSlide(); addBg(sRoad);
-    addHeader(sRoad, 'Roadmap 6 Meses', 'Plano preliminar de execução — sujeito a validação no conselho');
+    addHeader(sRoad, 'Roadmap 6 Meses', 'Plano preliminar de execução — sujeito a validação no comitê de crescimento');
     const waves = [
       { wave: 1 as const, label: 'WAVE 1 — 0-30 DIAS', color: C.danger },
       { wave: 2 as const, label: 'WAVE 2 — 31-90 DIAS', color: C.warning },
@@ -462,13 +462,13 @@ export async function exportReportToPPTX(opts: {
     });
   }
 
-  // ===== SLIDE 7: Pauta do Conselho =====
+  // ===== SLIDE 7: Pauta do Comitê de Crescimento =====
 
   const agenda = generateMeetingAgenda(config, result, stage, answers.map(a => ({
     question_id: a.question_id, dimension_id: '', score: a.value, value: a.value,
   })) as any);
   const s7 = pptx.addSlide(); addBg(s7);
-  addHeader(s7, 'Pauta · Próximo Conselho', 'Tópicos priorizados para a próxima reunião');
+  addHeader(s7, 'Pauta · Próximo Comitê de Crescimento', 'Tópicos priorizados para a próxima reunião');
   const itemH = (SLIDE_H - 2.4) / Math.max(1, Math.min(agenda.length, 3));
   agenda.slice(0, 3).forEach((it, i) => {
     const y = 1.7 + i * (itemH + 0.1);
@@ -591,7 +591,7 @@ export async function exportReportToPPTX(opts: {
   });
   s8.addText(
     [
-      '1. Compartilhar este diagnóstico com o time fundador e o conselho.',
+      '1. Compartilhar este diagnóstico com o time fundador e o comitê de crescimento.',
       '2. Executar as Quick Wins priorizadas nas próximas 4 semanas.',
       '3. Endereçar Red Flags ativos antes do próximo ciclo.',
       '4. Reavaliar maturidade em 90 dias para medir evolução.',

@@ -19,7 +19,7 @@ export default function QuickActionsPanel() {
     <Card className="executive-panel h-full">
       <CardHeader className="pb-3 pt-5 px-5 border-b border-border/60">
         <CardTitle className="executive-section-title text-base">Ações Estratégicas</CardTitle>
-        <p className="text-xs text-muted-foreground">Acesso rápido aos fluxos mais recorrentes do conselho.</p>
+        <p className="text-xs text-muted-foreground">Acesso rápido aos fluxos mais recorrentes do comitê de crescimento.</p>
       </CardHeader>
       <CardContent className="px-4 py-4 space-y-2">
         {actions.map((action) => (

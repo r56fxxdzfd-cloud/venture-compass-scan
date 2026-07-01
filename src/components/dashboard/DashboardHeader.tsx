@@ -63,7 +63,7 @@ export default function DashboardHeader({ configVersion }: DashboardHeaderProps)
           <div className="space-y-2">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-white dark:text-foreground/95">Painel Executivo</h1>
             <p className="text-sm sm:text-base text-slate-200 dark:text-muted-foreground max-w-2xl">
-              Visão geral do portfólio, ritos do conselho e prioridades de acompanhamento.
+              Visão geral do portfólio, ritos do comitê de crescimento e prioridades de acompanhamento.
             </p>
           </div>
         </div>

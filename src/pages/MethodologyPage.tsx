@@ -674,12 +674,12 @@ export default function MethodologyPage() {
                       )}
                       {pillar.number === 1 && (
                         <p className="text-xs text-muted-foreground italic bg-primary/5 p-2 rounded border border-primary/10">
-                          <strong>Pergunta-chave de conselho:</strong> "O time sobreviveria se o founder desaparecesse amanhã?"
+                          <strong>Pergunta-chave do comitê de crescimento:</strong> "O time sobreviveria se o founder desaparecesse amanhã?"
                         </p>
                       )}
                       {pillar.number === 3 && (
                         <p className="text-xs text-muted-foreground italic bg-primary/5 p-2 rounded border border-primary/10">
-                          <strong>Pergunta-chave de conselho:</strong> "O founder influencia decisões ou apenas reage a elas?"
+                          <strong>Pergunta-chave do comitê de crescimento:</strong> "O founder influencia decisões ou apenas reage a elas?"
                         </p>
                       )}
                       {pillar.number === 4 && (

@@ -74,7 +74,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 ## Seed demo: Instituto Ponte Futuro
 
-Script idempotente para criar/complementar dados demo de Conselho OS.
+Script idempotente para criar/complementar dados demo do Comitê de Crescimento OS.
 
 ### Pré-requisitos
 

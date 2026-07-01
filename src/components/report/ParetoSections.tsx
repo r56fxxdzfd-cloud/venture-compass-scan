@@ -190,7 +190,7 @@ export function QuickWinsSection({
                 </span>
               </div>
 
-              {/* Adicionar ao plano de ação (somente operadores/conselheiro) */}
+              {/* Adicionar ao plano de ação (somente operadores/membro do comitê de crescimento) */}
               {showAddButton && (
                 <div className="flex justify-end" data-html2canvas-ignore="true">
                   {added.has(action.id) ? (
@@ -236,7 +236,7 @@ export function MeetingAgendaSection({
       <CardContent className="pt-6 space-y-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-primary" />
-          <h3 className="text-base font-semibold">Pauta — Próximo Conselho Coletivo</h3>
+          <h3 className="text-base font-semibold">Pauta — Próximo Comitê de Crescimento Coletivo</h3>
         </div>
         <p className="text-xs text-muted-foreground">
           Temas prioritários para discussão e decisão no próximo encontro.

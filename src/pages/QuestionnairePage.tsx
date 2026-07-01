@@ -419,7 +419,7 @@ function QuestionCard({
               >
                 {showNotes
                   ? 'Ocultar observação'
-                  : (answer?.notes && answer.notes.trim() ? 'Observação do conselho ✓' : '+ Observação do conselho')}
+                  : (answer?.notes && answer.notes.trim() ? 'Observação do comitê de crescimento ✓' : '+ Observação do comitê de crescimento')}
               </button>
             </div>
 
@@ -436,7 +436,7 @@ function QuestionCard({
 
             {showNotes && (
               <Textarea
-                placeholder="Observação do conselho sobre este tema (opcional) — aparece no relatório, na Análise por dimensão"
+                placeholder="Observação do comitê de crescimento sobre este tema (opcional) — aparece no relatório, na Análise por dimensão"
                 value={answer?.notes || ''}
                 onChange={(e) => onNotes(e.target.value)}
                 className="text-sm"

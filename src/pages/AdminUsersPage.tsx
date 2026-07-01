@@ -208,7 +208,7 @@ export default function AdminUsersPage() {
     jv_admin: 'JV Admin',
     jv_analyst: 'Analista',
     jv_viewer: 'Visualizador',
-    jv_advisor: 'Conselheiro',
+    jv_advisor: 'Membro do Comitê de Crescimento',
     demo_admin: 'Demo Admin',
     demo_user: 'Demo',
   };
@@ -375,7 +375,7 @@ export default function AdminUsersPage() {
                                       <SelectContent>
                                         <SelectItem value="demo_user">Demo</SelectItem>
                                         <SelectItem value="demo_admin">Demo Admin</SelectItem>
-                                        <SelectItem value="jv_advisor">Conselheiro</SelectItem>
+                                        <SelectItem value="jv_advisor">Membro do Comitê de Crescimento</SelectItem>
                                         <SelectItem value="jv_admin">JV Admin</SelectItem>
                                         <SelectItem value="user">User</SelectItem>
                                         {isSuperAdmin && (
@@ -398,7 +398,7 @@ export default function AdminUsersPage() {
                           </Badge>
                         )}
                         {u.role === 'jv_advisor' && (
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => openAssignModal(u.id, u.full_name || 'Conselheiro')}>
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => openAssignModal(u.id, u.full_name || 'Membro do Comitê de Crescimento')}>
                             <Building2 className="h-3.5 w-3.5" /> Startups
                           </Button>
                         )}
@@ -462,7 +462,7 @@ export default function AdminUsersPage() {
                 </SelectItem>
                 <SelectItem value="jv_advisor">
                   <div>
-                    <p className="font-medium">Conselheiro</p>
+                    <p className="font-medium">Membro do Comitê de Crescimento</p>
                     <p className="text-xs text-muted-foreground">Vê e opera apenas as startups atribuídas a ele</p>
                   </div>
                 </SelectItem>
@@ -500,14 +500,14 @@ export default function AdminUsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Atribuir startups a um conselheiro */}
+      {/* Atribuir startups a um membro do comitê de crescimento */}
       <Dialog open={assignModal.open} onOpenChange={(open) => setAssignModal((prev) => ({ ...prev, open }))}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Startups de {assignModal.name}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Marque as organizações que este conselheiro pode acompanhar. As mudanças são salvas na hora.
+            Marque as organizações que este membro do comitê de crescimento pode acompanhar. As mudanças são salvas na hora.
           </p>
           <div className="max-h-[55vh] space-y-1 overflow-y-auto py-2">
             {companies.length === 0 ? (

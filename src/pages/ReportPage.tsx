@@ -38,7 +38,7 @@ const anchorLinks = [
   { label: 'Red Flags', id: 'section-redflags' },
   { label: 'Quick Wins', id: 'section-quickwins' },
   { label: 'Roadmap 6 meses', id: 'section-roadmap' },
-  { label: 'Pauta próximo conselho', id: 'section-next-council' },
+  { label: 'Pauta próximo comitê de crescimento', id: 'section-next-council' },
   { label: 'Deep Dive', id: 'section-deepdive' },
   { label: 'Matriz risco x impacto', id: 'section-matrix' },
   { label: 'Análise por dimensão', id: 'section-gaps' },
@@ -508,7 +508,7 @@ export default function ReportPage() {
         <div className="executive-panel print-safe rounded-xl border p-4 sm:p-5">
           <h3 className="text-base font-semibold">Do diagnóstico à execução</h3>
           <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-            Esta seção traduz o diagnóstico em condução prática do conselho: primeiro define os temas prioritários da próxima reunião, depois sugere perguntas para aprofundamento e, por fim, organiza as ações em um roadmap preliminar de 6 meses.
+            Esta seção traduz o diagnóstico em condução prática do comitê de crescimento: primeiro define os temas prioritários da próxima reunião, depois sugere perguntas para aprofundamento e, por fim, organiza as ações em um roadmap preliminar de 6 meses.
           </p>
         </div>
 

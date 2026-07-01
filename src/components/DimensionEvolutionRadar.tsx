@@ -102,7 +102,7 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
   }, [rowsWithData, rowsWithPair]);
 
   if (rowsWithData.length === 0) {
-    return <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground print-safe">Ainda não há leituras suficientes para gerar o radar de evolução. Registre evolução por dimensão nos encontros de conselho.</div>;
+    return <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground print-safe">Ainda não há leituras suficientes para gerar o radar de evolução. Registre evolução por dimensão nos encontros do comitê de crescimento.</div>;
   }
 
   return (
@@ -121,7 +121,7 @@ export function DimensionEvolutionRadar({ dimensions, progressRecords, baseline,
                   <PolarAngleAxis dataKey="shortLabel" tick={{ fill: 'hsl(var(--foreground))', fontSize: 11, fontWeight: 500 }} />
                   <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickCount={6} />
                   <Radar name="Baseline inicial" dataKey="baselineValue" stroke="hsl(var(--chart-benchmark))" fill="hsl(var(--chart-benchmark))" fillOpacity={0.1} strokeWidth={3} strokeDasharray="8 4" />
-                  <Radar name="Última leitura do conselho" dataKey="currentValue" stroke="hsl(var(--chart-current))" fill="hsl(var(--chart-current))" fillOpacity={0.24} strokeWidth={3} />
+                  <Radar name="Última leitura do comitê de crescimento" dataKey="currentValue" stroke="hsl(var(--chart-current))" fill="hsl(var(--chart-current))" fillOpacity={0.24} strokeWidth={3} />
                   <Tooltip content={({ payload }) => {
                     if (!payload?.length) return null;
                     const item = payload[0]?.payload;

@@ -16,7 +16,7 @@ import { AppBreadcrumbs } from '@/components/AppBreadcrumbs';
 const navItems = [
 { label: 'Dashboard', icon: LayoutDashboard, href: '/app/dashboard' },
 { label: 'Organizações', icon: Building2, href: '/app/startups' },
-{ label: 'Central do Conselheiro', icon: Scale, href: '/app/counselor' },
+{ label: 'Central do Comitê de Crescimento', icon: Scale, href: '/app/counselor' },
 { label: 'Agenda de Evolução', icon: CalendarRange, href: '/app/agenda' },
 { label: 'Simulador', icon: SlidersHorizontal, href: '/app/simulator' },
 { label: 'Metodologia', icon: BookOpen, href: '/app/methodology' }];
@@ -36,7 +36,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const isDemoMode = isDemoUser || isDemoAdmin;
-  // Conselheiro (advisor) e modo demo não acessam ferramentas internas de metodologia/simulador.
+  // Membro do Comitê de Crescimento (advisor) e modo demo não acessam ferramentas internas de metodologia/simulador.
   const hideInternalTools = isDemoMode || isAdvisor;
   const visibleNavItems = hideInternalTools ? navItems.filter((item) => !['/app/simulator', '/app/methodology'].includes(item.href)) : navItems;
 

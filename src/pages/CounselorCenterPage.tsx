@@ -119,7 +119,7 @@ export default function CounselorCenterPage() {
   if (loading) {
     return (
       <Card className="executive-panel rounded-3xl">
-        <CardContent className="py-16 text-center text-muted-foreground">Carregando Central do Conselheiro...</CardContent>
+        <CardContent className="py-16 text-center text-muted-foreground">Carregando Central do Comitê de Crescimento...</CardContent>
       </Card>
     );
   }
@@ -132,7 +132,7 @@ export default function CounselorCenterPage() {
   }
 
   const summaryKpis: Array<{ label: string; sublabel: string; value: number | string; tone: KpiTone; icon: typeof Target }> = [
-    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do conselho', value: meetings.length, tone: 'neutral', icon: CalendarClock },
+    { label: 'Encontros realizados', sublabel: 'histórico de reuniões do comitê de crescimento', value: meetings.length, tone: 'neutral', icon: CalendarClock },
     { label: 'Ações em aberto', sublabel: 'pendentes ou em execução', value: openActions.length, tone: 'neutral', icon: ListChecks },
     { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: overdueActions.length, tone: overdueActions.length ? 'critical' : 'neutral', icon: AlertTriangle },
     { label: 'Dimensões críticas', sublabel: 'em piora ou estáveis em baixo score', value: criticalDimensions.length, tone: criticalDimensions.length ? 'attention' : 'neutral', icon: Activity },
@@ -196,7 +196,7 @@ export default function CounselorCenterPage() {
               <CalendarClock className="h-5 w-5" />
             </div>
             <p className="font-semibold text-base">Sem encontros registrados para esta empresa.</p>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">Registre o primeiro encontro para iniciar o acompanhamento da organização e liberar a visão executiva do conselho.</p>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">Registre o primeiro encontro para iniciar o acompanhamento da organização e liberar a visão executiva do comitê de crescimento.</p>
             <Button asChild className="rounded-full"><Link to="/app/agenda">Registrar primeiro encontro</Link></Button>
           </CardContent>
         </Card>
@@ -285,7 +285,7 @@ export default function CounselorCenterPage() {
               <div className="space-y-3">
                 {openActions.length === 0 ? (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
-                    <p className="text-sm text-foreground font-medium">Nenhuma ação de conselho em aberto.</p>
+                    <p className="text-sm text-foreground font-medium">Nenhuma ação do comitê de crescimento em aberto.</p>
                     <p className="text-xs text-muted-foreground mt-1">Mantenha o registro atualizado para sustentar a execução entre encontros.</p>
                   </div>
                 ) : openActions.map(a => {
@@ -330,7 +330,7 @@ export default function CounselorCenterPage() {
                 dimensions={latestProgressByDimension.map((item) => ({ id: item.dimension_id, label: item.dimension_label }))}
                 progressRecords={progress}
                 title="Radar de Evolução por Dimensão"
-                subtitle="Comparação entre o baseline inicial e a última leitura registrada pelo conselho."
+                subtitle="Comparação entre o baseline inicial e a última leitura registrada pelo comitê de crescimento."
                 compact
               />
             </CardContent>
@@ -343,7 +343,7 @@ export default function CounselorCenterPage() {
                 icon={Activity}
                 iconClass="text-muted-foreground"
                 title="Evolução recente por dimensão"
-                subtitle="Última leitura registrada pelo conselho em cada dimensão."
+                subtitle="Última leitura registrada pelo comitê de crescimento em cada dimensão."
               />
               <div className="space-y-3">
                 {latestProgressByDimension.length === 0 ? (

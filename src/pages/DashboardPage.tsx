@@ -32,10 +32,10 @@ const OPEN_ACTION_STATUSES = new Set(['not_started', 'in_progress', 'blocked']);
 
 const quickAccessCards = [
   { label: 'Organizações', description: 'Ver portfólio acompanhado', href: '/app/startups', icon: Building2 },
-  { label: 'Central do Conselheiro', description: 'Abrir cockpit operacional', href: '/app/counselor', icon: Users },
+  { label: 'Central do Comitê de Crescimento', description: 'Abrir cockpit operacional', href: '/app/counselor', icon: Users },
   { label: 'Agenda de Evolução', description: 'Preparar ritos e encontros', href: '/app/agenda', icon: CalendarRange },
   { label: 'Novo Diagnóstico', description: 'Iniciar fluxo em uma organização', href: '/app/startups', icon: ClipboardList },
-  { label: 'Registrar Encontro', description: 'Registrar reunião de conselho', href: '/app/agenda', icon: Plus },
+  { label: 'Registrar Encontro', description: 'Registrar reunião do comitê de crescimento', href: '/app/agenda', icon: Plus },
   { label: 'Templates de Pauta', description: 'Usar pautas recomendadas', href: '/app/agenda/templates', icon: FileStack },
   { label: 'Metodologia', description: 'Consultar método Growth OS', href: '/app/methodology', icon: BookOpen },
 ];
@@ -510,7 +510,7 @@ export default function DashboardPage() {
                 <CardTitle className="mt-2 text-2xl">Top 3 ações</CardTitle>
               </div>
               <Button asChild variant="outline" size="sm" className="rounded-full border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground">
-                <Link to="/app/counselor">Ver Central do Conselheiro</Link>
+                <Link to="/app/counselor">Ver Central do Comitê de Crescimento</Link>
               </Button>
             </div>
           </CardHeader>
