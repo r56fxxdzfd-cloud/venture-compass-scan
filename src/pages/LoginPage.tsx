@@ -86,11 +86,11 @@ export default function LoginPage() {
             <img src={logoDarwin} alt="Darwin Growth" className="h-20 w-auto object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
-            Diagnóstico completo de maturidade e plano de ação nos comitês de crescimento coletivos para organizações
+            Diagnóstico completo de maturidade e plano de ação para comitês de crescimento
           </h2>
           <p className="text-white/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
-            Tudo configurável pela equipe da JV.
+            Tudo configurável pela equipe Darwin Growth.
           </p>
         </motion.div>
       </div>
@@ -194,7 +194,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Acesso restrito à equipe JV
+            Acesso restrito à equipe Darwin Growth
           </p>
         </motion.div>
       </div>

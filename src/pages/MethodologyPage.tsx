@@ -9,9 +9,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { BookOpen, Download, Loader2, Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { PILLARS, PILLAR_QUESTIONS, SCORE_ANCHORS, ACTION_RECOMMENDATIONS } from '@/utils/founder-scoring';
+import { getQuestionSkipRules, type QuestionSkipRule } from '@/utils/question-flow';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import type { ConfigJSON, ConfigVersion } from '@/types/darwin';
+import type { ConfigJSON, ConfigQuestion, ConfigVersion } from '@/types/darwin';
 import '@/styles/methodology-print.css';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
@@ -30,10 +31,26 @@ function safeString(value: unknown): string {
   return '—';
 }
 
+function formatRuleValue(rule: QuestionSkipRule): string {
+  if (Array.isArray(rule.value)) return `[${rule.value.join(', ')}]`;
+  if (rule.value === undefined) return '';
+  return String(rule.value);
+}
+
+function describeSkipRule(rule: QuestionSkipRule, questionsById: Map<string, ConfigQuestion>): string {
+  const source = questionsById.get(rule.question_id);
+  const sourceLabel = source ? `${source.id}: ${source.text}` : rule.question_id;
+  const op = rule.op || '<=';
+  if (op === 'answered') return `Pulada quando "${sourceLabel}" já foi respondida.`;
+  if (op === 'na') return `Pulada quando "${sourceLabel}" for N/A.`;
+  return `Pulada quando "${sourceLabel}" ${op} ${formatRuleValue(rule)}.`;
+}
+
 // Monta o documento (markdown) com todas as perguntas do diagnóstico:
 // empresa (por dimensão) + fundadores (pilares de liderança).
 function buildQuestionsMarkdown(config: ConfigJSON, version: ConfigVersion | null): string {
   const L: string[] = [];
+  const questionsById = new Map((config.questions || []).map(q => [q.id, q]));
   L.push('# Perguntas do Diagnóstico — Growth OS');
   if (version) {
     L.push(`Versão: ${version.version_name}${version.published_at ? ` · publicada em ${new Date(version.published_at).toLocaleDateString('pt-BR')}` : ''}`);
@@ -42,21 +59,29 @@ function buildQuestionsMarkdown(config: ConfigJSON, version: ConfigVersion | nul
   L.push('## Empresa — por dimensão');
   const dims = [...(config.dimensions || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   let totalQ = 0;
+  let totalConditional = 0;
   for (const d of dims) {
     const qs = (config.questions || [])
       .filter((q) => q.dimension_id === d.id && q.is_active !== false)
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const conditionalCount = qs.filter(q => getQuestionSkipRules(q).length > 0).length;
     totalQ += qs.length;
+    totalConditional += conditionalCount;
     L.push('');
-    L.push(`### ${d.label} (${d.id}) — ${qs.length} pergunta(s)`);
+    L.push(`### ${d.label} (${d.id}) — ${qs.length} pergunta(s), ${conditionalCount} condicional(is)`);
     qs.forEach((q, i) => {
       L.push(`${i + 1}. ${q.text}`);
       const def = q.tooltip?.definition;
       if (def) L.push(`   - _${def}_`);
+      const rules = getQuestionSkipRules(q);
+      rules.forEach((rule) => {
+        L.push(`   - Condicional: ${describeSkipRule(rule, questionsById)}${rule.reason ? ` Motivo: ${rule.reason}` : ''}`);
+      });
     });
   }
   L.push('');
   L.push(`_Total de perguntas da empresa: ${totalQ}_`);
+  L.push(`_Perguntas com regra condicional: ${totalConditional}_`);
   L.push('');
   L.push('## Fundadores — pilares de liderança');
   for (const p of PILLARS) {
@@ -76,6 +101,7 @@ export default function MethodologyPage() {
   const [exportProgress, setExportProgress] = useState('');
   const [expandedDimensions, setExpandedDimensions] = useState<string[]>([]);
   const { toast } = useToast();
+  const questionsById = new Map((config?.questions || []).map(q => [q.id, q]));
 
   const exportQuestions = useCallback(() => {
     if (!config) return;
@@ -387,18 +413,32 @@ export default function MethodologyPage() {
                   const dimQuestions = config.questions
                     .filter(q => q.dimension_id === dim.id && q.is_active !== false)
                     .sort((a, b) => a.sort_order - b.sort_order);
+                  const conditionalCount = dimQuestions.filter(q => getQuestionSkipRules(q).length > 0).length;
 
                   return (
                     <AccordionItem key={dim.id} value={dim.id}>
                       <AccordionTrigger className="text-sm dimension-header">
                         {dim.label}
                         <Badge variant="outline" className="ml-2 text-[10px]" data-print-hide="true">{dimQuestions.length} perguntas</Badge>
+                        {conditionalCount > 0 && (
+                          <Badge variant="secondary" className="ml-2 text-[10px]" data-print-hide="true">{conditionalCount} condicionais</Badge>
+                        )}
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-4">
                           {dimQuestions.map((q, idx) => (
                             <div key={q.id} className="question-card pl-2 border-l-2 border-muted space-y-1">
                               <p className="text-sm font-medium">{idx + 1}. {q.text}</p>
+                              {getQuestionSkipRules(q).length > 0 && (
+                                <div className="text-xs text-muted-foreground space-y-1 pl-3">
+                                  {getQuestionSkipRules(q).map((rule, ruleIdx) => (
+                                    <p key={`${q.id}-${rule.question_id}-${ruleIdx}`}>
+                                      <strong>Condicional:</strong> {describeSkipRule(rule, questionsById)}
+                                      {rule.reason ? ` Motivo: ${rule.reason}` : ''}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
                               {q.tooltip && (
                                 <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
                                   {q.tooltip.definition && <p><strong>Definição:</strong> {q.tooltip.definition}</p>}
