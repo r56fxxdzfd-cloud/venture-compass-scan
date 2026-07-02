@@ -138,7 +138,7 @@ export default function StartupsPage() {
       return;
     }
 
-    const { error } = await supabase.from('companies').insert({
+    const payload = {
       name: form.name,
       description: form.description || null,
       legal_name: form.legal_name || null,
@@ -146,11 +146,23 @@ export default function StartupsPage() {
       sector: form.sector || null,
       stage: form.stage || null,
       business_model: form.business_model || null,
-    });
+    };
+
+    let { error } = await supabase.from('companies').insert(payload);
+    let descriptionSkipped = false;
+    if (error && isMissingDescriptionColumn(error.message)) {
+      const { description: _description, ...fallbackPayload } = payload;
+      const fallback = await supabase.from('companies').insert(fallbackPayload);
+      error = fallback.error;
+      descriptionSkipped = !fallback.error;
+    }
     if (error) {
       toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
     } else {
-      toast({ title: `Organização '${form.name}' criada com sucesso.` });
+      toast({
+        title: `Organização '${form.name}' criada com sucesso.`,
+        description: descriptionSkipped ? 'A descrição será salva após a migration do banco ser aplicada.' : undefined,
+      });
       setOpen(false);
       setForm({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
       fetchCompanies();
@@ -466,4 +478,8 @@ export default function StartupsPage() {
       <BackToTopFooter />
     </div>
   );
+}
+
+function isMissingDescriptionColumn(message: string) {
+  return message.includes("'description' column") || message.includes('description') && message.includes('schema cache');
 }

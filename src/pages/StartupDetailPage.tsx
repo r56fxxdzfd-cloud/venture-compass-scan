@@ -314,7 +314,7 @@ export default function StartupDetailPage() {
       return;
     }
     setEditSaving(true);
-    const { error } = await supabase.from('companies').update({
+    const payload = {
       name: editForm.name,
       description: editForm.description || null,
       legal_name: editForm.legal_name || null,
@@ -322,13 +322,21 @@ export default function StartupDetailPage() {
       sector: editForm.sector || null,
       stage: editForm.stage || null,
       business_model: editForm.business_model || null,
-    }).eq('id', company.id);
+    };
+    let { error } = await supabase.from('companies').update(payload).eq('id', company.id);
+    let descriptionSkipped = false;
+    if (error && isMissingDescriptionColumn(error.message)) {
+      const { description: _description, ...fallbackPayload } = payload;
+      const fallback = await supabase.from('companies').update(fallbackPayload).eq('id', company.id);
+      error = fallback.error;
+      descriptionSkipped = !fallback.error;
+    }
     setEditSaving(false);
     if (!error) {
       setCompany({
         ...company,
         ...editForm,
-        description: editForm.description || null,
+        description: descriptionSkipped ? company.description : editForm.description || null,
         legal_name: editForm.legal_name || null,
         cnpj: editForm.cnpj || null,
         sector: editForm.sector || null,
@@ -336,7 +344,10 @@ export default function StartupDetailPage() {
         business_model: editForm.business_model || null,
       });
       setEditDialogOpen(false);
-      toast({ title: 'Organização atualizada' });
+      toast({
+        title: 'Organização atualizada',
+        description: descriptionSkipped ? 'A descrição será salva após a migration do banco ser aplicada.' : undefined,
+      });
     } else {
       toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
     }
@@ -1168,4 +1179,8 @@ export default function StartupDetailPage() {
       </Dialog>
     </div>
   );
+}
+
+function isMissingDescriptionColumn(message: string) {
+  return message.includes("'description' column") || message.includes('description') && message.includes('schema cache');
 }
