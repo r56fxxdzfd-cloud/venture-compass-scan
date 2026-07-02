@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { PermissionsMatrix } from '@/components/admin/PermissionsMatrix';
 
 interface UserWithRole {
   id: string;
@@ -247,6 +248,10 @@ export default function AdminUsersPage() {
           {rejectedUsers.length > 0 && (
             <TabsTrigger value="rejected">Rejeitados ({rejectedUsers.length})</TabsTrigger>
           )}
+          <TabsTrigger value="permissions" className="gap-1.5">
+            <Shield className="h-3.5 w-3.5" />
+            Permissões
+          </TabsTrigger>
         </TabsList>
 
         {/* Pending Tab */}
@@ -430,6 +435,10 @@ export default function AdminUsersPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="permissions">
+          <PermissionsMatrix />
         </TabsContent>
       </Tabs>
 
