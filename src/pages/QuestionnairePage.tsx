@@ -407,7 +407,7 @@ export default function QuestionnairePage() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button onClick={saveAnswers} variant="outline" disabled={saving}>
+              <Button onClick={() => saveAnswers()} variant="outline" disabled={saving}>
                 Salvar rascunho
               </Button>
             </TooltipTrigger>
