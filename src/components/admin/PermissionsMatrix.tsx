@@ -94,8 +94,8 @@ export function PermissionsMatrix() {
           </TableHeader>
           <TableBody>
             {capabilities.map((group) => (
-              <>
-                <TableRow key={group.group} className="bg-muted/40 hover:bg-muted/40">
+              <Fragment key={group.group}>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableCell colSpan={roles.length + 1} className="font-semibold text-xs uppercase tracking-wide text-muted-foreground py-2">
                     {group.group}
                   </TableCell>
@@ -110,7 +110,7 @@ export function PermissionsMatrix() {
                     ))}
                   </TableRow>
                 ))}
-              </>
+              </Fragment>
             ))}
           </TableBody>
         </Table>
