@@ -248,6 +248,10 @@ export default function AdminUsersPage() {
           {rejectedUsers.length > 0 && (
             <TabsTrigger value="rejected">Rejeitados ({rejectedUsers.length})</TabsTrigger>
           )}
+          <TabsTrigger value="permissions" className="gap-1.5">
+            <Shield className="h-3.5 w-3.5" />
+            Permissões
+          </TabsTrigger>
         </TabsList>
 
         {/* Pending Tab */}
