@@ -1,5 +1,5 @@
 import { DimensionScore, AssessmentResult, EvaluatedRedFlag, ConfigJSON, Answer, RedFlagTrigger, StageTarget } from '@/types/darwin';
-import { filterSkippedAnswers, getAnswerableQuestions } from '@/utils/question-flow';
+import { filterSkippedAnswers, getAnswerableQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 
 function resolveBenchmarkTarget(target: StageTarget | undefined, fallback = 3.5): number {
   if (typeof target === 'number' && Number.isFinite(target)) return target;
@@ -12,15 +12,16 @@ function resolveBenchmarkTarget(target: StageTarget | undefined, fallback = 3.5)
 export function calculateDimensionScores(
   configJson: ConfigJSON,
   answers: Answer[],
-  stage: string
+  stage: string,
+  assessmentContext?: AssessmentQuestionContext
 ): DimensionScore[] {
   const rawTargets = configJson.targets_by_stage?.[stage] || {};
   const targets: Record<string, number> = {};
   for (const [k, v] of Object.entries(rawTargets)) {
     targets[k] = resolveBenchmarkTarget(v);
   }
-  const answerableQuestions = getAnswerableQuestions(configJson, answers);
-  const effectiveAnswers = filterSkippedAnswers(configJson, answers);
+  const answerableQuestions = getAnswerableQuestions(configJson, answers, assessmentContext);
+  const effectiveAnswers = filterSkippedAnswers(configJson, answers, assessmentContext);
 
   return configJson.dimensions.map((dim) => {
     const dimQuestions = answerableQuestions.filter(
@@ -66,7 +67,7 @@ export function evaluateRedFlags(
   answers: Answer[],
   contextNumeric: Record<string, number>,
   stage?: string,
-  assessmentContext?: { revenue_model?: string; customer_type?: string; business_model?: string }
+  assessmentContext?: AssessmentQuestionContext
 ): EvaluatedRedFlag[] {
   if (!configJson.red_flags) return [];
 
@@ -155,8 +156,8 @@ export function calculateAssessmentResult(
   contextNumeric: Record<string, number>,
   assessmentContext?: { revenue_model?: string; customer_type?: string; business_model?: string }
 ): AssessmentResult {
-  const effectiveAnswers = filterSkippedAnswers(configJson, answers);
-  const dimensionScores = calculateDimensionScores(configJson, effectiveAnswers, stage);
+  const effectiveAnswers = filterSkippedAnswers(configJson, answers, assessmentContext);
+  const dimensionScores = calculateDimensionScores(configJson, effectiveAnswers, stage, assessmentContext);
   const overall = calculateOverallScore(dimensionScores, configJson, stage);
   const redFlags = evaluateRedFlags(configJson, dimensionScores, effectiveAnswers, contextNumeric, stage, assessmentContext);
 

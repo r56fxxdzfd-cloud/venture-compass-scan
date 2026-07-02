@@ -76,7 +76,7 @@ export default function SimulatorPage() {
     });
     const res = calculateAssessmentResult(config, syntheticAnswers, stage, numericContext, { revenue_model: revenueModel, customer_type: customerType });
     setResult(res);
-  }, [config, sliders, stage, numericContext]);
+  }, [config, sliders, stage, numericContext, revenueModel, customerType]);
 
   const loadPreset = (presetId: string) => {
     const preset = config?.simulator?.presets?.find((p) => p.id === presetId);

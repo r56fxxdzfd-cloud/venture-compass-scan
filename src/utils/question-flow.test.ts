@@ -73,4 +73,38 @@ describe('conditional question flow', () => {
       coverage: 1,
     });
   });
+
+  it('skips recurring-only questions for non-recurring revenue models', () => {
+    const recurringConfig: ConfigJSON = {
+      ...config,
+      questions: [
+        {
+          id: 'GT04',
+          dimension_id: 'IC',
+          text: 'Retenção/engajamento é medido? (condicional modelos recorrentes)',
+          sort_order: 1,
+        },
+      ],
+    };
+
+    expect(getAnswerableQuestions(recurringConfig, [], { revenue_model: 'subscription' }).map((q) => q.id)).toEqual(['GT04']);
+    expect(getAnswerableQuestions(recurringConfig, [], { revenue_model: 'non_recurring' })).toEqual([]);
+  });
+
+  it('keeps B2B conditional questions open for B2B2C and skips them for B2C', () => {
+    const b2bConfig: ConfigJSON = {
+      ...config,
+      questions: [
+        {
+          id: 'GT05',
+          dimension_id: 'IC',
+          text: 'Existe playbook de vendas? (condicional B2B)',
+          sort_order: 1,
+        },
+      ],
+    };
+
+    expect(getAnswerableQuestions(b2bConfig, [], { customer_type: 'B2B2C' }).map((q) => q.id)).toEqual(['GT05']);
+    expect(getAnswerableQuestions(b2bConfig, [], { customer_type: 'B2C' })).toEqual([]);
+  });
 });

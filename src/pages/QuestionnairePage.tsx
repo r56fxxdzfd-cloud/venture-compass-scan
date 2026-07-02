@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
-import { getAnswerableQuestions, getSkippedQuestions } from '@/utils/question-flow';
+import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 
 type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
 
@@ -51,7 +51,12 @@ export default function QuestionnairePage() {
   const [saving, setSaving] = useState(false);
   const [activeDim, setActiveDim] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const [assessmentMeta, setAssessmentMeta] = useState<{ status: 'in_progress' | 'completed'; companyId?: string; companyName?: string } | null>(null);
+  const [assessmentMeta, setAssessmentMeta] = useState<{
+    status: 'in_progress' | 'completed';
+    companyId?: string;
+    companyName?: string;
+    questionContext?: AssessmentQuestionContext;
+  } | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveError, setSaveError] = useState('');
   const [completionOpen, setCompletionOpen] = useState(false);
@@ -63,7 +68,7 @@ export default function QuestionnairePage() {
     const load = async () => {
       const { data: assessment } = await supabase
         .from('assessments')
-        .select('config_version_id, status, company_id, company:companies(id, name)')
+        .select('config_version_id, status, company_id, revenue_model, customer_type, business_model, company:companies(id, name)')
         .eq('id', id)
         .single();
 
@@ -75,7 +80,17 @@ export default function QuestionnairePage() {
         status: (assessment as any).status || 'in_progress',
         companyId: (assessment as any).company_id,
         companyName: assessmentCompany?.name,
+        questionContext: {
+          revenue_model: (assessment as any).revenue_model,
+          customer_type: (assessment as any).customer_type,
+          business_model: (assessment as any).business_model,
+        },
       });
+      const questionContext = {
+        revenue_model: (assessment as any).revenue_model,
+        customer_type: (assessment as any).customer_type,
+        business_model: (assessment as any).business_model,
+      };
 
       const { data: configVersion } = await supabase
         .from('config_versions')
@@ -99,7 +114,7 @@ export default function QuestionnairePage() {
         setAnswers(map);
 
         const existingRows = answerStateToRows(map, id);
-        const answerable = getAnswerableQuestions(cfg, existingRows);
+        const answerable = getAnswerableQuestions(cfg, existingRows, questionContext);
         const firstIncompleteDimension = cfg.dimensions.find((dim) => {
           const dimQuestions = answerable.filter((question) => question.dimension_id === dim.id && question.is_active !== false);
           return dimQuestions.length > 0 && dimQuestions.some((question) => {
@@ -201,7 +216,7 @@ export default function QuestionnairePage() {
     }
     setAssessmentMeta((prev) => prev ? { ...prev, status: 'completed' } : prev);
     const flowAnswers = answerStateToRows(answers, id);
-    const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers).map((q) => q.id) : []);
+    const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers, assessmentMeta?.questionContext).map((q) => q.id) : []);
     const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableIds.has(questionId) && (a.value !== null || a.is_na)).length;
     const totalQuestions = answerableIds.size || 45;
     toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas.` });
@@ -210,12 +225,12 @@ export default function QuestionnairePage() {
 
   const flowAnswers = useMemo(() => answerStateToRows(answers, id), [answers, id]);
   const answerableQuestions = useMemo(
-    () => (config ? getAnswerableQuestions(config, flowAnswers) : []),
-    [config, flowAnswers]
+    () => (config ? getAnswerableQuestions(config, flowAnswers, assessmentMeta?.questionContext) : []),
+    [config, flowAnswers, assessmentMeta?.questionContext]
   );
   const skippedQuestions = useMemo(
-    () => (config ? getSkippedQuestions(config, flowAnswers) : []),
-    [config, flowAnswers]
+    () => (config ? getSkippedQuestions(config, flowAnswers, assessmentMeta?.questionContext) : []),
+    [config, flowAnswers, assessmentMeta?.questionContext]
   );
   const answerableQuestionIds = useMemo(
     () => new Set(answerableQuestions.map((q) => q.id)),
@@ -359,7 +374,7 @@ export default function QuestionnairePage() {
                 <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
                   <p>
-                    {skippedInDimension.length} pergunta{skippedInDimension.length > 1 ? 's' : ''} pulada{skippedInDimension.length > 1 ? 's' : ''} por resposta anterior nesta dimensão.
+                    {skippedInDimension.length} pergunta{skippedInDimension.length > 1 ? 's' : ''} pulada{skippedInDimension.length > 1 ? 's' : ''} por contexto ou resposta anterior nesta dimensão.
                   </p>
                 </div>
               ) : null;

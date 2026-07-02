@@ -148,6 +148,9 @@ export function selectTop5(
   const triggeredHighRf = result.red_flags
     .filter(rf => ['high', 'critical'].includes(rf.severity))
     .map(rf => rf.code);
+  const effectiveScored = scored.filter((action) =>
+    action.pareto_score > 0 || action.addresses_red_flags?.some((code) => triggeredHighRf.includes(code))
+  );
 
   // Step 6: Diversity rule
   const blockCounts: Record<string, number> = {};
@@ -158,7 +161,7 @@ export function selectTop5(
   const used = new Set<string>();
 
   // First pass: guarantee 1 per block
-  for (const action of scored) {
+  for (const action of effectiveScored) {
     const block = blockMap.get(action.dimension_id) || 'other';
     if (blockCounts[block] === 0 && top5.length < 5 && !used.has(action.id)) {
       top5.push(action);

@@ -91,8 +91,9 @@ export default function ReportPage() {
 
       const { data: answerRows } = await supabase.from('answers').select('*').eq('assessment_id', id);
       const loadedAnswers = (answerRows || []) as Answer[];
-      setAnswers(filterSkippedAnswers(cfg, loadedAnswers));
-      const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model });
+      const assessmentContext = { revenue_model: a.revenue_model, customer_type: a.customer_type, business_model: a.business_model };
+      setAnswers(filterSkippedAnswers(cfg, loadedAnswers, assessmentContext));
+      const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, assessmentContext);
       setResult(res);
 
       // Quais quick wins já viraram action_items nesta company (evita duplicar)
