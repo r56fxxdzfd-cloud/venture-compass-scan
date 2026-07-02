@@ -346,7 +346,7 @@ export default function QuestionnairePage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" onClick={saveAnswers} disabled={saving}>
+                <Button size="sm" onClick={() => saveAnswers()} disabled={saving}>
                   {saving ? 'Salvando...' : 'Salvar'}
                 </Button>
               </TooltipTrigger>
