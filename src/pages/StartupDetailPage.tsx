@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ function formatDateOnlyBR(dateString?: string | null) {
 export default function StartupDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { isAdmin, isAnalyst, isAdvisor, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
@@ -87,6 +88,7 @@ export default function StartupDetailPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const [editSaving, setEditSaving] = useState(false);
+  const shouldOpenNewDiagnostic = location.pathname.endsWith('/diagnostics/new');
 
   useEffect(() => {
     if (!id) return;
@@ -181,6 +183,12 @@ export default function StartupDetailPage() {
     };
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!loading && company && shouldOpenNewDiagnostic && !newDialogOpen) {
+      openNewDialog();
+    }
+  }, [loading, company, shouldOpenNewDiagnostic, newDialogOpen]);
 
   // ---- New Assessment Dialog ----
   const openNewDialog = async () => {
@@ -447,7 +455,7 @@ export default function StartupDetailPage() {
               <Link to={inProgressLink}>Continuar diagnóstico</Link>
             </Button>
           )}
-          {canWrite && <Button variant={inProgressLink ? 'outline' : 'default'} onClick={openNewDialog}>Novo diagnóstico</Button>}
+          {canWrite && <Button asChild variant={inProgressLink ? 'outline' : 'default'}><Link to={`/app/startups/${company.id}/diagnostics/new`}>Novo diagnóstico</Link></Button>}
           {canWrite && (
             <Button variant={company.demo_day_selected ? 'default' : 'outline'} onClick={toggleDemoDay}>
               {company.demo_day_selected ? '✓ Selecionada p/ Demo Day' : 'Marcar p/ Demo Day'}
@@ -537,7 +545,7 @@ export default function StartupDetailPage() {
                 </Button>
               )}
               <Button asChild variant="outline"><Link to={companyProgressLink}>Ver Relatório de Progresso</Link></Button>
-              {canWrite && <Button onClick={openNewDialog}>Novo diagnóstico</Button>}
+              {canWrite && <Button asChild><Link to={`/app/startups/${company.id}/diagnostics/new`}>Novo diagnóstico</Link></Button>}
             </div>
           </CardContent>
         </Card>
@@ -830,8 +838,10 @@ export default function StartupDetailPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <p className='executive-section-title text-xs'>Diagnósticos e relatórios</p><CardTitle className="text-sm">Diagnósticos</CardTitle>
             {canWrite && (
-              <Button size="sm" onClick={openNewDialog}>
+              <Button size="sm" asChild>
+                <Link to={`/app/startups/${company.id}/diagnostics/new`}>
                 <Plus className="mr-1 h-3 w-3" /> Novo
+                </Link>
               </Button>
             )}
           </CardHeader>
@@ -841,8 +851,10 @@ export default function StartupDetailPage() {
                 <Inbox className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
                 <p className="text-sm text-muted-foreground mb-3">Nenhum diagnóstico ainda. Crie o primeiro para começar a análise.</p>
                 {canWrite && (
-                  <Button size="sm" onClick={openNewDialog}>
+                  <Button size="sm" asChild>
+                    <Link to={`/app/startups/${company.id}/diagnostics/new`}>
                     <Plus className="mr-1 h-3 w-3" /> Novo
+                    </Link>
                   </Button>
                 )}
               </div>
@@ -905,7 +917,10 @@ export default function StartupDetailPage() {
       </div>
 
       {/* New Assessment Dialog */}
-      <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
+      <Dialog open={newDialogOpen} onOpenChange={(open) => {
+        setNewDialogOpen(open);
+        if (!open && shouldOpenNewDiagnostic && company) navigate(`/app/startups/${company.id}`, { replace: true });
+      }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Diagnóstico</DialogTitle>
@@ -1035,7 +1050,10 @@ export default function StartupDetailPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => {
+              setNewDialogOpen(false);
+              if (shouldOpenNewDiagnostic && company) navigate(`/app/startups/${company.id}`, { replace: true });
+            }}>Cancelar</Button>
             {newAssessmentStep > 0 && <Button variant="outline" onClick={() => setNewAssessmentStep((step) => step - 1)}>Voltar</Button>}
             {newAssessmentStep < 2 ? (
               <Button onClick={() => setNewAssessmentStep((step) => step + 1)}>Continuar</Button>

@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { CouncilAction, CouncilMeeting, CouncilDimensionProgress, CouncilAgendaTemplate, CouncilMeetingNotesDraft, DimensionTrend, SuggestedCouncilActionDraft, DimensionProgressSuggestionDraft } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { formatDateOnlyBR, getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 
 type DimensionOption = { id: string; label: string };
 type DimensionForm = Omit<CouncilDimensionProgress, 'id' | 'meeting_id' | 'company_id' | 'created_at' | 'updated_at'>;
@@ -210,6 +211,8 @@ export default function MeetingDetailPage() {
   const [applyingDraft, setApplyingDraft] = useState(false);
   const [lastAppliedDraftFingerprint, setLastAppliedDraftFingerprint] = useState<string | null>(null);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [meetingSaveState, setMeetingSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('saved');
+  const [meetingSaveMessage, setMeetingSaveMessage] = useState('Tudo salvo');
 
 
   const load = async () => {
@@ -345,8 +348,16 @@ export default function MeetingDetailPage() {
       toast({ title: 'Informe ao menos o título da ação', variant: 'destructive' });
       return;
     }
+    setMeetingSaveState('saving');
+    setMeetingSaveMessage('Salvando ação...');
     const { error } = await supabase.from('council_actions').insert({ ...newAction, meeting_id: meeting.id, company_id: meeting.company_id });
-    if (error) return toast({ title: 'Erro ao criar ação', description: error.message, variant: 'destructive' });
+    if (error) {
+      setMeetingSaveState('error');
+      setMeetingSaveMessage(friendlySupabaseError(error.message));
+      return toast({ title: 'Erro ao criar ação', description: friendlySupabaseError(error.message), variant: 'destructive' });
+    }
+    setMeetingSaveState('saved');
+    setMeetingSaveMessage('Ação salva');
     setNewAction({ priority: 'medium', status: 'not_started' });
     load();
   };
@@ -365,6 +376,8 @@ export default function MeetingDetailPage() {
     if (!meeting) return;
     const current = formByDimension[dimensionId];
     if (!current) return;
+    setMeetingSaveState('saving');
+    setMeetingSaveMessage('Salvando evolução...');
     const scrollContainer = document.getElementById('app-main-scroll');
     const previousScrollTop = scrollContainer?.scrollTop ?? null;
     const payload = {
@@ -385,7 +398,9 @@ export default function MeetingDetailPage() {
       });
     }
     if (error) {
-      toast({ title: 'Erro ao salvar evolução', description: error.message, variant: 'destructive' });
+      setMeetingSaveState('error');
+      setMeetingSaveMessage(friendlySupabaseError(error.message));
+      toast({ title: 'Erro ao salvar evolução', description: friendlySupabaseError(error.message), variant: 'destructive' });
       return false;
     }
     if (data) {
@@ -397,6 +412,8 @@ export default function MeetingDetailPage() {
           : [...prev, savedRow];
       });
     }
+    setMeetingSaveState('saved');
+    setMeetingSaveMessage('Evolução salva');
     if (!options.silent) toast({ title: 'Evolução por dimensão atualizada' });
     return true;
   };
@@ -412,12 +429,16 @@ export default function MeetingDetailPage() {
     }
 
     setSavingProgress(true);
+    setMeetingSaveState('saving');
+    setMeetingSaveMessage('Salvando dimensões...');
     let savedCount = 0;
     for (const dimensionId of dimensionIds) {
       const saved = await saveDimensionProgress(dimensionId, { silent: true });
       if (saved) savedCount += 1;
     }
     setSavingProgress(false);
+    setMeetingSaveState(savedCount === dimensionIds.length ? 'saved' : 'error');
+    setMeetingSaveMessage(savedCount === dimensionIds.length ? `${savedCount} dimensão${savedCount === 1 ? '' : 'ões'} salva${savedCount === 1 ? '' : 's'}` : `${savedCount}/${dimensionIds.length} dimensões salvas`);
     toast({ title: `${savedCount} dimensão${savedCount === 1 ? '' : 'ões'} salva${savedCount === 1 ? '' : 's'}` });
   };
 
@@ -440,7 +461,7 @@ export default function MeetingDetailPage() {
       },
     });
     setGeneratingDraft(false);
-    if (error) return toast({ title: 'Erro ao analisar transcrição', description: error.message, variant: 'destructive' });
+    if (error) return toast({ title: 'Erro ao analisar transcrição', description: friendlySupabaseError(error.message), variant: 'destructive' });
 
     const normalizedDraft = normalizeDraftPayload(data?.draft);
     if (!normalizedDraft) {
@@ -465,6 +486,8 @@ export default function MeetingDetailPage() {
   const applyDraftToMeeting = async () => {
     if (!meeting || !draft || !canApplyDraft) return;
     setApplyingDraft(true);
+    setMeetingSaveState('saving');
+    setMeetingSaveMessage('Aplicando pré-ata...');
     const approvedActions = draft.suggested_actions.filter((item) => item.approved !== false);
     const approvedProgress = draft.dimension_progress_suggestions.filter((item) => item.approved !== false);
 
@@ -480,7 +503,9 @@ export default function MeetingDetailPage() {
 
     if (meetingError) {
       setApplyingDraft(false);
-      return toast({ title: 'Erro ao aplicar pré-ata', description: meetingError.message, variant: 'destructive' });
+      setMeetingSaveState('error');
+      setMeetingSaveMessage(friendlySupabaseError(meetingError.message));
+      return toast({ title: 'Erro ao aplicar pré-ata', description: friendlySupabaseError(meetingError.message), variant: 'destructive' });
     }
 
     if (approvedActions.length > 0) {
@@ -501,7 +526,9 @@ export default function MeetingDetailPage() {
       const { error } = await supabase.from('council_actions').insert(payload);
       if (error) {
         setApplyingDraft(false);
-        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao criar ações: ${error.message}`, variant: 'destructive' });
+        setMeetingSaveState('error');
+        setMeetingSaveMessage(friendlySupabaseError(error.message));
+        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao criar ações: ${friendlySupabaseError(error.message)}`, variant: 'destructive' });
       }
     }
 
@@ -519,11 +546,15 @@ export default function MeetingDetailPage() {
       }, { onConflict: 'meeting_id,dimension_id' });
       if (error) {
         setApplyingDraft(false);
-        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao salvar evolução: ${error.message}`, variant: 'destructive' });
+        setMeetingSaveState('error');
+        setMeetingSaveMessage(friendlySupabaseError(error.message));
+        return toast({ title: 'Pré-ata aplicada parcialmente', description: `Erro ao salvar evolução: ${friendlySupabaseError(error.message)}`, variant: 'destructive' });
       }
     }
 
     setApplyingDraft(false);
+    setMeetingSaveState('saved');
+    setMeetingSaveMessage('Pré-ata aplicada');
     setLastAppliedDraftFingerprint(draftFingerprint);
     setDraft(null);
     setTranscriptText('');
@@ -532,8 +563,16 @@ export default function MeetingDetailPage() {
   };
 
   const updateStatus = async (action: CouncilAction, status: string) => {
+    setMeetingSaveState('saving');
+    setMeetingSaveMessage('Atualizando ação...');
     const { error } = await supabase.from('council_actions').update({ status, completed_at: status === 'completed' ? new Date().toISOString() : null }).eq('id', action.id);
-    if (error) return toast({ title: 'Erro ao atualizar status', description: error.message, variant: 'destructive' });
+    if (error) {
+      setMeetingSaveState('error');
+      setMeetingSaveMessage(friendlySupabaseError(error.message));
+      return toast({ title: 'Erro ao atualizar status', description: friendlySupabaseError(error.message), variant: 'destructive' });
+    }
+    setMeetingSaveState('saved');
+    setMeetingSaveMessage('Status atualizado');
     load();
   };
 
@@ -586,6 +625,10 @@ export default function MeetingDetailPage() {
   const dimensionsWithProgress = dimensions.filter((dimension) => progressRows.some((row) => row.dimension_id === dimension.id));
   const dimensionsWithoutProgress = dimensions.filter((dimension) => !progressRows.some((row) => row.dimension_id === dimension.id));
   const hasCompactMatrix = actions.length <= 2;
+  const markMeetingDirty = () => {
+    setMeetingSaveState((state) => state === 'saving' ? state : 'idle');
+    setMeetingSaveMessage('Alterações não salvas');
+  };
 
   return <div className='space-y-4'>
     <div>
@@ -601,6 +644,15 @@ export default function MeetingDetailPage() {
         <div>
           <p className='text-xs uppercase tracking-[0.12em] text-muted-foreground'>Encontro do comitê de crescimento</p>
           <h1 className='text-xl font-bold'>{meeting.title || meeting.main_topic || 'Encontro de acompanhamento'}</h1>
+        </div>
+        <div className={`inline-flex w-fit items-center gap-1 rounded-full border px-2 py-1 text-[11px] ${
+          meetingSaveState === 'error'
+            ? 'border-destructive/40 bg-destructive/10 text-destructive'
+            : meetingSaveState === 'idle'
+              ? 'border-amber-500/30 bg-amber-500/10 text-amber-600'
+              : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600'
+        }`}>
+          {meetingSaveMessage}
         </div>
         <div className='grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3'>
           <p><strong>Organização:</strong> {companyName || '—'}</p>
@@ -693,13 +745,13 @@ export default function MeetingDetailPage() {
             <div className='grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs'><div><p className='text-muted-foreground'>Antes</p><p className='font-semibold'>{row.initial_score ?? '—'}</p></div><div><p className='text-muted-foreground'>Agora</p><p className='font-semibold'>{row.current_perceived_score ?? '—'}</p></div><div><p className='text-muted-foreground'>Diferença</p><p className='font-semibold'>{row.initial_score != null && row.current_perceived_score != null ? `${(row.current_perceived_score - row.initial_score) > 0 ? '+' : ''}${(row.current_perceived_score - row.initial_score).toFixed(1)}` : '—'}</p></div></div>
             <div className='h-2 rounded bg-muted overflow-hidden'><div className='h-full bg-cyan-500' style={{ width: `${((row.current_perceived_score ?? row.initial_score ?? 0) / 5) * 100}%` }} /></div>
             <div className='grid md:grid-cols-3 gap-2'>
-              <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
-              <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } }))} /></div>
-              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência</SelectItem></SelectContent></Select></div>
+              <div><Label>Score inicial</Label><Input type='number' min={1} max={5} step='0.1' value={row.initial_score ?? ''} onChange={e => { markMeetingDirty(); setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], initial_score: e.target.value ? Number(e.target.value) : null } })); }} /></div>
+              <div><Label>Score percebido atual</Label><Input type='number' min={1} max={5} step='0.1' value={row.current_perceived_score ?? ''} onChange={e => { markMeetingDirty(); setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], current_perceived_score: e.target.value ? Number(e.target.value) : null } })); }} /></div>
+              <div><Label>Tendência</Label><Select value={row.trend} onValueChange={(v: DimensionTrend) => { markMeetingDirty(); setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], trend: v } })); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='improving'>Melhorando</SelectItem><SelectItem value='stable'>Estável</SelectItem><SelectItem value='worsening'>Piorando</SelectItem><SelectItem value='insufficient_evidence'>Sem evidência</SelectItem></SelectContent></Select></div>
             </div>
             <div className='grid md:grid-cols-2 gap-2'>
-              <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } }))} /></div>
-              <div><Label>Comentário do membro do comitê de crescimento</Label><Textarea value={row.counselor_comment ?? ''} onChange={e => setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], counselor_comment: e.target.value || null } }))} /></div>
+              <div><Label>Evidência</Label><Textarea value={row.evidence_note ?? ''} onChange={e => { markMeetingDirty(); setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], evidence_note: e.target.value || null } })); }} /></div>
+              <div><Label>Comentário do membro do comitê de crescimento</Label><Textarea value={row.counselor_comment ?? ''} onChange={e => { markMeetingDirty(); setFormByDimension(prev => ({ ...prev, [d.id]: { ...prev[d.id], counselor_comment: e.target.value || null } })); }} /></div>
             </div>
             <div className='flex items-center justify-between'>
               <p className='text-xs text-muted-foreground'>{existing ? 'Registro existente: atualização incremental.' : 'Sem registro ainda para esta dimensão.'}</p>

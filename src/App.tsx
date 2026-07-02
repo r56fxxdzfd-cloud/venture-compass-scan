@@ -49,6 +49,7 @@ function AnimatedRoutes() {
         <Route path="/intake/:token" element={<AnimatedPage><IntakePage /></AnimatedPage>} />
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
+        <Route path="/app/startups/:id/diagnostics/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst', 'demo_admin']}><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/progress" element={<ProtectedRoute><AppLayout><AnimatedPage><ProgressReportPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/counselor" element={<ProtectedRoute><AppLayout><AnimatedPage><CounselorOverviewPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
