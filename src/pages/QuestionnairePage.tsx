@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, HelpCircle, Check, Eye, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, HelpCircle, Check, Eye, Info, CheckCircle2, AlertCircle, CalendarPlus, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 import { getAnswerableQuestions, getSkippedQuestions } from '@/utils/question-flow';
 
@@ -38,6 +39,10 @@ export default function QuestionnairePage() {
   const [activeDim, setActiveDim] = useState('');
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
   const [assessmentMeta, setAssessmentMeta] = useState<{ status: 'in_progress' | 'completed'; companyId?: string; companyName?: string } | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveError, setSaveError] = useState('');
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -96,6 +101,7 @@ export default function QuestionnairePage() {
   }, [id]);
 
   const setAnswer = (questionId: string, value: number | null, is_na: boolean = false) => {
+    setSaveState((state) => state === 'saving' ? state : 'idle');
     setAnswers((prev) => ({
       ...prev,
       [questionId]: { value: is_na ? null : value, is_na, notes: prev[questionId]?.notes || '' },
@@ -103,6 +109,7 @@ export default function QuestionnairePage() {
   };
 
   const setNotes = (questionId: string, notes: string) => {
+    setSaveState((state) => state === 'saving' ? state : 'idle');
     setAnswers((prev) => ({
       ...prev,
       [questionId]: { value: prev[questionId]?.value ?? null, is_na: prev[questionId]?.is_na ?? false, notes },
@@ -110,8 +117,10 @@ export default function QuestionnairePage() {
   };
 
   const saveAnswers = useCallback(async () => {
-    if (!id) return;
+    if (!id) return false;
     setSaving(true);
+    setSaveState('saving');
+    setSaveError('');
     const scrollContainer = document.getElementById('app-main-scroll');
     const previousScrollTop = scrollContainer?.scrollTop ?? null;
 
@@ -136,12 +145,16 @@ export default function QuestionnairePage() {
       });
     }
     if (errors.length > 0) {
+      setSaveState('error');
+      setSaveError(errors[0]);
       toast({ title: 'Erro ao salvar respostas', description: errors[0], variant: 'destructive' });
-      return;
+      return false;
     }
     const now = new Date();
     setLastSavedAt(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+    setSaveState('saved');
     toast({ title: 'Respostas salvas' });
+    return true;
   }, [id, answers, toast]);
 
   // Auto-save a cada 30 segundos
@@ -158,16 +171,27 @@ export default function QuestionnairePage() {
   }, [id, config, answers, saveAnswers]);
 
   const completeAssessment = async () => {
-    await saveAnswers();
-    await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
+    setCompleting(true);
+    const saved = await saveAnswers();
+    if (!saved) {
+      setCompleting(false);
+      return;
+    }
+    const { error } = await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
+    setCompleting(false);
+    if (error) {
+      setSaveState('error');
+      setSaveError(error.message);
+      toast({ title: 'Erro ao finalizar diagnóstico', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setAssessmentMeta((prev) => prev ? { ...prev, status: 'completed' } : prev);
     const flowAnswers = answerStateToRows(answers, id);
     const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers).map((q) => q.id) : []);
     const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableIds.has(questionId) && (a.value !== null || a.is_na)).length;
     const totalQuestions = answerableIds.size || 45;
-    toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas. Gerando relatório...` });
-    setTimeout(() => {
-      navigate(`/app/assessments/${id}/report`);
-    }, 1500);
+    toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas.` });
+    setCompletionOpen(true);
   };
 
   const flowAnswers = useMemo(() => answerStateToRows(answers, id), [answers, id]);
@@ -217,6 +241,13 @@ export default function QuestionnairePage() {
   const totalQuestions = answerableQuestions.length;
   const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableQuestionIds.has(questionId) && a && (a.value !== null || a.is_na)).length;
   const progressPct = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+  const saveStateLabel = saveState === 'saving'
+    ? 'Salvando...'
+    : saveState === 'saved'
+      ? `Tudo salvo${lastSavedAt ? ` às ${lastSavedAt}` : ''}`
+      : saveState === 'error'
+        ? 'Erro ao salvar'
+        : 'Alterações não salvas';
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -248,12 +279,16 @@ export default function QuestionnairePage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {lastSavedAt && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-              <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-              Salvo às {lastSavedAt}
-            </span>
-          )}
+          <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] ${
+            saveState === 'error'
+              ? 'border-destructive/40 bg-destructive/10 text-destructive'
+              : saveState === 'idle'
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-600'
+                : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600'
+          }`}>
+            {saveState === 'error' ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+            {saveStateLabel}
+          </span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -358,10 +393,11 @@ export default function QuestionnairePage() {
                     <TooltipTrigger asChild>
                       <Button
                         onClick={completeAssessment}
+                        disabled={completing}
                         variant={isLastDim && allAnswered ? 'default' : 'outline'}
                         className={!isLastDim ? 'text-muted-foreground' : ''}
                       >
-                        Finalizar diagnóstico
+                        {completing ? 'Finalizando...' : 'Finalizar diagnóstico'}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -376,6 +412,39 @@ export default function QuestionnairePage() {
           })()}
         </div>
       </div>
+      {saveState === 'error' && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {saveError || 'Não foi possível salvar as respostas agora.'}
+        </div>
+      )}
+      <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Diagnóstico concluído</DialogTitle>
+            <DialogDescription>
+              O questionário foi salvo e marcado como concluído. Próximo passo recomendado: revisar o relatório e transformar prioridades em execução.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Button onClick={() => navigate(`/app/assessments/${id}/report`)} className="h-auto justify-start py-3">
+              <Eye className="mr-2 h-4 w-4" /> Ver relatório
+            </Button>
+            {assessmentMeta?.companyId && (
+              <Button variant="outline" onClick={() => navigate(`/app/agenda?company=${assessmentMeta.companyId}&new=meeting&type=diagnostic_initial`)} className="h-auto justify-start py-3">
+                <CalendarPlus className="mr-2 h-4 w-4" /> Agendar rito
+              </Button>
+            )}
+            {assessmentMeta?.companyId && (
+              <Button variant="outline" onClick={() => navigate(`/app/startups/${assessmentMeta.companyId}/counselor`)} className="h-auto justify-start py-3">
+                <ClipboardList className="mr-2 h-4 w-4" /> Plano de ação
+              </Button>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setCompletionOpen(false)}>Continuar no questionário</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

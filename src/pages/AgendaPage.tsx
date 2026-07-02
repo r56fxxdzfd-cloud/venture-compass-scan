@@ -17,6 +17,7 @@ import type { CouncilAction, CouncilDimensionProgress, CouncilMeeting, CouncilMe
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, FileStack, Plus, Sparkles, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 
 type Company = { id: string; name: string };
 type DimensionCatalogItem = { id: string; label: string; sort_order: number | null };
@@ -353,7 +354,7 @@ export default function AgendaPage() {
       attendees_founders: form.attendees_founders?.split(',').map((s: string) => s.trim()).filter(Boolean) || null,
     };
     const { error } = await supabase.from('council_meetings').insert(payload);
-    if (error) return toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+    if (error) return toast({ title: 'Erro ao salvar', description: friendlySupabaseError(error.message), variant: 'destructive' });
     setOpen(false); setForm({ meeting_type: 'collective', related_dimensions: [], main_topic: '' }); load();
   };
 
@@ -454,7 +455,7 @@ export default function AgendaPage() {
 
     if (meetingError || !inserted) {
       setCreatingFromDraft(false);
-      return toast({ title: 'Erro ao criar encontro', description: meetingError?.message || 'Falha ao persistir encontro', variant: 'destructive' });
+      return toast({ title: 'Erro ao criar encontro', description: friendlySupabaseError(meetingError?.message || 'Falha ao persistir encontro'), variant: 'destructive' });
     }
 
     const actionRows = actionPayload.map((item) => ({ ...item, meeting_id: inserted.id, company_id: inserted.company_id }));
@@ -482,14 +483,14 @@ export default function AgendaPage() {
       if (rollbackFailed) {
         return toast({
           title: 'Criação parcial detectada',
-          description: `O encontro foi criado, mas falhou ao salvar ações/evolução e não foi possível desfazer tudo automaticamente. Detalhe: ${(actionsError || progressError)?.message}`,
+          description: `O encontro foi criado, mas falhou ao salvar ações/evolução e não foi possível desfazer tudo automaticamente. Detalhe: ${friendlySupabaseError((actionsError || progressError)?.message)}`,
           variant: 'destructive',
         });
       }
 
       return toast({
         title: 'Erro ao criar encontro com pré-ata',
-        description: `Falha ao salvar ações/evolução (${(actionsError || progressError)?.message}). O encontro foi revertido automaticamente.`,
+        description: `Falha ao salvar ações/evolução (${friendlySupabaseError((actionsError || progressError)?.message)}). O encontro foi revertido automaticamente.`,
         variant: 'destructive',
       });
     }

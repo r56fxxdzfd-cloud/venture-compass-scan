@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { IntakeInbox } from '@/components/startup/IntakeInbox';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 
 interface PortfolioMetric {
   diagnostics: number;
@@ -145,7 +146,7 @@ export default function StartupsPage() {
       business_model: form.business_model || null,
     });
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
     } else {
       toast({ title: `Organização '${form.name}' criada com sucesso.` });
       setOpen(false);

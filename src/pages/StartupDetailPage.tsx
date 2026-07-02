@@ -31,6 +31,7 @@ import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
 import { CONTEXT_NUMERIC_FIELDS } from '@/utils/context-fields';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
@@ -74,6 +75,7 @@ export default function StartupDetailPage() {
   const [newRevenueModel, setNewRevenueModel] = useState('');
   const [numericFields, setNumericFields] = useState<Record<string, string>>({});
   const [creating, setCreating] = useState(false);
+  const [newAssessmentStep, setNewAssessmentStep] = useState(0);
 
   // Super Admin: arquivar / excluir
   const [archiving, setArchiving] = useState(false);
@@ -186,6 +188,7 @@ export default function StartupDetailPage() {
     setNewCustomerType('');
     setNewRevenueModel('');
     setNumericFields({});
+    setNewAssessmentStep(0);
     setNewDialogOpen(true);
     // Auto-preenche o que já temos do cadastro inicial (intake): headcount é o
     // único dado numérico em comum entre o formulário e o contexto do diagnóstico.
@@ -232,10 +235,11 @@ export default function StartupDetailPage() {
     setCreating(false);
     if (data) {
       setNewDialogOpen(false);
+      setNewAssessmentStep(0);
       navigate(`/app/assessments/${data.id}/questionnaire`);
     }
     if (error) {
-      toast({ title: 'Erro ao criar diagnóstico', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar diagnóstico', description: friendlySupabaseError(error.message), variant: 'destructive' });
     }
   };
 
@@ -245,7 +249,7 @@ export default function StartupDetailPage() {
     setArchiving(true);
     const { error } = await supabase.rpc('set_company_archived', { p_company_id: company.id, p_archived: archive });
     setArchiving(false);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' }); return; }
     if (archive) {
       toast({ title: 'Organização arquivada' });
       navigate('/app/startups');
@@ -310,7 +314,7 @@ export default function StartupDetailPage() {
       setEditDialogOpen(false);
       toast({ title: 'Organização atualizada' });
     } else {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
     }
   };
 
@@ -902,13 +906,19 @@ export default function StartupDetailPage() {
 
       {/* New Assessment Dialog */}
       <Dialog open={newDialogOpen} onOpenChange={setNewDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Novo Diagnóstico</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Configuração do Diagnóstico</p>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {['Preparar', 'Obrigatório', 'Opcional'].map((label, index) => (
+                <div key={label} className={`rounded-lg border px-3 py-2 ${newAssessmentStep === index ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+                  <span className="font-semibold">{index + 1}. {label}</span>
+                </div>
+              ))}
+            </div>
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="default" className="executive-pill">Obrigatório</Badge>
@@ -919,78 +929,121 @@ export default function StartupDetailPage() {
                 <span>Cliente, receita e contexto financeiro/operacional enriquecem red flags, benchmarks e recomendações.</span>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label className="flex items-center gap-2 text-xs">
-                  Estágio
-                  <Badge variant="default" className="executive-pill text-[10px]">Obrigatório</Badge>
-                </Label>
-                <Select value={newStage} onValueChange={setNewStage}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pre_seed">Pre-Seed</SelectItem>
-                    <SelectItem value="seed">Seed</SelectItem>
-                    <SelectItem value="series_a">Series A</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label className="flex items-center gap-2 text-xs">
-                  Tipo de cliente
-                  <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
-                </Label>
-                <Select value={newCustomerType} onValueChange={setNewCustomerType}>
-                  <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="B2B">B2B</SelectItem>
-                    <SelectItem value="B2C">B2C</SelectItem>
-                    <SelectItem value="B2B2C">B2B2C</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="flex items-center gap-2 text-xs">
-                Modelo de receita
-                <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
-              </Label>
-              <Select value={newRevenueModel} onValueChange={setNewRevenueModel}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="non_recurring">Não recorrente</SelectItem>
-                  <SelectItem value="recurring">Recorrente</SelectItem>
-                  <SelectItem value="subscription">Assinatura</SelectItem>
-                  <SelectItem value="usage_based">Baseado em uso</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
 
-            <Separator />
-            <div className="space-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
-              <p className="text-xs text-muted-foreground">Todos os campos abaixo são opcionais recomendados.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {numericFieldDefs.map(f => (
-                <div key={f.key} className="space-y-1">
-                  <Label className="text-xs">{f.label}</Label>
-                  <Input
-                    type="number"
-                    className="h-8 text-xs"
-                    value={numericFields[f.key] || ''}
-                    onChange={e => setNumericFields(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder="—"
-                  />
+            {newAssessmentStep === 0 && (
+              <div className="space-y-3 rounded-lg border p-4 text-sm">
+                <div>
+                  <p className="font-semibold">Antes de começar</p>
+                  <p className="mt-1 text-muted-foreground">
+                    Este fluxo cria um diagnóstico em rascunho. Você pode fechar e voltar depois pela organização ou pelo dashboard.
+                  </p>
                 </div>
-              ))}
-            </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg bg-secondary/50 p-3">
+                    <p className="font-medium">1. Contexto</p>
+                    <p className="text-xs text-muted-foreground">Confirme estágio e dados básicos.</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 p-3">
+                    <p className="font-medium">2. Questionário</p>
+                    <p className="text-xs text-muted-foreground">Responda dimensões com autosave.</p>
+                  </div>
+                  <div className="rounded-lg bg-secondary/50 p-3">
+                    <p className="font-medium">3. Relatório</p>
+                    <p className="text-xs text-muted-foreground">Finalize e transforme em plano.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {newAssessmentStep === 1 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="flex items-center gap-2 text-xs">
+                    Estágio
+                    <Badge variant="default" className="executive-pill text-[10px]">Obrigatório</Badge>
+                  </Label>
+                  <Select value={newStage} onValueChange={setNewStage}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pre_seed">Pre-Seed</SelectItem>
+                      <SelectItem value="seed">Seed</SelectItem>
+                      <SelectItem value="series_a">Series A</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">Campos obrigatórios</p>
+                  <p className="mt-1">Hoje apenas o estágio é indispensável para calibrar pesos, metas e leitura por fase.</p>
+                </div>
+              </div>
+            )}
+
+            {newAssessmentStep === 2 && (
+              <>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-2 text-xs">
+                      Tipo de cliente
+                      <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
+                    </Label>
+                    <Select value={newCustomerType} onValueChange={setNewCustomerType}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="B2B">B2B</SelectItem>
+                        <SelectItem value="B2C">B2C</SelectItem>
+                        <SelectItem value="B2B2C">B2B2C</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="flex items-center gap-2 text-xs">
+                      Modelo de receita
+                      <span className="text-[10px] font-normal text-muted-foreground">Opcional recomendado</span>
+                    </Label>
+                    <Select value={newRevenueModel} onValueChange={setNewRevenueModel}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="non_recurring">Não recorrente</SelectItem>
+                        <SelectItem value="recurring">Recorrente</SelectItem>
+                        <SelectItem value="subscription">Assinatura</SelectItem>
+                        <SelectItem value="usage_based">Baseado em uso</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <Separator />
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contexto Financeiro e Operacional</p>
+                  <p className="text-xs text-muted-foreground">Todos os campos abaixo são opcionais recomendados.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {numericFieldDefs.map(f => (
+                    <div key={f.key} className="space-y-1">
+                      <Label className="text-xs">{f.label}</Label>
+                      <Input
+                        type="number"
+                        className="h-8 text-xs"
+                        value={numericFields[f.key] || ''}
+                        onChange={e => setNumericFields(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder="—"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateAssessment} disabled={creating}>
-              {creating ? 'Criando...' : 'Criar Diagnóstico'}
-            </Button>
+            {newAssessmentStep > 0 && <Button variant="outline" onClick={() => setNewAssessmentStep((step) => step - 1)}>Voltar</Button>}
+            {newAssessmentStep < 2 ? (
+              <Button onClick={() => setNewAssessmentStep((step) => step + 1)}>Continuar</Button>
+            ) : (
+              <Button onClick={handleCreateAssessment} disabled={creating}>
+                {creating ? 'Criando...' : 'Criar Diagnóstico'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
