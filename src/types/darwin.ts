@@ -174,6 +174,7 @@ export interface ConfigQuestion {
   tags?: Record<string, unknown>;
   tooltip?: {
     definition?: string;
+    explanation?: string;
     why?: string;
     anchors?: Record<number, string>;
     evidence_examples?: string[];

@@ -10,6 +10,7 @@ import { BookOpen, Download, Loader2, Users, Target, AlertTriangle, TrendingUp }
 import { Separator } from '@/components/ui/separator';
 import { PILLARS, PILLAR_QUESTIONS, SCORE_ANCHORS, ACTION_RECOMMENDATIONS } from '@/utils/founder-scoring';
 import { getQuestionSkipRules, type QuestionSkipRule } from '@/utils/question-flow';
+import { getQuestionTooltipExplanation } from '@/utils/question-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigQuestion, ConfigVersion } from '@/types/darwin';
@@ -73,6 +74,10 @@ function buildQuestionsMarkdown(config: ConfigJSON, version: ConfigVersion | nul
       L.push(`${i + 1}. ${q.text}`);
       const def = q.tooltip?.definition;
       if (def) L.push(`   - _${def}_`);
+      const explanation = getQuestionTooltipExplanation(q, { includeFallback: false });
+      if (explanation) L.push(`   - Explicação: ${explanation}`);
+      const why = q.tooltip?.why;
+      if (why) L.push(`   - Por quê: ${why}`);
       const rules = getQuestionSkipRules(q);
       rules.forEach((rule) => {
         L.push(`   - Condicional: ${describeSkipRule(rule, questionsById)}${rule.reason ? ` Motivo: ${rule.reason}` : ''}`);
@@ -439,19 +444,23 @@ export default function MethodologyPage() {
                                   ))}
                                 </div>
                               )}
-                              {q.tooltip && (
-                                <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
-                                  {q.tooltip.definition && <p><strong>Definição:</strong> {q.tooltip.definition}</p>}
-                                  {q.tooltip.why && <p><strong>Por quê:</strong> {q.tooltip.why}</p>}
-                                  {q.tooltip.anchors && (
-                                    <div className="flex gap-3 flex-wrap">
-                                      {Object.entries(q.tooltip.anchors).map(([k, v]) => (
-                                        <span key={k} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{k}: {safeString(v)}</span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              {q.tooltip && (() => {
+                                const explanation = getQuestionTooltipExplanation(q, { includeFallback: false });
+                                return (
+                                  <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
+                                    {q.tooltip.definition && <p><strong>Definição:</strong> {q.tooltip.definition}</p>}
+                                    {explanation && <p><strong>Explicação:</strong> {explanation}</p>}
+                                    {q.tooltip.why && <p><strong>Por quê:</strong> {q.tooltip.why}</p>}
+                                    {q.tooltip.anchors && (
+                                      <div className="flex gap-3 flex-wrap">
+                                        {Object.entries(q.tooltip.anchors).map(([k, v]) => (
+                                          <span key={k} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{k}: {safeString(v)}</span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>

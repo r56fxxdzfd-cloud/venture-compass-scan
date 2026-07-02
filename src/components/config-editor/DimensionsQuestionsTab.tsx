@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Pencil, Plus, Trash2, ArrowUp, ArrowDown, Check, X, AlertTriangle } from 'lucide-react';
 import { getQuestionSkipRules, type QuestionSkipRule } from '@/utils/question-flow';
+import { getExplicitQuestionExplanation } from '@/utils/question-tooltip';
 import type { ConfigJSON, ConfigQuestion, ConfigDimension } from '@/types/darwin';
 
 interface Props {
@@ -21,6 +22,7 @@ interface QuestionFormData {
   text: string;
   is_active: boolean;
   tooltip_definition: string;
+  tooltip_explanation: string;
   tooltip_why: string;
   anchor_1: string;
   anchor_3: string;
@@ -29,7 +31,7 @@ interface QuestionFormData {
 
 const emptyForm: QuestionFormData = {
   text: '', is_active: true,
-  tooltip_definition: '', tooltip_why: '',
+  tooltip_definition: '', tooltip_explanation: '', tooltip_why: '',
   anchor_1: '', anchor_3: '', anchor_5: '',
 };
 
@@ -38,6 +40,7 @@ function questionToForm(q: ConfigQuestion): QuestionFormData {
     text: q.text,
     is_active: q.is_active !== false,
     tooltip_definition: q.tooltip?.definition || '',
+    tooltip_explanation: getExplicitQuestionExplanation(q),
     tooltip_why: q.tooltip?.why || '',
     anchor_1: q.tooltip?.anchors?.[1] as string || '',
     anchor_3: q.tooltip?.anchors?.[3] as string || '',
@@ -57,6 +60,7 @@ function formToQuestion(form: QuestionFormData, base: Partial<ConfigQuestion>): 
     is_active: form.is_active,
     tooltip: {
       definition: form.tooltip_definition || undefined,
+      explanation: form.tooltip_explanation || undefined,
       why: form.tooltip_why || undefined,
       anchors: Object.keys(anchors).length > 0 ? anchors : undefined,
     },
@@ -198,6 +202,7 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
         sort_order: maxSort + 1,
         tooltip: {
           definition: form.tooltip_definition || undefined,
+          explanation: form.tooltip_explanation || undefined,
           why: form.tooltip_why || undefined,
           anchors: {},
         },
@@ -343,6 +348,15 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
               <div>
                 <Label className="text-xs">Definição — "O que significa esta pergunta?"</Label>
                 <Textarea value={form.tooltip_definition} onChange={e => setForm(f => ({ ...f, tooltip_definition: e.target.value }))} rows={2} />
+              </div>
+              <div>
+                <Label className="text-xs">Explicação detalhada — "O que avaliar ao responder?"</Label>
+                <Textarea
+                  value={form.tooltip_explanation}
+                  onChange={e => setForm(f => ({ ...f, tooltip_explanation: e.target.value }))}
+                  rows={3}
+                  placeholder="Explique quais evidências, comportamentos ou sinais concretos devem orientar a nota."
+                />
               </div>
               <div>
                 <Label className="text-xs">Por que importa</Label>
