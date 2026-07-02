@@ -364,31 +364,42 @@ export default function QuestionnairePage() {
             const isComplete = dimAnswered === dimQuestions.length && dimQuestions.length > 0;
 
             return (
-              <TabsTrigger key={dim.id} value={dim.id} className="text-xs relative">
-                {dim.label}
+              <TabsTrigger key={dim.id} value={dim.id} className="text-xs relative gap-1.5">
+                <span className="rounded bg-background/80 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+                  {dim.id}
+                </span>
+                <span>{dim.label}</span>
                 {isComplete && <Check className="ml-1 h-3 w-3 text-success" />}
               </TabsTrigger>
             );
           })}
         </TabsList>
 
-        {config.dimensions.map((dim) => (
-          <TabsContent key={dim.id} value={dim.id} className="space-y-4 mt-4">
-            {(() => {
-              const skippedInDimension = skippedQuestions.filter((item) => item.question.dimension_id === dim.id);
-              return skippedInDimension.length > 0 ? (
-                <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
-                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
-                  <p>
-                    {skippedInDimension.length} pergunta{skippedInDimension.length > 1 ? 's' : ''} pulada{skippedInDimension.length > 1 ? 's' : ''} por contexto ou resposta anterior nesta dimensão.
-                  </p>
-                </div>
-              ) : null;
-            })()}
-            {answerableQuestions
-              .filter((q) => q.dimension_id === dim.id && q.is_active !== false)
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((question, idx) => (
+        {config.dimensions.map((dim) => {
+          const dimQuestions = answerableQuestions
+            .filter((q) => q.dimension_id === dim.id && q.is_active !== false)
+            .sort((a, b) => a.sort_order - b.sort_order);
+          const dimAnswered = dimQuestions.filter((q) => answers[q.id] && (answers[q.id].value !== null || answers[q.id].is_na)).length;
+
+          return (
+            <TabsContent key={dim.id} value={dim.id} className="space-y-4 mt-4">
+              <DimensionGroupHeader
+                dimension={dim}
+                answered={dimAnswered}
+                total={dimQuestions.length}
+              />
+              {(() => {
+                const skippedInDimension = skippedQuestions.filter((item) => item.question.dimension_id === dim.id);
+                return skippedInDimension.length > 0 ? (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    <p>
+                      {skippedInDimension.length} pergunta{skippedInDimension.length > 1 ? 's' : ''} pulada{skippedInDimension.length > 1 ? 's' : ''} por contexto ou resposta anterior nesta dimensão.
+                    </p>
+                  </div>
+                ) : null;
+              })()}
+              {dimQuestions.map((question, idx) => (
                 <QuestionCard
                   key={question.id}
                   question={question}
@@ -399,8 +410,9 @@ export default function QuestionnairePage() {
                   onNotes={(notes) => setNotes(question.id, notes)}
                 />
               ))}
-          </TabsContent>
-        ))}
+            </TabsContent>
+          );
+        })}
       </Tabs>
 
       <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
@@ -485,6 +497,46 @@ export default function QuestionnairePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function DimensionGroupHeader({
+  dimension,
+  answered,
+  total,
+}: {
+  dimension: ConfigJSON['dimensions'][number];
+  answered: number;
+  total: number;
+}) {
+  const progress = total > 0 ? (answered / total) * 100 : 0;
+
+  return (
+    <div className="sticky top-0 z-20 rounded-lg border border-primary/20 bg-card/95 px-3 py-3 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 font-mono text-sm font-black text-primary">
+            {dimension.id}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">
+              Dimensão em resposta
+            </p>
+            <h2 className="truncate text-base font-bold text-foreground">
+              {dimension.label}
+            </h2>
+          </div>
+        </div>
+
+        <div className="min-w-0 sm:w-44">
+          <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
+            <span>Progresso</span>
+            <span className="font-mono text-foreground">{answered}/{total}</span>
+          </div>
+          <Progress value={progress} className="h-1.5" />
+        </div>
+      </div>
     </div>
   );
 }
