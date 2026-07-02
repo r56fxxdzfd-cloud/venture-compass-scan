@@ -144,13 +144,14 @@ export default function QuestionnairePage() {
     }));
   };
 
-  const saveAnswers = useCallback(async () => {
+  const saveAnswers = useCallback(async (options?: { silent?: boolean }) => {
     if (!id) return false;
+    const silent = options?.silent ?? false;
     setSaving(true);
     setSaveState('saving');
     setSaveError('');
     const scrollContainer = document.getElementById('app-main-scroll');
-    const previousScrollTop = scrollContainer?.scrollTop ?? null;
+    const previousScrollTop = !silent ? scrollContainer?.scrollTop ?? null : null;
 
     const upserts = Object.entries(answers).map(([question_id, ans]) => ({
       assessment_id: id,
@@ -167,7 +168,7 @@ export default function QuestionnairePage() {
     }
 
     setSaving(false);
-    if (previousScrollTop !== null) {
+    if (!silent && previousScrollTop !== null) {
       requestAnimationFrame(() => {
         scrollContainer?.scrollTo({ top: previousScrollTop });
       });
@@ -175,13 +176,17 @@ export default function QuestionnairePage() {
     if (errors.length > 0) {
       setSaveState('error');
       setSaveError(errors[0]);
-      toast({ title: 'Erro ao salvar respostas', description: errors[0], variant: 'destructive' });
+      if (!silent) {
+        toast({ title: 'Erro ao salvar respostas', description: errors[0], variant: 'destructive' });
+      }
       return false;
     }
     const now = new Date();
     setLastSavedAt(now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     setSaveState('saved');
-    toast({ title: 'Respostas salvas' });
+    if (!silent) {
+      toast({ title: 'Respostas salvas' });
+    }
     return true;
   }, [id, answers, toast]);
 
@@ -192,11 +197,12 @@ export default function QuestionnairePage() {
     if (!hasAnswers) return;
 
     const interval = setInterval(() => {
-      saveAnswers();
+      saveAnswers({ silent: true });
     }, 30000);
 
     return () => clearInterval(interval);
   }, [id, config, answers, saveAnswers]);
+
 
   const completeAssessment = async () => {
     if (completing) return;
@@ -340,7 +346,7 @@ export default function QuestionnairePage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="sm" onClick={saveAnswers} disabled={saving}>
+                <Button size="sm" onClick={() => saveAnswers()} disabled={saving}>
                   {saving ? 'Salvando...' : 'Salvar'}
                 </Button>
               </TooltipTrigger>
@@ -401,7 +407,7 @@ export default function QuestionnairePage() {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button onClick={saveAnswers} variant="outline" disabled={saving}>
+              <Button onClick={() => saveAnswers()} variant="outline" disabled={saving}>
                 Salvar rascunho
               </Button>
             </TooltipTrigger>
