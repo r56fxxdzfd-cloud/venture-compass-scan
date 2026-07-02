@@ -436,6 +436,10 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="permissions">
+          <PermissionsMatrix />
+        </TabsContent>
       </Tabs>
 
       {/* Approve Modal */}
