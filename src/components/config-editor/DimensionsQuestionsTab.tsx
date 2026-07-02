@@ -53,12 +53,14 @@ function formToQuestion(form: QuestionFormData, base: Partial<ConfigQuestion>): 
   if (form.anchor_1) anchors[1] = form.anchor_1;
   if (form.anchor_3) anchors[3] = form.anchor_3;
   if (form.anchor_5) anchors[5] = form.anchor_5;
+  const existingTooltip = base.tooltip || {};
 
   return {
     ...base,
     text: form.text,
     is_active: form.is_active,
     tooltip: {
+      ...existingTooltip,
       definition: form.tooltip_definition || undefined,
       explanation: form.tooltip_explanation || undefined,
       why: form.tooltip_why || undefined,
@@ -350,7 +352,7 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
                 <Textarea value={form.tooltip_definition} onChange={e => setForm(f => ({ ...f, tooltip_definition: e.target.value }))} rows={2} />
               </div>
               <div>
-                <Label className="text-xs">Explicação detalhada — "O que avaliar ao responder?"</Label>
+                <Label className="text-xs">Como interpretar — "O que considerar ao responder?"</Label>
                 <Textarea
                   value={form.tooltip_explanation}
                   onChange={e => setForm(f => ({ ...f, tooltip_explanation: e.target.value }))}

@@ -25,9 +25,10 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { QuestionTooltipContent } from '@/components/QuestionTooltipContent';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
-import { getQuestionTooltipExplanation, hasQuestionTooltipContent } from '@/utils/question-tooltip';
+import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
 
 type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
 
@@ -560,8 +561,8 @@ function QuestionCard({
   const [showNotes, setShowNotes] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const tooltip = question.tooltip;
-  const tooltipExplanation = getQuestionTooltipExplanation(question);
   const hasTooltip = hasQuestionTooltipContent(question);
+  const tooltipId = `question-tooltip-${question.id}`;
 
   return (
     <Card className={answer?.value !== null && answer?.value !== undefined || answer?.is_na ? 'border-primary/20' : ''}>
@@ -583,6 +584,7 @@ function QuestionCard({
                     type="button"
                     className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Explicação da pergunta"
+                    aria-describedby={helpOpen ? tooltipId : undefined}
                     aria-expanded={helpOpen}
                     onClick={() => setHelpOpen((open) => !open)}
                     onFocus={() => setHelpOpen(true)}
@@ -591,22 +593,12 @@ function QuestionCard({
                     <HelpCircle className="h-4 w-4 shrink-0" />
                   </button>
                   {helpOpen && (
-                    <span className="absolute right-0 top-6 z-40 block max-h-[min(70vh,28rem)] w-96 max-w-[calc(100vw-3rem)] space-y-2 overflow-y-auto rounded-md border bg-popover px-3 py-2 text-left text-popover-foreground shadow-lg">
-                      {tooltip?.definition && (
-                        <span className="block text-xs leading-snug">
-                          <strong>Definição:</strong> {tooltip.definition}
-                        </span>
-                      )}
-                      {tooltipExplanation && (
-                        <span className="block text-xs leading-snug">
-                          <strong>O que avaliar:</strong> {tooltipExplanation}
-                        </span>
-                      )}
-                      {tooltip?.why && (
-                        <span className="block text-xs leading-snug">
-                          <strong>Por quê:</strong> {tooltip.why}
-                        </span>
-                      )}
+                    <span
+                      id={tooltipId}
+                      role="tooltip"
+                      className="absolute right-0 top-6 z-40 block max-h-[min(70vh,28rem)] w-96 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-md border bg-popover px-3 py-2 text-left text-popover-foreground shadow-lg"
+                    >
+                      <QuestionTooltipContent question={question} />
                     </span>
                   )}
                 </span>

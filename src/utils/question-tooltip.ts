@@ -1,4 +1,5 @@
 import type { ConfigQuestion } from '@/types/darwin';
+import { DIAGNOSTIC_QUESTION_EXPLANATIONS } from '@/utils/question-explanations';
 
 type ExtendedQuestionTooltip = NonNullable<ConfigQuestion['tooltip']> & {
   detail?: string | null;
@@ -34,7 +35,7 @@ export function getQuestionTooltipExplanation(
   if (explicitExplanation) return explicitExplanation;
   if (options.includeFallback === false) return '';
 
-  return 'Use esta pergunta para transformar o enunciado em evidências observáveis: prática recorrente, responsável claro, dados ou documentos de apoio e impacto em decisões recentes. Ao responder, diferencie intenção ou plano futuro de algo já aplicado na operação.';
+  return DIAGNOSTIC_QUESTION_EXPLANATIONS[question.id] || '';
 }
 
 export function hasQuestionTooltipContent(question: ConfigQuestion): boolean {

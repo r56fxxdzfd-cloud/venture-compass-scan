@@ -73,11 +73,11 @@ function buildQuestionsMarkdown(config: ConfigJSON, version: ConfigVersion | nul
     qs.forEach((q, i) => {
       L.push(`${i + 1}. ${q.text}`);
       const def = q.tooltip?.definition;
-      if (def) L.push(`   - _${def}_`);
-      const explanation = getQuestionTooltipExplanation(q, { includeFallback: false });
-      if (explanation) L.push(`   - Explicação: ${explanation}`);
+      if (def) L.push(`   - O que significa: ${def}`);
+      const explanation = getQuestionTooltipExplanation(q);
+      if (explanation) L.push(`   - Como interpretar: ${explanation}`);
       const why = q.tooltip?.why;
-      if (why) L.push(`   - Por quê: ${why}`);
+      if (why) L.push(`   - Por que importa: ${why}`);
       const rules = getQuestionSkipRules(q);
       rules.forEach((rule) => {
         L.push(`   - Condicional: ${describeSkipRule(rule, questionsById)}${rule.reason ? ` Motivo: ${rule.reason}` : ''}`);
@@ -444,14 +444,14 @@ export default function MethodologyPage() {
                                   ))}
                                 </div>
                               )}
-                              {q.tooltip && (() => {
-                                const explanation = getQuestionTooltipExplanation(q, { includeFallback: false });
+                              {(q.tooltip || getQuestionTooltipExplanation(q)) && (() => {
+                                const explanation = getQuestionTooltipExplanation(q);
                                 return (
                                   <div className="text-xs text-muted-foreground space-y-0.5 pl-3">
-                                    {q.tooltip.definition && <p><strong>Definição:</strong> {q.tooltip.definition}</p>}
-                                    {explanation && <p><strong>Explicação:</strong> {explanation}</p>}
-                                    {q.tooltip.why && <p><strong>Por quê:</strong> {q.tooltip.why}</p>}
-                                    {q.tooltip.anchors && (
+                                    {q.tooltip?.definition && <p><strong>O que significa:</strong> {q.tooltip.definition}</p>}
+                                    {explanation && <p><strong>Como interpretar:</strong> {explanation}</p>}
+                                    {q.tooltip?.why && <p><strong>Por que importa:</strong> {q.tooltip.why}</p>}
+                                    {q.tooltip?.anchors && (
                                       <div className="flex gap-3 flex-wrap">
                                         {Object.entries(q.tooltip.anchors).map(([k, v]) => (
                                           <span key={k} className="bg-muted px-1.5 py-0.5 rounded text-[10px]">{k}: {safeString(v)}</span>
