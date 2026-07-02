@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ListChecks, Trash2 } from 'lucide-react';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
+import { CheckCircle2, ListChecks, Loader2, Trash2 } from 'lucide-react';
 import type { ActionItem, ActionItemStatus } from '@/types/darwin';
 
 const STATUS_LABELS: Record<ActionItemStatus, string> = {
@@ -27,6 +28,9 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
   const [items, setItems] = useState<ActionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'open' | ActionItemStatus>('all');
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const load = async () => {
     const { data } = await supabase
@@ -48,20 +52,27 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
   const patch = async (id: string, changes: Partial<ActionItem>) => {
     // Otimista
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...changes } : it)));
+    setSavingId(id);
     const { error } = await supabase.from('action_items').update(changes).eq('id', id);
+    setSavingId(null);
     if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao salvar', description: friendlySupabaseError(error.message), variant: 'destructive' });
       load();
+      return;
     }
+    setSavedAt(Date.now());
   };
 
   const remove = async (id: string) => {
+    setDeletingId(id);
     const { error } = await supabase.from('action_items').delete().eq('id', id);
+    setDeletingId(null);
     if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao excluir', description: friendlySupabaseError(error.message), variant: 'destructive' });
       return;
     }
     setItems((prev) => prev.filter((it) => it.id !== id));
+    setSavedAt(Date.now());
   };
 
   const openCount = items.filter((i) => OPEN_STATUSES.includes(i.status)).length;
@@ -102,6 +113,21 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
               <SelectItem value="done">Concluídas</SelectItem>
             </SelectContent>
           </Select>
+          {canManage && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {savingId || deletingId ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Salvando...
+                </>
+              ) : savedAt ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  Salvo
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -136,7 +162,7 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
                   <div className="grid gap-2 sm:grid-cols-3">
                     <div className="space-y-0.5">
                       <label className="text-[10px] uppercase tracking-wide text-muted-foreground">Status</label>
-                      <Select value={it.status} onValueChange={(v) => patch(it.id, { status: v as ActionItemStatus })}>
+                      <Select value={it.status} disabled={!!savingId || !!deletingId} onValueChange={(v) => patch(it.id, { status: v as ActionItemStatus })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(Object.keys(STATUS_LABELS) as ActionItemStatus[]).map((s) => (
@@ -151,6 +177,7 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
                         className="h-8 text-xs"
                         defaultValue={it.owner_label || ''}
                         placeholder="Ex: fundador, time..."
+                        disabled={!!savingId || !!deletingId}
                         onBlur={(e) => { if (e.target.value !== (it.owner_label || '')) patch(it.id, { owner_label: e.target.value || null }); }}
                       />
                     </div>
@@ -160,6 +187,7 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
                         type="date"
                         className="h-8 text-xs"
                         defaultValue={it.due_date || ''}
+                        disabled={!!savingId || !!deletingId}
                         onChange={(e) => patch(it.id, { due_date: e.target.value || null })}
                       />
                     </div>
@@ -173,8 +201,9 @@ export function ActionPlanSection({ companyId, canManage }: { companyId: string;
 
                 {canManage && (
                   <div className="flex justify-end">
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" onClick={() => remove(it.id)}>
-                      <Trash2 className="h-3 w-3 mr-1" /> Excluir
+                    <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-destructive" disabled={!!savingId || !!deletingId} onClick={() => remove(it.id)}>
+                      {deletingId === it.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Trash2 className="h-3 w-3 mr-1" />}
+                      Excluir
                     </Button>
                   </div>
                 )}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 import type { CouncilAgendaTemplate, CouncilAgendaTemplatePriority } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
@@ -26,11 +27,19 @@ export default function AgendaTemplatesPage() {
   const [dimensionFilter, setDimensionFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [editing, setEditing] = useState<Partial<CouncilAgendaTemplate> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase.from('council_agenda_templates').select('*').order('sort_order').order('dimension_label').order('title');
-    if (error) return toast({ title: 'Erro ao carregar templates', description: error.message, variant: 'destructive' });
+    if (error) {
+      toast({ title: 'Erro ao carregar templates', description: friendlySupabaseError(error.message), variant: 'destructive' });
+      setLoading(false);
+      return;
+    }
     setItems((data || []) as CouncilAgendaTemplate[]);
+    setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
@@ -60,10 +69,25 @@ export default function AgendaTemplatesPage() {
       is_active: editing.is_active ?? true,
       sort_order: editing.sort_order ?? 0,
     };
+    setSaving(true);
     const query = editing.id ? supabase.from('council_agenda_templates').update(payload as any).eq('id', editing.id) : supabase.from('council_agenda_templates').insert([payload as any]);
     const { error } = await query;
-    if (error) return toast({ title: 'Erro ao salvar template', description: error.message, variant: 'destructive' });
+    setSaving(false);
+    if (error) return toast({ title: 'Erro ao salvar template', description: friendlySupabaseError(error.message), variant: 'destructive' });
     setEditing(null);
+    toast({ title: 'Template salvo' });
+    load();
+  };
+
+  const deactivate = async (templateId: string) => {
+    setDeactivatingId(templateId);
+    const { error } = await supabase.from('council_agenda_templates').update({ is_active: false }).eq('id', templateId);
+    setDeactivatingId(null);
+    if (error) {
+      toast({ title: 'Erro ao desativar template', description: friendlySupabaseError(error.message), variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Template desativado' });
     load();
   };
 
@@ -86,6 +110,12 @@ export default function AgendaTemplatesPage() {
       <div><Label>Prioridade</Label><Select value={priorityFilter} onValueChange={setPriorityFilter}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value='all'>Todas</SelectItem><SelectItem value='low'>Baixa</SelectItem><SelectItem value='medium'>Média</SelectItem><SelectItem value='high'>Alta</SelectItem></SelectContent></Select></div>
     </CardContent></Card>
 
+    {loading ? (
+      <p className="text-sm text-muted-foreground">Carregando templates...</p>
+    ) : Object.keys(grouped).length === 0 ? (
+      <Card className="executive-panel"><CardContent className="py-8 text-sm text-muted-foreground">Nenhum template ativo para os filtros selecionados.</CardContent></Card>
+    ) : null}
+
     <div className='space-y-4'>{Object.entries(grouped).map(([dimension, templates]) => <Card key={dimension} className='executive-panel'>
       <CardHeader><CardTitle>{dimension}</CardTitle></CardHeader>
       <CardContent className='space-y-3'>{templates.map(t => <div key={t.id} className='executive-card rounded-lg p-3 space-y-2'>
@@ -95,7 +125,7 @@ export default function AgendaTemplatesPage() {
         <p><strong>Perguntas-chave:</strong></p><ul className='list-disc pl-5 text-sm'>{t.key_questions.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
         <p><strong>Evidências esperadas:</strong></p><ul className='list-disc pl-5 text-sm'>{t.expected_evidence.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
         <p><strong>Ações sugeridas:</strong></p><ul className='list-disc pl-5 text-sm'>{t.suggested_actions.map((q, idx) => <li key={idx}>{q}</li>)}</ul>
-        {canWrite && <div className='flex gap-2'><Button size='sm' variant='outline' onClick={() => setEditing(t)}>Editar</Button><Button size='sm' variant='secondary' onClick={async () => { await supabase.from('council_agenda_templates').update({ is_active: false }).eq('id', t.id); load(); }}>Desativar</Button></div>}
+        {canWrite && <div className='flex gap-2'><Button size='sm' variant='outline' onClick={() => setEditing(t)}>Editar</Button><Button size='sm' variant='secondary' disabled={deactivatingId === t.id} onClick={() => deactivate(t.id)}>{deactivatingId === t.id ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Desativando...</> : 'Desativar'}</Button></div>}
       </div>)}</CardContent>
     </Card>)}</div>
 
@@ -117,7 +147,7 @@ export default function AgendaTemplatesPage() {
         <div><Label>Ordem</Label><Input type='number' value={editing.sort_order ?? 0} onChange={e => setEditing({ ...editing, sort_order: Number(e.target.value) || 0 })} /></div>
         <div className='flex items-center gap-2 pt-8'><Switch checked={editing.is_active ?? true} onCheckedChange={v => setEditing({ ...editing, is_active: v })} /><Label>Ativo</Label></div>
       </div>
-      <div className='flex gap-2 justify-end'><Button variant='outline' onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={save}>Salvar</Button></div>
+      <div className='flex gap-2 justify-end'><Button variant='outline' disabled={saving} onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={save} disabled={saving}>{saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar'}</Button></div>
     </CardContent></Card>}
     <BackToTopFooter />
   </div>;

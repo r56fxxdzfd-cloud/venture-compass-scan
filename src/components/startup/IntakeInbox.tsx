@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
 import { Link2, Copy, Inbox, Eye, Trash2, Loader2 } from 'lucide-react';
 import type { IntakeSubmission, IntakePayload } from '@/types/darwin';
 
@@ -82,9 +83,15 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const [review, setReview] = useState<IntakeSubmission | null>(null);
   const [importStage, setImportStage] = useState('');
   const [importing, setImporting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from('intake_submissions').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('intake_submissions').select('*').order('created_at', { ascending: false });
+    if (error) {
+      toast({ title: 'Erro ao carregar intakes', description: friendlySupabaseError(error.message), variant: 'destructive' });
+      setLoading(false);
+      return;
+    }
     setRows((data || []) as IntakeSubmission[]);
     setLoading(false);
   };
@@ -110,7 +117,7 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
       token, status: 'pending', label: label || null, expires_at: expires, created_by: user?.id,
     });
     setCreating(false);
-    if (error) { toast({ title: 'Erro ao gerar link', description: error.message, variant: 'destructive' }); return; }
+    if (error) { toast({ title: 'Erro ao gerar link', description: friendlySupabaseError(error.message), variant: 'destructive' }); return; }
     setLabel('');
     toast(copied
       ? { title: 'Link gerado e copiado', description: url }
@@ -120,8 +127,10 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
 
   const remove = async (id: string, hasData: boolean) => {
     if (hasData && !window.confirm('Excluir este intake? Os dados enviados pelo fundador serão removidos permanentemente.')) return;
+    setDeletingId(id);
     const { error } = await supabase.from('intake_submissions').delete().eq('id', id);
-    if (error) { toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' }); return; }
+    setDeletingId(null);
+    if (error) { toast({ title: 'Erro ao excluir', description: friendlySupabaseError(error.message), variant: 'destructive' }); return; }
     setRows((prev) => prev.filter((r) => r.id !== id));
     toast({ title: 'Intake excluído' });
   };
@@ -141,14 +150,14 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
     }).select().single();
     if (compErr || !comp) {
       setImporting(false);
-      toast({ title: 'Erro ao criar organização', description: compErr?.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar organização', description: friendlySupabaseError(compErr?.message), variant: 'destructive' });
       return;
     }
     const { error: upErr } = await supabase.from('intake_submissions')
       .update({ status: 'imported', company_id: comp.id, imported_at: new Date().toISOString() })
       .eq('id', review.id);
     setImporting(false);
-    if (upErr) { toast({ title: 'Organização criada, mas falha ao marcar intake', description: upErr.message, variant: 'destructive' }); }
+    if (upErr) { toast({ title: 'Organização criada, mas falha ao marcar intake', description: friendlySupabaseError(upErr.message), variant: 'destructive' }); }
     else { toast({ title: `Organização "${payload.company_name}" importada` }); }
     setReview(null);
     load();
@@ -211,9 +220,10 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
                   size="sm"
                   className="text-muted-foreground hover:text-destructive"
                   title="Excluir intake"
+                  disabled={deletingId === r.id}
                   onClick={() => remove(r.id, r.status === 'submitted' || r.status === 'imported')}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  {deletingId === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 </Button>
               </div>
             </div>

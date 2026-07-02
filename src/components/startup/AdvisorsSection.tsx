@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { UserCog, X } from 'lucide-react';
+import { friendlySupabaseError } from '@/utils/supabase-errors';
+import { Loader2, UserCog, X } from 'lucide-react';
 
 interface AdvisorRow { assignmentId: string; advisorId: string; name: string; }
 interface Candidate { id: string; name: string; }
@@ -24,12 +25,22 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
   const [selected, setSelected] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = async () => {
-    const [{ data: assigns }, { data: roleRows }] = await Promise.all([
+    const [{ data: assigns, error: assignsError }, { data: roleRows, error: rolesError }] = await Promise.all([
       supabase.from('advisor_assignments').select('id, advisor_id').eq('company_id', companyId),
       supabase.from('user_roles').select('user_id').eq('role', 'jv_advisor'),
     ]);
+    if (assignsError || rolesError) {
+      toast({
+        title: 'Erro ao carregar membros',
+        description: friendlySupabaseError(assignsError?.message || rolesError?.message),
+        variant: 'destructive',
+      });
+      setLoading(false);
+      return;
+    }
     const advisorIds = Array.from(new Set([
       ...((assigns || []).map((a) => a.advisor_id)),
       ...((roleRows || []).map((r) => r.user_id)),
@@ -66,7 +77,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
     });
     setSaving(false);
     if (error) {
-      toast({ title: 'Erro ao atribuir', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atribuir', description: friendlySupabaseError(error.message), variant: 'destructive' });
       return;
     }
     setSelected('');
@@ -75,9 +86,11 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
   };
 
   const handleRemove = async (assignmentId: string) => {
+    setRemovingId(assignmentId);
     const { error } = await supabase.from('advisor_assignments').delete().eq('id', assignmentId);
+    setRemovingId(null);
     if (error) {
-      toast({ title: 'Erro ao remover', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao remover', description: friendlySupabaseError(error.message), variant: 'destructive' });
       return;
     }
     toast({ title: 'Membro do Comitê de Crescimento removido' });
@@ -108,10 +121,11 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
                       variant="ghost"
                       size="icon"
                       className="h-4 w-4 hover:bg-destructive/20"
+                      disabled={removingId === a.assignmentId}
                       onClick={() => handleRemove(a.assignmentId)}
                       aria-label={`Remover ${a.name}`}
                     >
-                      <X className="h-3 w-3" />
+                      {removingId === a.assignmentId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                     </Button>
                   </Badge>
                 ))
@@ -119,7 +133,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={selected} onValueChange={setSelected}>
+              <Select value={selected} disabled={saving} onValueChange={setSelected}>
                 <SelectTrigger className="w-64">
                   <SelectValue placeholder={candidates.length ? 'Selecionar membro do comitê de crescimento' : 'Nenhum membro do comitê de crescimento disponível'} />
                 </SelectTrigger>
@@ -130,7 +144,7 @@ export function AdvisorsSection({ companyId }: { companyId: string }) {
                 </SelectContent>
               </Select>
               <Button onClick={handleAssign} disabled={!selected || saving}>
-                {saving ? 'Atribuindo...' : 'Atribuir'}
+                {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> Atribuindo...</> : 'Atribuir'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">

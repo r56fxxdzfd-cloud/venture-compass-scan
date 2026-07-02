@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Pencil, Plus, Trash2, ArrowUp, ArrowDown, Check, X, AlertTriangle } from 'lucide-react';
+import { getQuestionSkipRules, type QuestionSkipRule } from '@/utils/question-flow';
 import type { ConfigJSON, ConfigQuestion, ConfigDimension } from '@/types/darwin';
 
 interface Props {
@@ -62,6 +63,23 @@ function formToQuestion(form: QuestionFormData, base: Partial<ConfigQuestion>): 
   };
 }
 
+function formatRuleValue(rule: QuestionSkipRule): string {
+  if (Array.isArray(rule.value)) return `[${rule.value.join(', ')}]`;
+  if (rule.value === undefined) return '';
+  return String(rule.value);
+}
+
+function describeSkipRule(rule: QuestionSkipRule, questionsById: Map<string, ConfigQuestion>): string {
+  const source = questionsById.get(rule.question_id);
+  const sourceLabel = source ? `${source.id}: ${source.text}` : rule.question_id;
+  const op = rule.op || '<=';
+  const value = formatRuleValue(rule);
+
+  if (op === 'answered') return `Pulada quando "${sourceLabel}" já foi respondida.`;
+  if (op === 'na') return `Pulada quando "${sourceLabel}" for N/A.`;
+  return `Pulada quando "${sourceLabel}" ${op} ${value}.`;
+}
+
 export function DimensionsQuestionsTab({ config, onChange }: Props) {
   const [editingDimId, setEditingDimId] = useState<string | null>(null);
   const [dimLabelDraft, setDimLabelDraft] = useState('');
@@ -69,6 +87,7 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
   const [form, setForm] = useState<QuestionFormData>(emptyForm);
 
   const dims = [...config.dimensions].sort((a, b) => a.sort_order - b.sort_order);
+  const questionsById = new Map(config.questions.map(q => [q.id, q]));
 
   const getQuestionsForDim = (dimId: string) =>
     config.questions
@@ -200,6 +219,7 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
         {dims.map(dim => {
           const dimQuestions = getAllQuestionsForDim(dim.id);
           const activeCount = getQuestionsForDim(dim.id);
+          const conditionalCount = dimQuestions.filter(q => getQuestionSkipRules(q).length > 0).length;
           const isEditingThisDim = editingDimId === dim.id;
 
           return (
@@ -222,6 +242,9 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
                     <>
                       <span>{dim.label}</span>
                       <Badge variant="outline" className="text-[10px]">{activeCount} perguntas</Badge>
+                      {conditionalCount > 0 && (
+                        <Badge variant="secondary" className="text-[10px]">{conditionalCount} condicionais</Badge>
+                      )}
                       {activeCount === 0 && (
                         <Badge variant="destructive" className="text-[10px] gap-1">
                           <AlertTriangle className="h-2.5 w-2.5" /> sem perguntas
@@ -245,7 +268,19 @@ export function DimensionsQuestionsTab({ config, onChange }: Props) {
                   {dimQuestions.map((q, idx) => (
                     <div key={q.id} className={`flex items-center gap-2 p-2 rounded-md border text-sm ${q.is_active === false ? 'opacity-50 bg-muted/30' : 'bg-background'}`}>
                       <span className="text-xs text-muted-foreground font-mono w-5 shrink-0">{idx + 1}</span>
-                      <p className="flex-1 truncate text-sm">{q.text}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm">{q.text}</p>
+                        {getQuestionSkipRules(q).length > 0 && (
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            <Badge variant="secondary" className="h-5 text-[10px]">condicional</Badge>
+                            {getQuestionSkipRules(q).map((rule, ruleIdx) => (
+                              <span key={`${q.id}-${rule.question_id}-${ruleIdx}`} className="truncate text-[11px] text-muted-foreground">
+                                {describeSkipRule(rule, questionsById)}{rule.reason ? ` Motivo: ${rule.reason}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <Switch
                           checked={q.is_active !== false}
