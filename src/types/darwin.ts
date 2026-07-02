@@ -102,6 +102,7 @@ export interface Company {
   id: string;
   name: string;
   legal_name: string | null;
+  description: string | null;
   cnpj: string | null;
   sector: string | null;
   stage: 'pre_seed' | 'seed' | 'series_a' | null;

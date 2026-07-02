@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Building2, Sparkles, ArrowRight } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -35,7 +36,7 @@ export default function StartupsPage() {
   const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, PortfolioMetric>>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+  const [form, setForm] = useState({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const { canOperatePlatform, isDemoUser, isDemoAdmin, isAnalyst, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -139,6 +140,7 @@ export default function StartupsPage() {
 
     const { error } = await supabase.from('companies').insert({
       name: form.name,
+      description: form.description || null,
       legal_name: form.legal_name || null,
       cnpj: form.cnpj || null,
       sector: form.sector || null,
@@ -150,7 +152,7 @@ export default function StartupsPage() {
     } else {
       toast({ title: `Organização '${form.name}' criada com sucesso.` });
       setOpen(false);
-      setForm({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+      setForm({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
       fetchCompanies();
     }
   };
@@ -205,6 +207,17 @@ export default function StartupsPage() {
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Ex: PayFlow"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>O que a organização faz</Label>
+                  <Textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    placeholder="Ex: Plataforma de pagamentos recorrentes para SaaS B2B"
+                    rows={2}
+                    maxLength={280}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Uma linha para contextualizar diagnóstico e relatório.</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Razão Social</Label>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -91,7 +92,7 @@ export default function StartupDetailPage() {
 
   // Edit company dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+  const [editForm, setEditForm] = useState({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const [editSaving, setEditSaving] = useState(false);
   const shouldOpenNewDiagnostic = location.pathname.endsWith('/diagnostics/new');
 
@@ -296,6 +297,7 @@ export default function StartupDetailPage() {
     if (!company) return;
     setEditForm({
       name: company.name,
+      description: company.description || '',
       legal_name: company.legal_name || '',
       cnpj: company.cnpj || '',
       sector: company.sector || '',
@@ -314,6 +316,7 @@ export default function StartupDetailPage() {
     setEditSaving(true);
     const { error } = await supabase.from('companies').update({
       name: editForm.name,
+      description: editForm.description || null,
       legal_name: editForm.legal_name || null,
       cnpj: editForm.cnpj || null,
       sector: editForm.sector || null,
@@ -322,7 +325,16 @@ export default function StartupDetailPage() {
     }).eq('id', company.id);
     setEditSaving(false);
     if (!error) {
-      setCompany({ ...company, ...editForm, legal_name: editForm.legal_name || null, cnpj: editForm.cnpj || null, sector: editForm.sector || null, stage: (editForm.stage || null) as any, business_model: editForm.business_model || null });
+      setCompany({
+        ...company,
+        ...editForm,
+        description: editForm.description || null,
+        legal_name: editForm.legal_name || null,
+        cnpj: editForm.cnpj || null,
+        sector: editForm.sector || null,
+        stage: (editForm.stage || null) as any,
+        business_model: editForm.business_model || null,
+      });
       setEditDialogOpen(false);
       toast({ title: 'Organização atualizada' });
     } else {
@@ -833,6 +845,7 @@ export default function StartupDetailPage() {
           <CardContent className="text-sm space-y-2">
             {isLegalNameCoherent && <p><span className="text-muted-foreground">Razão Social:</span> {company.legal_name}</p>}
             {!isLegalNameCoherent && <p><span className="text-muted-foreground">Razão Social:</span> Informação em revisão no cadastro</p>}
+            {company.description && <p><span className="text-muted-foreground">Descrição:</span> {company.description}</p>}
             {company.cnpj && <p><span className="text-muted-foreground">CNPJ:</span> {company.cnpj}</p>}
             {company.business_model && <p><span className="text-muted-foreground">Modelo:</span> {company.business_model}</p>}
           </CardContent>
@@ -1080,8 +1093,18 @@ export default function StartupDetailPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
-              <Label className="text-xs">Nome</Label>
+              <Label className="text-xs">Nome comercial</Label>
               <Input value={editForm.name} onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">O que a organização faz</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                rows={2}
+                maxLength={280}
+                placeholder="Ex: Plataforma de pagamentos recorrentes para SaaS B2B"
+              />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Razão Social</Label>

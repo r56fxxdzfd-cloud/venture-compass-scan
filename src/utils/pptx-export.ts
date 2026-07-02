@@ -68,13 +68,14 @@ export async function exportReportToPPTX(opts: {
   result: AssessmentResult;
   answers: Answer[];
   startupName: string;
+  startupDescription?: string;
 }) {
   const PptxGenJS = (await import('pptxgenjs')).default;
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE'; // 13.333 x 7.5
   pptx.theme = { headFontFace: 'Calibri', bodyFontFace: 'Calibri' };
 
-  const { assessment, config, result, startupName, answers } = opts;
+  const { assessment, config, result, startupName, answers, startupDescription } = opts;
   const logoData = await fetchLogoDataUrl();
   const stage = assessment.stage || 'seed';
   const isSimulation = !!assessment.is_simulation;
@@ -154,6 +155,12 @@ export async function exportReportToPPTX(opts: {
     x: MARGIN, y: 2.8, w: SLIDE_W - MARGIN * 2, h: 1.4,
     fontSize: 60, bold: true, color: C.text,
   });
+  if (startupDescription) {
+    s1.addText(startupDescription, {
+      x: MARGIN, y: 4.05, w: SLIDE_W - MARGIN * 2, h: 0.35,
+      fontSize: 13, color: C.textMuted,
+    });
+  }
   // Score callout
   card(s1, MARGIN, 4.6, 4.5, 2.1, C.panelLight);
   s1.addText('Score Geral', { x: MARGIN + 0.3, y: 4.75, w: 4, h: 0.4, fontSize: 14, color: C.textMuted });

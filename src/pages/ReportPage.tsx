@@ -3,12 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2, Presentation, FileText, SlidersHorizontal, Info, Share2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Presentation, FileText, SlidersHorizontal, Info, Share2, Copy, Mail, MessageSquare } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +24,8 @@ import {
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { filterSkippedAnswers } from '@/utils/question-flow';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
-import { getCompleteness } from '@/utils/report-helpers';
+import { getCompleteness, scoreTo100 } from '@/utils/report-helpers';
+import { validateReportExportReadiness } from '@/utils/export-readiness';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ConfigJSON, Answer, Assessment, AssessmentResult } from '@/types/darwin';
@@ -73,6 +75,7 @@ export default function ReportPage() {
   const [exportingPpt, setExportingPpt] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
   const [founderRedFlags, setFounderRedFlags] = useState<FounderRedFlag[]>([]);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -225,12 +228,16 @@ export default function ReportPage() {
     }
     setExportingPpt(true);
     try {
+      const readiness = validateReportExportReadiness({ kind: 'pptx', assessment, config, result });
+      if (!readiness.ok) throw new Error(readiness.errors.join('; '));
       const { exportReportToPPTX } = await import('@/utils/pptx-export');
       const startupName = (assessment as any).company?.name || 'Organização';
-      await exportReportToPPTX({ assessment, config, result, answers, startupName });
+      const startupDescription = (assessment as any).company?.description || '';
+      await exportReportToPPTX({ assessment, config, result, answers, startupName, startupDescription });
+      toast({ title: 'PPT gerado', description: 'A apresentação foi baixada com os gráficos e a matriz do relatório.' });
     } catch (err) {
       console.error('PPT export error:', err);
-      toast({ title: 'Erro ao exportar PPT', description: 'Tente novamente.', variant: 'destructive' });
+      toast({ title: 'Erro ao exportar PPT', description: err instanceof Error ? err.message : 'Tente novamente.', variant: 'destructive' });
     } finally {
       setExportingPpt(false);
     }
@@ -245,8 +252,11 @@ export default function ReportPage() {
     }
     setExportingDocx(true);
     try {
+      const readiness = validateReportExportReadiness({ kind: 'docx', assessment, config, result, doc: document });
+      if (!readiness.ok) throw new Error(readiness.errors.join('; '));
       const { exportReportToDOCX } = await import('@/utils/docx-export');
       const startupName = (assessment as any).company?.name || 'Organização';
+      const startupDescription = (assessment as any).company?.description || '';
 
       // Capture chart sections as PNGs for embedding
       const html2canvas = (await import('html2canvas')).default;
@@ -273,11 +283,13 @@ export default function ReportPage() {
 
       await exportReportToDOCX({
         assessment, config, result, answers, startupName,
+        startupDescription,
         chartImages: { radar: radarImg, matrix: matrixImg, blocks: blocksImg },
       });
+      toast({ title: 'Word gerado', description: 'O documento foi baixado com radar, blocos e matriz incorporados.' });
     } catch (err) {
       console.error('DOCX export error:', err);
-      toast({ title: 'Erro ao exportar Word', description: 'Tente novamente.', variant: 'destructive' });
+      toast({ title: 'Erro ao exportar Word', description: err instanceof Error ? err.message : 'Tente novamente.', variant: 'destructive' });
     } finally {
       setExportingDocx(false);
     }
@@ -361,6 +373,7 @@ export default function ReportPage() {
   const stage = assessment.stage || 'seed';
   const completeness = getCompleteness(result);
   const startupName = (assessment as any).company?.name || 'Organização';
+  const startupDescription = (assessment as any).company?.description || '';
   const isSimulation = assessment.is_simulation;
   const missingCtx = missingContextFields(assessment.context_numeric as Record<string, number>);
 
@@ -376,6 +389,30 @@ export default function ReportPage() {
     } catch {
       toast({ title: 'Não foi possível copiar o link', description: reportUrl, variant: 'destructive' });
     }
+  };
+  const shareMessage = [
+    `Olá, segue o diagnóstico de maturidade da ${startupName}.`,
+    startupDescription ? `Contexto: ${startupDescription}` : '',
+    `Score geral: ${scoreLabel(result)}.`,
+    `Link do relatório: ${window.location.href}`,
+    'Use seu acesso ao Growth OS para abrir o relatório.',
+  ].filter(Boolean).join('\n\n');
+
+  const copyShareMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(shareMessage);
+      toast({ title: 'Mensagem copiada', description: 'Cole no canal usado com o founder.' });
+    } catch {
+      toast({ title: 'Não foi possível copiar', description: 'Selecione o texto e copie manualmente.', variant: 'destructive' });
+    }
+  };
+  const openMailShare = () => {
+    const subject = encodeURIComponent(`Diagnóstico de maturidade — ${startupName}`);
+    const body = encodeURIComponent(shareMessage);
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+  const openWhatsappShare = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -408,7 +445,7 @@ export default function ReportPage() {
             {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" onClick={handleShareReport}>
+                  <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
                     <Share2 className="mr-1 h-3 w-3" /> Compartilhar
                   </Button>
                 </TooltipTrigger>
@@ -476,6 +513,12 @@ export default function ReportPage() {
       <div id="section-summary">
         <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
       </div>
+      {startupDescription && (
+        <div className="executive-panel print-safe rounded-xl border p-4 text-sm text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Contexto da organização</p>
+          <p className="mt-1">{startupDescription}</p>
+        </div>
+      )}
 
       {/* Aviso de dados de contexto não informados + edição (operadores) */}
       {(missingCtx.length > 0 || canEditContext) && (
@@ -644,6 +687,39 @@ export default function ReportPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-lg" data-html2canvas-ignore="true">
+          <DialogHeader>
+            <DialogTitle>Compartilhar diagnóstico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Copie a mensagem abaixo ou abra um canal de envio. O founder precisa ter permissão de acesso ao Growth OS para visualizar o link.
+            </p>
+            <Textarea value={shareMessage} readOnly rows={8} className="text-sm" />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <Button variant="outline" onClick={copyShareMessage}>
+                <Copy className="mr-2 h-4 w-4" /> Copiar
+              </Button>
+              <Button variant="outline" onClick={openMailShare}>
+                <Mail className="mr-2 h-4 w-4" /> Email
+              </Button>
+              <Button variant="outline" onClick={openWhatsappShare}>
+                <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShareOpen(false)}>Fechar</Button>
+            <Button onClick={handleShareReport}>Copiar só o link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function scoreLabel(result: AssessmentResult) {
+  const score = scoreTo100((result as any).overall_weighted ?? result.overall_score);
+  return `${score}/100`;
 }

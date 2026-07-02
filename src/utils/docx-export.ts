@@ -36,6 +36,7 @@ export async function exportReportToDOCX(opts: {
   result: AssessmentResult;
   answers: Answer[];
   startupName: string;
+  startupDescription?: string;
   chartImages?: { radar?: ChartImage; matrix?: ChartImage; blocks?: ChartImage };
 }) {
   const docx = await import('docx');
@@ -45,7 +46,7 @@ export async function exportReportToDOCX(opts: {
     PageBreak, LevelFormat, ImageRun, Footer, PageNumber,
   } = docx;
 
-  const { assessment, config, result, answers, startupName, chartImages } = opts;
+  const { assessment, config, result, answers, startupName, startupDescription, chartImages } = opts;
   const stage = assessment.stage || 'seed';
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
   const completeness = getCompleteness(result);
@@ -162,6 +163,7 @@ export async function exportReportToDOCX(opts: {
     new Paragraph({ children: [t('')], spacing: { after: 120 } }),
     p([t('Relatório de Diagnóstico', { size: 36, color: C.textMuted })]),
     p([t(startupName, { bold: true, size: 56, color: C.text })], { spacing: { after: 200 } }),
+    ...(startupDescription ? [p([t(startupDescription, { size: 18, color: C.textMuted })])] : []),
     p([
       t(`Estágio: ${String(stage).toUpperCase()}`, { size: 20, color: C.textMuted }),
       t('   ·   ', { size: 20, color: C.textMuted }),
