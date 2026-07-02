@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import type { AppRole } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { PermissionsMatrix } from '@/components/admin/PermissionsMatrix';
 
 interface UserWithRole {
   id: string;
