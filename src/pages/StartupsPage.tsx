@@ -158,6 +158,14 @@ export default function StartupsPage() {
   const filtered = companies.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   );
+  const cnpjDigits = form.cnpj.replace(/\D/g, '');
+  const cnpjError = cnpjDigits.length === 0
+    ? ''
+    : cnpjDigits.length < 14
+      ? 'Digite 14 dígitos ou deixe o CNPJ em branco.'
+      : !isValidCnpj(form.cnpj)
+        ? 'CNPJ inválido. Confira os dígitos antes de criar.'
+        : '';
 
   const stageLabels: Record<string, string> = {
     pre_seed: 'Pre-Seed',
@@ -191,12 +199,20 @@ export default function StartupsPage() {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  <Label>Nome comercial *</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Ex: PayFlow"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Razão Social</Label>
-                  <Input value={form.legal_name} onChange={(e) => setForm({ ...form, legal_name: e.target.value })} />
+                  <Input
+                    value={form.legal_name}
+                    onChange={(e) => setForm({ ...form, legal_name: e.target.value })}
+                    placeholder="Ex: PayFlow Soluções Financeiras Ltda"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>CNPJ</Label>
@@ -204,10 +220,17 @@ export default function StartupsPage() {
                     value={form.cnpj}
                     placeholder="00.000.000/0000-00"
                     maxLength={18}
+                    aria-invalid={!!cnpjError}
+                    aria-describedby={cnpjError ? 'new-company-cnpj-error' : undefined}
                     onChange={(e) => {
                       setForm({ ...form, cnpj: formatCnpj(e.target.value) });
                     }}
                   />
+                  {cnpjError && (
+                    <p id="new-company-cnpj-error" className="text-xs text-destructive">
+                      {cnpjError}
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -247,7 +270,7 @@ export default function StartupsPage() {
                     </Select>
                   </div>
                 </div>
-                <Button onClick={handleCreate} className="w-full" disabled={!form.name}>
+                <Button onClick={handleCreate} className="w-full" disabled={!form.name.trim() || !!cnpjError}>
                   Criar Organização
                 </Button>
               </div>

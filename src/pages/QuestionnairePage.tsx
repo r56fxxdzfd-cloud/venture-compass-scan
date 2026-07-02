@@ -8,7 +8,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, HelpCircle, Check, Eye, Info, CheckCircle2, AlertCircle, CalendarPlus, ClipboardList } from 'lucide-react';
+import {
+  ArrowLeft,
+  HelpCircle,
+  Check,
+  Eye,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+  CalendarPlus,
+  ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -171,6 +184,7 @@ export default function QuestionnairePage() {
   }, [id, config, answers, saveAnswers]);
 
   const completeAssessment = async () => {
+    if (completing) return;
     setCompleting(true);
     const saved = await saveAnswers();
     if (!saved) {
@@ -248,6 +262,17 @@ export default function QuestionnairePage() {
       : saveState === 'error'
         ? 'Erro ao salvar'
         : 'Alterações não salvas';
+  const dimIds = config.dimensions.map((dimension) => dimension.id);
+  const activeDimIndex = Math.max(0, dimIds.indexOf(activeDim));
+  const previousDimId = activeDimIndex > 0 ? dimIds[activeDimIndex - 1] : '';
+  const nextDimId = activeDimIndex < dimIds.length - 1 ? dimIds[activeDimIndex + 1] : '';
+  const remainingQuestions = Math.max(0, totalQuestions - answeredCount);
+  const allAnswered = remainingQuestions === 0;
+  const goToDimension = (dimensionId: string) => {
+    if (!dimensionId) return;
+    setActiveDim(dimensionId);
+    document.getElementById('app-main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -357,7 +382,7 @@ export default function QuestionnairePage() {
         ))}
       </Tabs>
 
-      <div className="flex justify-between items-center gap-3 pt-4 border-t">
+      <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-start sm:justify-between">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -369,47 +394,41 @@ export default function QuestionnairePage() {
           </Tooltip>
         </TooltipProvider>
 
-        <div className="flex items-center gap-3">
-          {(() => {
-            const dimIds = config.dimensions.map(d => d.id);
-            const currentIdx = dimIds.indexOf(activeDim);
-            const isLastDim = currentIdx >= dimIds.length - 1;
-            const allAnswered = answeredCount >= totalQuestions;
-
-            return (
-              <>
-                {!isLastDim && (
-                  <Button
-                    onClick={() => {
-                      setActiveDim(dimIds[currentIdx + 1]);
-                      document.getElementById('app-main-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                  >
-                    Próxima dimensão →
-                  </Button>
-                )}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={completeAssessment}
-                        disabled={completing}
-                        variant={isLastDim && allAnswered ? 'default' : 'outline'}
-                        className={!isLastDim ? 'text-muted-foreground' : ''}
-                      >
-                        {completing ? 'Finalizando...' : 'Finalizar diagnóstico'}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {allAnswered
-                        ? 'Marcar como concluído e gerar relatório final'
-                        : `Ainda restam ${totalQuestions - answeredCount} questões sem resposta`}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </>
-            );
-          })()}
+        <div className="flex flex-col items-stretch gap-1 sm:items-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {previousDimId && (
+              <Button type="button" variant="outline" onClick={() => goToDimension(previousDimId)}>
+                <ChevronLeft className="mr-1 h-4 w-4" /> Voltar dimensão
+              </Button>
+            )}
+            {nextDimId && (
+              <Button type="button" variant="outline" onClick={() => goToDimension(nextDimId)}>
+                Próxima dimensão <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              type="button"
+              data-testid="finish-assessment-button"
+              aria-describedby="finish-assessment-help"
+              aria-busy={completing}
+              onClick={() => { void completeAssessment(); }}
+              disabled={completing}
+              variant={allAnswered ? 'default' : 'outline'}
+            >
+              {completing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Finalizando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> Finalizar diagnóstico
+                </>
+              )}
+            </Button>
+          </div>
+          <p id="finish-assessment-help" className="text-right text-xs text-muted-foreground">
+            {allAnswered ? 'Pronto para gerar o relatório final.' : `Ainda restam ${remainingQuestions} questões sem resposta.`}
+          </p>
         </div>
       </div>
       {saveState === 'error' && (
@@ -508,6 +527,7 @@ function QuestionCard({
             <div className="flex items-center gap-2 flex-wrap">
               {[1, 2, 3, 4, 5].map((val) => (
                 <button
+                  type="button"
                   key={val}
                   className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                     answer?.value === val
@@ -520,6 +540,7 @@ function QuestionCard({
                 </button>
               ))}
               <button
+                type="button"
                 className={`flex h-10 items-center justify-center rounded-lg border px-3 text-xs font-semibold transition-all ${
                   answer?.is_na
                     ? 'bg-muted text-muted-foreground border-primary/30'
@@ -530,12 +551,13 @@ function QuestionCard({
                 N/A
               </button>
               <button
+                type="button"
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
                 onClick={() => setShowNotes(!showNotes)}
               >
                 {showNotes
                   ? 'Ocultar observação'
-                  : (answer?.notes && answer.notes.trim() ? 'Observação do comitê de crescimento ✓' : '+ Observação do comitê de crescimento')}
+                  : (answer?.notes && answer.notes.trim() ? 'Observação opcional salva ✓' : '+ Observação opcional')}
               </button>
             </div>
 
@@ -551,13 +573,18 @@ function QuestionCard({
             )}
 
             {showNotes && (
-              <Textarea
-                placeholder="Observação do comitê de crescimento sobre este tema (opcional) — aparece no relatório, na Análise por dimensão"
-                value={answer?.notes || ''}
-                onChange={(e) => onNotes(e.target.value)}
-                className="text-sm"
-                rows={2}
-              />
+              <div className="space-y-1">
+                <Textarea
+                  placeholder="Contexto, exceção ou evidência relevante para esta resposta"
+                  value={answer?.notes || ''}
+                  onChange={(e) => onNotes(e.target.value)}
+                  className="text-sm"
+                  rows={2}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Opcional. Quando preenchida, a observação aparece no relatório na análise por dimensão.
+                </p>
+              </div>
             )}
           </div>
         </div>

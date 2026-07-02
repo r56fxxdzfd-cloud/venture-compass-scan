@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Download, Loader2, Presentation, FileText, SlidersHorizontal, Info } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Presentation, FileText, SlidersHorizontal, Info, Share2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -12,7 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CONTEXT_NUMERIC_FIELDS, missingContextFields } from '@/utils/context-fields';
+import {
+  CONTEXT_NUMERIC_FIELDS,
+  formatContextNumericInput,
+  formatContextNumericValue,
+  getContextNumericInputMode,
+  missingContextFields,
+  parseContextNumericInput,
+} from '@/utils/context-fields';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { filterSkippedAnswers } from '@/utils/question-flow';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
@@ -281,7 +288,7 @@ export default function ReportPage() {
     const ctx = (assessment.context_numeric as Record<string, number>) || {};
     const prefill: Record<string, string> = {};
     CONTEXT_NUMERIC_FIELDS.forEach((f) => {
-      if (ctx[f.key] !== undefined && ctx[f.key] !== null) prefill[f.key] = String(ctx[f.key]);
+      if (ctx[f.key] !== undefined && ctx[f.key] !== null) prefill[f.key] = formatContextNumericValue(f, ctx[f.key]);
     });
     setCtxFields(prefill);
     setCtxCustomer(assessment.customer_type || '');
@@ -294,7 +301,7 @@ export default function ReportPage() {
     setSavingCtx(true);
     const contextNumeric: Record<string, number> = {};
     CONTEXT_NUMERIC_FIELDS.forEach((f) => {
-      const v = parseFloat(ctxFields[f.key] ?? '');
+      const v = parseContextNumericInput(ctxFields[f.key], f);
       if (!isNaN(v)) contextNumeric[f.key] = v;
     });
     const { error } = await supabase.from('assessments').update({
@@ -361,6 +368,16 @@ export default function ReportPage() {
     document.getElementById(elId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleShareReport = async () => {
+    const reportUrl = window.location.href;
+    try {
+      await navigator.clipboard.writeText(reportUrl);
+      toast({ title: 'Link do diagnóstico copiado', description: 'Envie o link ao founder ou ao comitê com as permissões de acesso necessárias.' });
+    } catch {
+      toast({ title: 'Não foi possível copiar o link', description: reportUrl, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto overflow-x-hidden" id="report-root">
       {/* Navigation */}
@@ -388,6 +405,16 @@ export default function ReportPage() {
         </div>
         <TooltipProvider>
           <div className="flex items-center gap-2">
+            {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleShareReport}>
+                    <Share2 className="mr-1 h-3 w-3" /> Compartilhar
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copiar link do relatório para compartilhar com permissões de acesso</TooltipContent>
+              </Tooltip>
+            )}
             {(assessment.status === 'completed' && completeness.confidence !== 'low') && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -597,11 +624,13 @@ export default function ReportPage() {
                 <div key={f.key} className="space-y-1">
                   <Label className="text-xs">{f.label}</Label>
                   <Input
-                    type="number"
+                    type="text"
+                    inputMode={getContextNumericInputMode(f)}
                     className="h-8 text-xs"
                     value={ctxFields[f.key] || ''}
                     onChange={(e) => setCtxFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder="—"
+                    onBlur={() => setCtxFields((prev) => ({ ...prev, [f.key]: formatContextNumericInput(f, prev[f.key] || '') }))}
+                    placeholder={f.placeholder || '—'}
                   />
                 </div>
               ))}

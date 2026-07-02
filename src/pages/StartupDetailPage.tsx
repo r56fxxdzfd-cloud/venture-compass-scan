@@ -29,7 +29,12 @@ import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
-import { CONTEXT_NUMERIC_FIELDS } from '@/utils/context-fields';
+import {
+  CONTEXT_NUMERIC_FIELDS,
+  formatContextNumericInput,
+  getContextNumericInputMode,
+  parseContextNumericInput,
+} from '@/utils/context-fields';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
 
@@ -223,10 +228,9 @@ export default function StartupDetailPage() {
     }
 
     const contextNumeric: Record<string, number> = {};
-    const numKeys = ['runway_months', 'burn_monthly', 'headcount', 'gross_margin_pct', 'cac', 'ltv', 'revenue_concentration_top1_pct', 'revenue_concentration_top3_pct'];
-    numKeys.forEach(key => {
-      const val = parseFloat(numericFields[key] || '');
-      if (!isNaN(val)) contextNumeric[key] = val;
+    CONTEXT_NUMERIC_FIELDS.forEach((field) => {
+      const val = parseContextNumericInput(numericFields[field.key], field);
+      if (!isNaN(val)) contextNumeric[field.key] = val;
     });
 
     const { data, error } = await supabase.from('assessments').insert({
@@ -1036,11 +1040,13 @@ export default function StartupDetailPage() {
                     <div key={f.key} className="space-y-1">
                       <Label className="text-xs">{f.label}</Label>
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode={getContextNumericInputMode(f)}
                         className="h-8 text-xs"
                         value={numericFields[f.key] || ''}
                         onChange={e => setNumericFields(prev => ({ ...prev, [f.key]: e.target.value }))}
-                        placeholder="—"
+                        onBlur={() => setNumericFields(prev => ({ ...prev, [f.key]: formatContextNumericInput(f, prev[f.key] || '') }))}
+                        placeholder={f.placeholder || '—'}
                       />
                     </div>
                   ))}
