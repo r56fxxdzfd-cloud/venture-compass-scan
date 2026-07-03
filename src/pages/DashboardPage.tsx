@@ -297,7 +297,7 @@ export default function DashboardPage() {
       microtext: buildMicrotext([
         [overdueActions, 'ação atrasada', 'ações atrasadas'],
         [blockedActions, 'travada', 'travadas'],
-        [criticalRisks, 'organização com red flag alta', 'organizações com red flags altas'],
+        [criticalRisks, 'organização com red flag crítica', 'organizações com red flags críticas'],
         [pendingDiagnostics, 'diagnóstico pendente', 'diagnósticos pendentes'],
         [meetingsWithoutAgenda.length, 'encontro sem próxima pauta', 'encontros sem próxima pauta'],
         [openActions.length, 'ação aberta', 'ações abertas'],
@@ -444,7 +444,7 @@ export default function DashboardPage() {
                     ['Sem pauta', portfolioSummary.meetingsWithoutAgenda],
                     ['Abertas', portfolioSummary.openActions],
                     ['Diagnósticos', portfolioSummary.pendingDiagnostics],
-                    ['Red flags', portfolioSummary.criticalRisks],
+                    ['Red flags críticas', portfolioSummary.criticalRisks],
                   ].map(([label, value]) => (
                     <div key={label} className="executive-card rounded-2xl p-3">
                       <p className="text-2xl font-bold tabular-nums">{value}</p>

@@ -748,7 +748,9 @@ export default function StartupDetailPage() {
 
               {/* Individual founders table */}
               {founders.length > 0 && founderAssessments.length === 0 && (
-                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">Avaliação de liderança ainda não registrada.</div>
+                <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                  Founder Score operacional, pendente de primeira avaliação semestral. Isso indica ausência de registro, não falha da organização.
+                </div>
               )}
               {founders.length > 0 && founderAssessments.length > 0 && (
                 <div className="space-y-1.5">
@@ -768,7 +770,7 @@ export default function StartupDetailPage() {
                               {stage && <Badge variant="outline" className={`text-[10px] ${stage.color}`}>{stage.label}</Badge>}
                             </>
                           ) : (
-                            <span className="text-muted-foreground italic">Avaliação de liderança ainda não registrada.</span>
+                            <span className="text-muted-foreground italic">Pendente neste semestre</span>
                           )}
                         </div>
                       </div>

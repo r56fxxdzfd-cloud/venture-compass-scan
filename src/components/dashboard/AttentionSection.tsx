@@ -30,9 +30,9 @@ const severityVariant = (type: AttentionItem['type']): 'destructive' | 'secondar
 };
 
 const panels = [
-  { id: 'diagnosticos', title: 'Diagnósticos pendentes', icon: ClipboardList, matches: (item: AttentionItem) => item.type === 'low_progress' },
-  { id: 'avaliacoes', title: 'Founders e avaliações', icon: Users, matches: (item: AttentionItem) => item.category === 'founder' },
-  { id: 'riscos', title: 'Red flags críticas', icon: ShieldAlert, matches: (item: AttentionItem) => item.type === 'high_red_flag' || item.type === 'founder_risk' || item.type === 'founder_regression' },
+  { id: 'diagnosticos', title: 'Diagnósticos pendentes', description: 'coleta ou validação incompleta', icon: ClipboardList, matches: (item: AttentionItem) => item.type === 'low_progress' },
+  { id: 'avaliacoes', title: 'Founders e avaliações', description: 'cadência de Founder Score', icon: Users, matches: (item: AttentionItem) => item.category === 'founder' },
+  { id: 'riscos', title: 'Red flags críticas', description: 'alertas objetivos de risco alto por regras específicas', icon: ShieldAlert, matches: (item: AttentionItem) => item.type === 'high_red_flag' || item.type === 'founder_risk' || item.type === 'founder_regression' },
 ];
 
 export default function AttentionSection({ items, loading }: AttentionSectionProps) {
@@ -89,7 +89,10 @@ export default function AttentionSection({ items, loading }: AttentionSectionPro
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <panel.icon className="h-3.5 w-3.5" />
                     </div>
-                    <p className="text-xs font-medium tracking-wide">{panel.title}</p>
+                    <div>
+                      <p className="text-xs font-medium tracking-wide">{panel.title}</p>
+                      <p className="text-[10px] text-muted-foreground leading-snug">{panel.description}</p>
+                    </div>
                   </div>
                   <span className="text-[11px] text-muted-foreground">{sectionItems.length}</span>
                 </div>

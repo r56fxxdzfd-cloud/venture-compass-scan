@@ -28,7 +28,7 @@ import { getCompleteness, scoreTo100 } from '@/utils/report-helpers';
 import { validateReportExportReadiness } from '@/utils/export-readiness';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ConfigJSON, Answer, Assessment, AssessmentResult } from '@/types/darwin';
+import type { ConfigJSON, Answer, Assessment, AssessmentResult, ConfigVersion } from '@/types/darwin';
 import type { Founder, FounderAssessment, FounderPillarScore } from '@/types/founder';
 import type { FounderRedFlag } from '@/components/report/ReportSections';
 import type { QuestionAnswer } from '@/utils/pareto-engine';
@@ -69,6 +69,7 @@ export default function ReportPage() {
   const [savingCtx, setSavingCtx] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [config, setConfig] = useState<ConfigJSON | null>(null);
+  const [configVersion, setConfigVersion] = useState<ConfigVersion | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [exporting, setExporting] = useState(false);
@@ -84,8 +85,13 @@ export default function ReportPage() {
       if (!a) return;
       setAssessment(a as unknown as Assessment);
 
-      const { data: cv } = await supabase.from('config_versions').select('config_json').eq('id', a.config_version_id).single();
+      const { data: cv } = await supabase
+        .from('config_versions')
+        .select('id, version_name, status, created_by, created_at, published_at, config_json')
+        .eq('id', a.config_version_id)
+        .single();
       if (!cv) return;
+      setConfigVersion(cv as unknown as ConfigVersion);
       const cfg = cv.config_json as unknown as ConfigJSON;
       setConfig(cfg);
 
@@ -512,7 +518,19 @@ export default function ReportPage() {
       </div>
 
       <div id="section-summary">
-        <ReportHeader startupName={startupName} stage={stage} date={new Date(assessment.created_at).toLocaleDateString('pt-BR')} completeness={completeness} isSimulation={isSimulation} />
+        <ReportHeader
+          startupName={startupName}
+          stage={stage}
+          date={new Date(assessment.created_at).toLocaleDateString('pt-BR')}
+          completeness={completeness}
+          isSimulation={isSimulation}
+          methodologyVersion={configVersion ? {
+            name: configVersion.version_name,
+            status: configVersion.status,
+            publishedAt: configVersion.published_at,
+            generatedAt: assessment.created_at,
+          } : null}
+        />
       </div>
       {startupDescription && (
         <div className="executive-panel print-safe rounded-xl border p-4 text-sm text-muted-foreground">

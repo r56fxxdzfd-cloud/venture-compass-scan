@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Pencil, X } from 'lucide-react';
 import type { ConfigJSON, ConfigRedFlag } from '@/types/darwin';
+import { formatRedFlagTrigger } from '@/utils/red-flag-triggers';
 
 interface Props {
   config: ConfigJSON;
@@ -30,23 +31,6 @@ interface RedFlagForm {
 }
 
 const emptyForm: RedFlagForm = { code: '', label: '', severity: 'medium', triggers: [], actions: [] };
-
-function triggerSummary(t: TriggerForm, dims: { id: string; label: string }[]): string {
-  const dimLabel = dims.find(d => d.id === t.dimension_id)?.label || t.dimension_id || '—';
-  switch (t.type) {
-    case 'score_threshold':
-    case 'dimension_score_below':
-      return `Score ${dimLabel} ≤ ${t.threshold ?? '—'}`;
-    case 'numeric_threshold':
-    case 'context_field_below':
-      return `${t.field || '—'} < ${t.threshold ?? '—'}`;
-    case 'numeric_missing':
-    case 'context_field_missing':
-      return `${t.field || '—'} não informado`;
-    default:
-      return t.type?.replace(/_/g, ' ') || '—';
-  }
-}
 
 const severityBadge = (s: string) => {
   if (['critical', 'high'].includes(s)) return 'destructive' as const;
@@ -163,7 +147,9 @@ export function RedFlagsTab({ config, onChange }: Props) {
           </div>
           <div className="flex flex-wrap gap-1">
             {rf.triggers.map((t, i) => (
-              <Badge key={i} variant="outline" className="text-[10px]">{triggerSummary(t as any, dims)}</Badge>
+              <Badge key={i} variant="outline" className="text-[10px]">
+                {formatRedFlagTrigger(t as any, { dimensions: dims, questions: config.questions }).replace(/\.$/, '')}
+              </Badge>
             ))}
           </div>
         </div>

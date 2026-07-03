@@ -19,12 +19,25 @@ import logoDarwin from '@/assets/logo-darwin.png';
 
 // ======== A. Header ========
 export function ReportHeader({
-  startupName, stage, date, completeness, isSimulation,
+  startupName, stage, date, completeness, isSimulation, methodologyVersion,
 }: {
   startupName: string; stage: string; date: string; completeness: CompletenessInfo; isSimulation?: boolean;
+  methodologyVersion?: {
+    name: string;
+    status: 'draft' | 'published' | 'archived' | string;
+    publishedAt?: string | null;
+    generatedAt?: string | null;
+  } | null;
 }) {
   const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
   const confidenceColors = { high: 'default', medium: 'secondary', low: 'destructive' } as const;
+  const statusLabels: Record<string, string> = { draft: 'Draft', published: 'Publicada', archived: 'Arquivada' };
+  const statusVariants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+    draft: 'secondary',
+    published: 'default',
+    archived: 'outline',
+  };
+  const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDateString('pt-BR') : '—';
 
   return (
     <Card className="executive-surface print-safe">
@@ -53,6 +66,27 @@ export function ReportHeader({
             </Badge>
           </div>
         </div>
+        {methodologyVersion && (
+          <div className="mt-4 grid gap-3 rounded-lg border bg-muted/25 p-3 text-xs sm:grid-cols-3">
+            <div>
+              <p className="font-semibold text-foreground">Metodologia usada</p>
+              <p className="mt-1 text-muted-foreground">{methodologyVersion.name}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Status da versão</p>
+              <div className="mt-1 flex items-center gap-2">
+                <Badge variant={statusVariants[methodologyVersion.status] || 'outline'} className="text-[10px]">
+                  {statusLabels[methodologyVersion.status] || methodologyVersion.status}
+                </Badge>
+                <span className="text-muted-foreground">Publicada em {formatDate(methodologyVersion.publishedAt)}</span>
+              </div>
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Diagnóstico gerado em</p>
+              <p className="mt-1 text-muted-foreground">{formatDate(methodologyVersion.generatedAt)}</p>
+            </div>
+          </div>
+        )}
         {completeness.confidence === 'low' && (
           <div className="mt-3 flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
             <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -280,6 +314,10 @@ export function RedFlagsSection({ result, config, founderRedFlags = [] }: { resu
     atencao: allSeverities.filter(s => getSeverityCategory(s) === 'Atenção').length,
     monitorar: allSeverities.filter(s => getSeverityCategory(s) === 'Monitorar').length,
   };
+  const severityCounts = allSeverities.reduce<Record<string, number>>((acc, severity) => {
+    acc[severity] = (acc[severity] || 0) + 1;
+    return acc;
+  }, {});
   const totalFlags = result.red_flags.length + founderRedFlags.length;
 
   return (
@@ -301,6 +339,13 @@ export function RedFlagsSection({ result, config, founderRedFlags = [] }: { resu
           {counts.critico > 0 && <Badge variant="destructive">{counts.critico} Crítico{counts.critico > 1 ? 's' : ''}</Badge>}
           {counts.atencao > 0 && <Badge variant="secondary">{counts.atencao} Atenção</Badge>}
           {counts.monitorar > 0 && <Badge variant="outline">{counts.monitorar} Monitorar</Badge>}
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+          {['critical', 'high', 'medium_high', 'medium', 'low'].filter((severity) => severityCounts[severity] > 0).map((severity) => (
+            <Badge key={severity} variant="outline" className="text-[10px]">
+              {severity}: {severityCounts[severity]}
+            </Badge>
+          ))}
         </div>
 
         {/* Impact chart — diagnostic red flags only */}

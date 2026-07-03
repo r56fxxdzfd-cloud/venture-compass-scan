@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { AlertTriangle, Users, Shield } from 'lucide-react';
+import { AlertTriangle, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed, computePriorityScore, PILLARS } from '@/utils/founder-scoring';
 import type { Founder, FounderAssessment, FounderPillarScore } from '@/types/founder';
@@ -46,10 +48,71 @@ export function FounderLeadershipSection({ companyId }: Props) {
     load();
   }, [companyId]);
 
-  if (!loaded || founders.length === 0 || assessments.length === 0) return null;
+  if (!loaded) return null;
+
+  if (founders.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4" /> Força da Liderança
+          </h3>
+          <div className="rounded-lg border border-dashed p-4 text-sm">
+            <p className="font-medium">Founder Score pendente: nenhum founder ativo cadastrado.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              O módulo está operacional, mas precisa de founders cadastrados antes da primeira avaliação semestral.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to={`/app/startups/${companyId}/founders`}>Cadastrar founders</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (assessments.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4" /> Força da Liderança
+          </h3>
+          <div className="rounded-lg border border-dashed p-4 text-sm">
+            <p className="font-medium">Founder Score pendente de primeira avaliação semestral.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Não há score numérico porque a avaliação JV + autoavaliação ainda não foi registrada. Isso indica ausência de registro, não falha da organização.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to={`/app/founder-assessments/new?company=${companyId}`}>Registrar Founder Score</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const scores = assessments.map(a => a.score_used).filter((s): s is number => s != null);
-  if (scores.length === 0) return null;
+  if (scores.length === 0) {
+    return (
+      <Card>
+        <CardContent className="pt-6 space-y-4">
+          <h3 className="text-base font-semibold flex items-center gap-2">
+            <Users className="h-4 w-4" /> Força da Liderança
+          </h3>
+          <div className="rounded-lg border border-dashed p-4 text-sm">
+            <p className="font-medium">Founder Score em preenchimento.</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Existem avaliações cadastradas neste semestre, mas ainda sem score utilizável. O relatório não cria placeholder numérico.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-3">
+              <Link to={`/app/startups/${companyId}/founders`}>Ver avaliações de liderança</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const compositeScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10;
   const compositeStage = getFounderStageLabel(compositeScore);

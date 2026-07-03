@@ -7,13 +7,19 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy, Sparkles } from 'lucide-react';
+import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy, Sparkles, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
 import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
+
+type VersionUsage = {
+  count: number;
+  latestGeneratedAt: string | null;
+  companies: string[];
+};
 
 export default function AdminConfigPage() {
   const [versions, setVersions] = useState<ConfigVersion[]>([]);
@@ -23,6 +29,7 @@ export default function AdminConfigPage() {
   const [expandedEditor, setExpandedEditor] = useState<string | null>(null);
   const [publishTarget, setPublishTarget] = useState<ConfigVersion | null>(null);
   const [creatingDraft, setCreatingDraft] = useState(false);
+  const [versionUsage, setVersionUsage] = useState<Record<string, VersionUsage>>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const { user, canManageSensitiveParameters, isDemoUser } = useAuth();
   const { toast } = useToast();
@@ -33,11 +40,35 @@ export default function AdminConfigPage() {
       .select('*')
       .order('created_at', { ascending: false });
     if (data) setVersions(data as unknown as ConfigVersion[]);
+
+    const { data: assessmentRows } = await supabase
+      .from('assessments')
+      .select('id, config_version_id, created_at, company:companies(name)')
+      .order('created_at', { ascending: false });
+
+    if (assessmentRows) {
+      const usage = (assessmentRows as any[]).reduce<Record<string, VersionUsage>>((acc, row) => {
+        const versionId = row.config_version_id;
+        if (!versionId) return acc;
+        if (!acc[versionId]) acc[versionId] = { count: 0, latestGeneratedAt: null, companies: [] };
+        acc[versionId].count += 1;
+        if (!acc[versionId].latestGeneratedAt || row.created_at > acc[versionId].latestGeneratedAt) {
+          acc[versionId].latestGeneratedAt = row.created_at;
+        }
+        const companyName = row.company?.name;
+        if (companyName && !acc[versionId].companies.includes(companyName)) {
+          acc[versionId].companies.push(companyName);
+        }
+        return acc;
+      }, {});
+      setVersionUsage(usage);
+    }
   };
 
   useEffect(() => { fetchVersions(); }, []);
 
   const hasDraft = versions.some(v => v.status === 'draft');
+  const latestDraft = versions.find(v => v.status === 'draft');
   const publishedVersion = versions.find(v => v.status === 'published');
 
   // ---- Create draft from published ----
@@ -217,6 +248,8 @@ export default function AdminConfigPage() {
   };
 
   const statusColors: Record<string, string> = { draft: 'secondary', published: 'default', archived: 'outline' };
+  const statusLabels: Record<string, string> = { draft: 'draft', published: 'publicada', archived: 'arquivada' };
+  const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDateString('pt-BR') : '—';
 
   const getPreviewInfo = (cfg: ConfigJSON) => {
     const dims = cfg.dimensions?.length || 0;
@@ -239,6 +272,29 @@ export default function AdminConfigPage() {
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Gerenciar versões de config — dimensões, perguntas, pesos e demais parâmetros do diagnóstico.</p>
         </div>
       </section>
+
+      {latestDraft && (
+        <Card className="border-amber-500/30 bg-amber-500/[0.06]">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">Existe draft não publicado</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O draft <strong>{latestDraft.version_name}</strong> foi criado/editado em {formatDate(latestDraft.created_at)}.{' '}
+                  Novos diagnósticos continuam usando a versão publicada <strong>{publishedVersion?.version_name || 'não definida'}</strong>
+                  {publishedVersion?.published_at ? ` (${formatDate(publishedVersion.published_at)})` : ''}, até que o draft seja publicado.
+                </p>
+              </div>
+            </div>
+            {canManageSensitiveParameters && (
+              <Button variant="outline" size="sm" onClick={() => setExpandedEditor(latestDraft.id)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" /> Abrir draft
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="executive-surface">
         <CardHeader>
@@ -290,6 +346,7 @@ export default function AdminConfigPage() {
                 const isPreviewExpanded = expandedPreview === v.id;
                 const isEditorExpanded = expandedEditor === v.id;
                 const isDraft = v.status === 'draft';
+                const usage = versionUsage[v.id] || { count: 0, latestGeneratedAt: null, companies: [] };
                 return (
                   <div key={v.id} className="rounded-lg border">
                     <div className="flex items-center justify-between p-3">
@@ -297,9 +354,17 @@ export default function AdminConfigPage() {
                         <FileJson className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">{v.version_name}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString('pt-BR')}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Criada/editada em {formatDate(v.created_at)}
+                            {v.published_at ? ` • publicada em ${formatDate(v.published_at)}` : ''}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {usage.count} diagnóstico{usage.count === 1 ? '' : 's'} vinculado{usage.count === 1 ? '' : 's'}
+                            {usage.latestGeneratedAt ? ` • último em ${formatDate(usage.latestGeneratedAt)}` : ''}
+                            {usage.companies.length > 0 ? ` • ${usage.companies.slice(0, 3).join(', ')}${usage.companies.length > 3 ? ` +${usage.companies.length - 3}` : ''}` : ''}
+                          </p>
                         </div>
-                        <Badge variant={statusColors[v.status] as any}>{v.status}</Badge>
+                        <Badge variant={statusColors[v.status] as any}>{statusLabels[v.status] || v.status}</Badge>
                       </div>
                       <TooltipProvider>
                         <div className="flex gap-1">

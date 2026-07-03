@@ -193,7 +193,7 @@ export interface RedFlagTrigger {
   field?: string;
   fields_any?: string[];
   op?: string;
-  requires?: { field: string; op: string; value: unknown }[];
+  requires?: { field?: string; question_id?: string; op: string; value: unknown }[];
 }
 
 export interface ConfigRedFlag {
@@ -202,6 +202,11 @@ export interface ConfigRedFlag {
   severity: string;
   triggers: RedFlagTrigger[];
   actions: string[];
+  trigger_match?: 'any' | 'all';
+  match?: 'any' | 'all' | 'or' | 'and';
+  operator?: 'any' | 'all' | 'or' | 'and';
+  logic?: 'any' | 'all' | 'or' | 'and';
+  all?: boolean;
 }
 
 export interface ConfigPreset {

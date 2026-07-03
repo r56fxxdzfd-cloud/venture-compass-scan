@@ -449,7 +449,7 @@ export default function CounselorOverviewPage() {
   const riskKpis = [
     { label: 'Ações atrasadas', sublabel: 'fora do prazo combinado', value: kpis.overdue, tone: kpis.overdue > 0 ? 'critical' : 'neutral', icon: AlertTriangle },
     { label: 'Ações travadas', sublabel: 'aguardando desbloqueio', value: kpis.blocked, tone: kpis.blocked > 0 ? 'critical' : 'neutral', icon: ShieldAlert },
-    { label: 'Dimensões em atenção', sublabel: 'piorando ou estáveis com score baixo', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'attention' : 'neutral', icon: TrendingDown },
+    { label: 'Dimensões em atenção', sublabel: 'score baixo, estabilidade baixa ou gap relevante, mesmo sem red flag crítica', value: kpis.inAttention, tone: kpis.inAttention > 0 ? 'attention' : 'neutral', icon: TrendingDown },
     { label: 'Sem próxima pauta', sublabel: 'encontros sem agenda definida', value: kpis.noAgenda, tone: kpis.noAgenda > 0 ? 'attention' : 'neutral', icon: CalendarClock },
   ] as const;
 

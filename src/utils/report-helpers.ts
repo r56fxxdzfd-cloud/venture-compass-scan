@@ -447,7 +447,7 @@ export function generateDimensionNarrative(ds: DimensionScore): string {
   const s100 = scoreTo100(ds.score);
   const level = getLevel(s100);
   const coveragePct = Math.round(ds.coverage * 100);
-  return `${level.label} (${s100}/100). Cobertura de ${coveragePct}% das questões respondidas (${ds.answered}/${ds.total}). ${
+  return `${level.label} (${s100}/100). Cobertura de ${coveragePct}% das perguntas aplicáveis respondidas (${ds.answered}/${ds.total}). ${
     s100 < 55 ? 'Esta dimensão requer atenção prioritária para fortalecer a prontidão da organização.' :
     s100 < 75 ? 'Dimensão em desenvolvimento — há espaço para consolidar práticas e processos.' :
     'Dimensão bem estruturada — manter e otimizar as práticas atuais.'

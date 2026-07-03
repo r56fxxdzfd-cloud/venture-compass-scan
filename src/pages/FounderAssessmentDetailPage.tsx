@@ -243,7 +243,7 @@ export default function FounderAssessmentDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Calendar className="h-4 w-4" /> Check-ins
+            <Calendar className="h-4 w-4" /> Check-ins quinzenais
           </CardTitle>
           {canWrite && (
             <Button size="sm" variant="outline" onClick={() => setCheckinOpen(true)}>
@@ -253,7 +253,7 @@ export default function FounderAssessmentDetailPage() {
         </CardHeader>
         <CardContent>
           {checkins.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhum check-in registrado.</p>
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum check-in quinzenal registrado para este Founder Score.</p>
           ) : (
             <div className="space-y-3">
               {checkins.map((c, i) => (
@@ -269,7 +269,12 @@ export default function FounderAssessmentDetailPage() {
                     </div>
                     <p className="text-sm"><span className="font-medium">Entregue:</span> {c.delivered_summary}</p>
                     <p className="text-sm"><span className="font-medium">Próximo passo:</span> {c.next_step}</p>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">Responsável:</span> {c.next_step_owner || '—'}
+                      {c.next_step_due ? ` · Prazo: ${new Date(c.next_step_due).toLocaleDateString('pt-BR')}` : ''}
+                    </p>
                     {c.blocked && <p className="text-sm text-destructive"><span className="font-medium">Bloqueio:</span> {c.blocked}</p>}
+                    {c.decision_made && <p className="text-sm"><span className="font-medium">Decisão/recomendação:</span> {c.decision_made}</p>}
                   </div>
                 </motion.div>
               ))}
@@ -289,7 +294,7 @@ export default function FounderAssessmentDetailPage() {
       {/* Checkin Dialog */}
       <Dialog open={checkinOpen} onOpenChange={setCheckinOpen}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Novo Check-in</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Novo check-in quinzenal</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label>O que foi entregue? *</Label><Textarea value={checkinForm.delivered_summary} onChange={e => setCheckinForm(f => ({ ...f, delivered_summary: e.target.value }))} /></div>
             <div><Label>Link de evidência</Label><Input value={checkinForm.evidence_link} onChange={e => setCheckinForm(f => ({ ...f, evidence_link: e.target.value }))} /></div>

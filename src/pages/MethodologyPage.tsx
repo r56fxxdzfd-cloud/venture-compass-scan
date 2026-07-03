@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { PILLARS, PILLAR_QUESTIONS, SCORE_ANCHORS, ACTION_RECOMMENDATIONS } from '@/utils/founder-scoring';
 import { getQuestionSkipRules, type QuestionSkipRule } from '@/utils/question-flow';
 import { getQuestionTooltipExplanation } from '@/utils/question-tooltip';
+import { formatRedFlagTrigger, formatRedFlagTriggers } from '@/utils/red-flag-triggers';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { ConfigJSON, ConfigQuestion, ConfigVersion } from '@/types/darwin';
@@ -198,38 +199,6 @@ export default function MethodologyPage() {
   const stages = ['pre_seed', 'seed', 'series_a'];
   const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
 
-  const getDimLabel = (dimId: string | undefined) => {
-    if (!dimId) return '—';
-    return config.dimensions.find(d => d.id === dimId)?.label || dimId;
-  };
-
-  // ---- Format trigger as Portuguese sentence ----
-  const formatTrigger = (trigger: any): string => {
-    const threshold = trigger.threshold ?? trigger.value ?? '—';
-    const field = trigger.field || '—';
-    const dimLabel = getDimLabel(trigger.dimension_id);
-
-    switch (trigger.type) {
-      case 'score_threshold':
-      case 'dimension_score_below':
-        return `Score da dimensão "${dimLabel}" abaixo de ${threshold}`;
-      case 'numeric_threshold':
-      case 'context_field_below':
-        return `Campo "${field}" abaixo de ${threshold}`;
-      case 'numeric_missing':
-      case 'context_field_missing':
-        return `Campo "${field}" não informado`;
-      case 'question_score_below':
-        return `Resposta da pergunta "${trigger.question_id || '—'}" abaixo de ${threshold}`;
-      case 'red_flag_triggered':
-        return 'Qualquer red flag disparada';
-      case 'requires':
-        return `Requer: ${trigger.field || trigger.dimension_id || '—'}`;
-      default:
-        return trigger.type ? toSentenceCase(trigger.type) : '—';
-    }
-  };
-
   // ---- Severity badge config ----
   const severityConfig = (s: string): { variant: 'destructive' | 'secondary' | 'outline'; label: string; className?: string } => {
     switch (s) {
@@ -291,7 +260,9 @@ export default function MethodologyPage() {
       if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null && 'type' in value[0]) {
         return (
           <ul className="list-disc list-inside space-y-0.5 text-muted-foreground">
-            {value.map((item: any, i: number) => <li key={i}>{formatTrigger(item)}</li>)}
+            {value.map((item: any, i: number) => (
+              <li key={i}>{formatRedFlagTrigger(item, { dimensions: config.dimensions, questions: config.questions })}</li>
+            ))}
           </ul>
         );
       }
@@ -542,8 +513,7 @@ export default function MethodologyPage() {
                 <TableBody>
                   {config.red_flags.map(rf => {
                     const sev = severityConfig(rf.severity);
-                    const triggerTexts = rf.triggers.map(t => formatTrigger(t));
-                    const fullTrigger = triggerTexts.join('; ');
+                    const fullTrigger = formatRedFlagTriggers(rf, { dimensions: config.dimensions, questions: config.questions });
 
                     return (
                       <TableRow key={rf.code} className="red-flag-row">

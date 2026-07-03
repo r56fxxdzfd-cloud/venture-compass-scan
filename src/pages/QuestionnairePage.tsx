@@ -227,7 +227,7 @@ export default function QuestionnairePage() {
     const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers, assessmentMeta?.questionContext).map((q) => q.id) : []);
     const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableIds.has(questionId) && (a.value !== null || a.is_na)).length;
     const totalQuestions = answerableIds.size || 45;
-    toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} questões respondidas.` });
+    toast({ title: `Diagnóstico finalizado — ${answeredCount}/${totalQuestions} perguntas aplicáveis respondidas.` });
     setCompletionOpen(true);
   };
 
@@ -462,7 +462,7 @@ export default function QuestionnairePage() {
             </Button>
           </div>
           <p id="finish-assessment-help" className="text-right text-xs text-muted-foreground">
-            {allAnswered ? 'Pronto para gerar o relatório final.' : `Ainda restam ${remainingQuestions} questões sem resposta.`}
+            {allAnswered ? 'Pronto para gerar o relatório final.' : `Ainda restam ${remainingQuestions} perguntas aplicáveis sem resposta.`}
           </p>
         </div>
       </div>
@@ -533,7 +533,7 @@ function DimensionGroupHeader({
 
         <div className="min-w-0 sm:w-44">
           <div className="mb-1 flex items-center justify-between gap-2 text-[11px] font-medium text-muted-foreground">
-            <span>Progresso</span>
+            <span>Perguntas aplicáveis</span>
             <span className="font-mono text-foreground">{answered}/{total}</span>
           </div>
           <Progress value={progress} className="h-1.5" />
