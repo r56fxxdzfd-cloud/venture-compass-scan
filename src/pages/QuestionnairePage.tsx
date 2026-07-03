@@ -562,7 +562,6 @@ function QuestionCard({
   const [helpOpen, setHelpOpen] = useState(false);
   const tooltip = question.tooltip;
   const hasTooltip = hasQuestionTooltipContent(question);
-  const tooltipId = `question-tooltip-${question.id}`;
 
   return (
     <Card className={answer?.value !== null && answer?.value !== undefined || answer?.is_na ? 'border-primary/20' : ''}>
@@ -575,33 +574,27 @@ function QuestionCard({
             <div className="flex items-start gap-2">
               <p className="text-base font-medium leading-relaxed">{question.text}</p>
               {hasTooltip && (
-                <span
-                  className="relative mt-0.5 inline-flex shrink-0"
-                  onMouseEnter={() => setHelpOpen(true)}
-                  onMouseLeave={() => setHelpOpen(false)}
-                >
-                  <button
-                    type="button"
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label="Explicação da pergunta"
-                    aria-describedby={helpOpen ? tooltipId : undefined}
-                    aria-expanded={helpOpen}
-                    onClick={() => setHelpOpen((open) => !open)}
-                    onFocus={() => setHelpOpen(true)}
-                    onBlur={() => setHelpOpen(false)}
-                  >
-                    <HelpCircle className="h-4 w-4 shrink-0" />
-                  </button>
-                  {helpOpen && (
-                    <span
-                      id={tooltipId}
-                      role="tooltip"
-                      className="absolute right-0 top-6 z-40 block max-h-[min(70vh,28rem)] w-96 max-w-[calc(100vw-3rem)] overflow-y-auto rounded-md border bg-popover px-3 py-2 text-left text-popover-foreground shadow-lg"
+                <Tooltip open={helpOpen} onOpenChange={setHelpOpen} delayDuration={150}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="Explicação da pergunta"
+                      aria-expanded={helpOpen}
+                      onClick={() => setHelpOpen((open) => !open)}
                     >
-                      <QuestionTooltipContent question={question} />
-                    </span>
-                  )}
-                </span>
+                      <HelpCircle className="h-4 w-4 shrink-0" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="bottom"
+                    align="center"
+                    sideOffset={8}
+                    className="z-[1000] max-h-[min(70vh,28rem)] w-96 max-w-[calc(100vw-3rem)] overflow-y-auto px-3 py-2 text-left"
+                  >
+                    <QuestionTooltipContent question={question} />
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
 
