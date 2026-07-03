@@ -37,7 +37,7 @@ export function AppBreadcrumbs() {
 
     const loadLabels = async () => {
       const nextLabels: Record<string, string> = {};
-      const jobs: Promise<void>[] = [];
+      const jobs: PromiseLike<void>[] = [];
 
       segments.forEach((seg, index) => {
         if (seg.length <= 20) return;
