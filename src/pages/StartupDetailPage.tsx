@@ -1130,7 +1130,29 @@ export default function StartupDetailPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Setor</Label>
-              <Input value={editForm.sector} onChange={e => setEditForm(prev => ({ ...prev, sector: e.target.value }))} />
+              <Select value={editForm.sector} onValueChange={v => setEditForm(prev => ({ ...prev, sector: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fintech">Fintech</SelectItem>
+                  <SelectItem value="healthtech">Healthtech</SelectItem>
+                  <SelectItem value="edtech">Edtech</SelectItem>
+                  <SelectItem value="agtech">Agtech</SelectItem>
+                  <SelectItem value="retailtech">Retailtech</SelectItem>
+                  <SelectItem value="logtech">Logtech</SelectItem>
+                  <SelectItem value="proptech">Proptech</SelectItem>
+                  <SelectItem value="legaltech">Legaltech</SelectItem>
+                  <SelectItem value="hrtech">HRtech</SelectItem>
+                  <SelectItem value="martech">Martech</SelectItem>
+                  <SelectItem value="foodtech">Foodtech</SelectItem>
+                  <SelectItem value="eventech">Eventech</SelectItem>
+                  <SelectItem value="cleantech">Cleantech</SelectItem>
+                  <SelectItem value="insurtech">Insurtech</SelectItem>
+                  <SelectItem value="deeptech">Deeptech</SelectItem>
+                  <SelectItem value="saas">SaaS</SelectItem>
+                  <SelectItem value="marketplace">Marketplace</SelectItem>
+                  <SelectItem value="outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Estágio</Label>
@@ -1144,8 +1166,17 @@ export default function StartupDetailPage() {
               </Select>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Modelo de Negócio</Label>
-              <Input value={editForm.business_model} onChange={e => setEditForm(prev => ({ ...prev, business_model: e.target.value }))} />
+              <Label className="text-xs">Modelo de Receita</Label>
+              <Select value={editForm.business_model} onValueChange={v => setEditForm(prev => ({ ...prev, business_model: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="non_recurring">Não recorrente</SelectItem>
+                  <SelectItem value="recurring">Recorrente</SelectItem>
+                  <SelectItem value="subscription">Assinatura</SelectItem>
+                  <SelectItem value="usage_based">Baseado em uso</SelectItem>
+                  <SelectItem value="hybrid">Híbrido</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
