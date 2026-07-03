@@ -274,6 +274,7 @@ export default function StartupsPage() {
                         <SelectItem value="hrtech">HRtech</SelectItem>
                         <SelectItem value="martech">Martech</SelectItem>
                         <SelectItem value="foodtech">Foodtech</SelectItem>
+                        <SelectItem value="eventech">Eventech</SelectItem>
                         <SelectItem value="cleantech">Cleantech</SelectItem>
                         <SelectItem value="insurtech">Insurtech</SelectItem>
                         <SelectItem value="deeptech">Deeptech</SelectItem>
@@ -294,6 +295,19 @@ export default function StartupsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Modelo de Receita</Label>
+                  <Select value={form.business_model} onValueChange={(v) => setForm({ ...form, business_model: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="non_recurring">Não recorrente</SelectItem>
+                      <SelectItem value="recurring">Recorrente</SelectItem>
+                      <SelectItem value="subscription">Assinatura</SelectItem>
+                      <SelectItem value="usage_based">Baseado em uso</SelectItem>
+                      <SelectItem value="hybrid">Híbrido</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button onClick={handleCreate} className="w-full" disabled={!form.name.trim() || !!cnpjError}>
                   Criar Organização

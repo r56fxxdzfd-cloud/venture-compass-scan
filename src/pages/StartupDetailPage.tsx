@@ -1052,6 +1052,7 @@ export default function StartupDetailPage() {
                         <SelectItem value="recurring">Recorrente</SelectItem>
                         <SelectItem value="subscription">Assinatura</SelectItem>
                         <SelectItem value="usage_based">Baseado em uso</SelectItem>
+                        <SelectItem value="hybrid">Híbrido</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

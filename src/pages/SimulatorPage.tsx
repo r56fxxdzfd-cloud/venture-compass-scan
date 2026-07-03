@@ -96,7 +96,7 @@ export default function SimulatorPage() {
     setStage(stages[Math.floor(Math.random() * stages.length)]);
     const customerTypes = ['B2B', 'B2C', 'B2B2C'];
     setCustomerType(customerTypes[Math.floor(Math.random() * customerTypes.length)]);
-    const revenueModels = ['non_recurring', 'recurring', 'subscription', 'usage_based'];
+    const revenueModels = ['non_recurring', 'recurring', 'subscription', 'usage_based', 'hybrid'];
     setRevenueModel(revenueModels[Math.floor(Math.random() * revenueModels.length)]);
     setNumericContext({
       runway_months: Math.round(3 + Math.random() * 21), burn_monthly: Math.round((20 + Math.random() * 180) * 1000),
@@ -250,6 +250,7 @@ export default function SimulatorPage() {
                       <SelectItem value="recurring">Recorrente</SelectItem>
                       <SelectItem value="subscription">Assinatura</SelectItem>
                       <SelectItem value="usage_based">Uso</SelectItem>
+                      <SelectItem value="hybrid">Híbrido</SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>
