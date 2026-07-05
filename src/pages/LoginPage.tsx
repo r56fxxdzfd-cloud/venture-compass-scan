@@ -26,6 +26,8 @@ export default function LoginPage() {
   const { theme, setTheme } = useTheme();
 
   const rejectedError = searchParams.get('error') === 'rejected';
+  const nextParam = searchParams.get('next');
+  const safeNext = nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +58,11 @@ export default function LoginPage() {
             await supabase.auth.signOut();
             toast({ title: 'Acesso negado', description: 'Seu cadastro foi rejeitado.', variant: 'destructive' });
           } else {
-            navigate('/app/dashboard');
+            if (safeNext) {
+              window.location.href = safeNext;
+            } else {
+              navigate('/app/dashboard');
+            }
           }
         }
       }
