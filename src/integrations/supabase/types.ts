@@ -1019,6 +1019,75 @@ export type Database = {
           },
         ]
       }
+      startup_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_category: Database["public"]["Enums"]["startup_document_category"]
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          startup_id: string
+          updated_at: string
+          uploaded_by_user_id: string
+          visibility: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_category?: Database["public"]["Enums"]["startup_document_category"]
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          startup_id: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_category?: Database["public"]["Enums"]["startup_document_category"]
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          startup_id?: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_documents_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_documents_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_logs: {
         Row: {
           attendees: string | null
@@ -1292,6 +1361,17 @@ export type Database = {
         | "demo_user"
         | "demo_admin"
         | "jv_advisor"
+      startup_document_category:
+        | "diagnostic_external"
+        | "pitch_deck"
+        | "financial"
+        | "commercial"
+        | "product"
+        | "legal_corporate"
+        | "board_meeting"
+        | "action_plan"
+        | "other"
+      startup_document_visibility: "internal_only" | "startup_and_internal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1428,6 +1508,18 @@ export const Constants = {
         "demo_admin",
         "jv_advisor",
       ],
+      startup_document_category: [
+        "diagnostic_external",
+        "pitch_deck",
+        "financial",
+        "commercial",
+        "product",
+        "legal_corporate",
+        "board_meeting",
+        "action_plan",
+        "other",
+      ],
+      startup_document_visibility: ["internal_only", "startup_and_internal"],
     },
   },
 } as const

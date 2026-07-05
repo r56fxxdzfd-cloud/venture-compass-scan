@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, ClipboardList, ArrowLeft, Pencil, AlertTriangle, ArrowRight, Inbox, Users, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
@@ -30,6 +31,7 @@ import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
 import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
+import { StartupDocumentsSection } from '@/components/startup/StartupDocumentsSection';
 import {
   CONTEXT_NUMERIC_FIELDS,
   formatContextNumericInput,
@@ -56,7 +58,7 @@ export default function StartupDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { isAdmin, isAnalyst, isAdvisor, isSuperAdmin, user } = useAuth();
+  const { isAdmin, isAnalyst, isAdvisor, isViewer, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
@@ -74,6 +76,8 @@ export default function StartupDetailPage() {
   const canWrite = isAdmin || isAnalyst;
   // Membro do Comitê de Crescimento atribuído alcança esta página (RLS) — pode operar plano/reuniões.
   const canManageOps = isAdmin || isAnalyst || isAdvisor;
+  const isInternalDocumentUser = isAdmin || isAnalyst || isAdvisor || isViewer;
+  const canEditDocuments = isAdmin || isAnalyst || isAdvisor;
 
   // New assessment dialog
   const [newDialogOpen, setNewDialogOpen] = useState(false);
@@ -499,6 +503,13 @@ export default function StartupDetailPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="documents">Documentos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
       {inProgressAssessment && inProgressLink && (
         <Card className="border-amber-500/35 bg-amber-500/10">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -945,6 +956,19 @@ export default function StartupDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-4">
+          <StartupDocumentsSection
+            companyId={company.id}
+            canUpload={!!user}
+            canEdit={canEditDocuments}
+            canDelete={isAdmin}
+            isInternalUser={isInternalDocumentUser}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* New Assessment Dialog */}
       <Dialog open={newDialogOpen} onOpenChange={(open) => {

@@ -1,6 +1,18 @@
 export type AppRole = 'super_admin' | 'jv_admin' | 'demo_admin' | 'demo_user' | 'jv_analyst' | 'jv_viewer' | 'jv_advisor';
 
 export type ActionItemStatus = 'todo' | 'doing' | 'done' | 'blocked';
+export type StartupDocumentCategory =
+  | 'diagnostic_external'
+  | 'pitch_deck'
+  | 'financial'
+  | 'commercial'
+  | 'product'
+  | 'legal_corporate'
+  | 'board_meeting'
+  | 'action_plan'
+  | 'other';
+export type StartupDocumentVisibility = 'internal_only' | 'startup_and_internal';
+export type StartupDocumentRelatedEntityType = 'diagnostic' | 'red_flag' | 'meeting' | 'action_plan';
 
 export interface ActionItem {
   id: string;
@@ -31,6 +43,24 @@ export interface MeetingLog {
   next_steps: string | null;
   notes: string | null;
   created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StartupDocument {
+  id: string;
+  startup_id: string;
+  uploaded_by_user_id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  mime_type: string;
+  file_size: number;
+  document_category: StartupDocumentCategory;
+  description: string | null;
+  visibility: StartupDocumentVisibility;
+  related_entity_type: StartupDocumentRelatedEntityType | null;
+  related_entity_id: string | null;
   created_at: string;
   updated_at: string;
 }
