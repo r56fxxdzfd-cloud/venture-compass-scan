@@ -33,6 +33,7 @@ import ProgressReportPage from "./pages/ProgressReportPage";
 import CounselorCenterPage from "./pages/CounselorCenterPage";
 import CounselorOverviewPage from "./pages/CounselorOverviewPage";
 import IntakePage from "./pages/IntakePage";
+import OAuthConsentPage from "./pages/OAuthConsentPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<AnimatedPage><LoginPage /></AnimatedPage>} />
         <Route path="/waiting-approval" element={<AnimatedPage><WaitingApprovalPage /></AnimatedPage>} />
         <Route path="/intake/:token" element={<AnimatedPage><IntakePage /></AnimatedPage>} />
+        <Route path="/.lovable/oauth/consent" element={<AnimatedPage><OAuthConsentPage /></AnimatedPage>} />
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups/:id/diagnostics/new" element={<ProtectedRoute requiredRoles={['jv_admin', 'jv_analyst', 'demo_admin']}><AppLayout><AnimatedPage><StartupDetailPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
