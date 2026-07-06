@@ -180,6 +180,30 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string | null
+          value_json: Json | null
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value?: string | null
+          value_json?: Json | null
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string | null
+          value_json?: Json | null
+        }
+        Relationships: []
+      }
       assessment_red_flags: {
         Row: {
           assessment_id: string
@@ -227,6 +251,7 @@ export type Database = {
           customer_type: string | null
           id: string
           is_simulation: boolean | null
+          priority_level: string | null
           revenue_model: string | null
           stage: string | null
           status: string | null
@@ -242,6 +267,7 @@ export type Database = {
           customer_type?: string | null
           id?: string
           is_simulation?: boolean | null
+          priority_level?: string | null
           revenue_model?: string | null
           stage?: string | null
           status?: string | null
@@ -257,6 +283,7 @@ export type Database = {
           customer_type?: string | null
           id?: string
           is_simulation?: boolean | null
+          priority_level?: string | null
           revenue_model?: string | null
           stage?: string | null
           status?: string | null
@@ -290,11 +317,25 @@ export type Database = {
           archived_at: string | null
           business_model: string | null
           cnpj: string | null
+          company_name: string | null
           created_at: string | null
+          demo_day_preferred_date_id: string | null
+          diagnosis_completed_at: string | null
+          diagnosis_status: Database["public"]["Enums"]["startup_diagnosis_status"]
+          expectations_text: string | null
+          headcount: number | null
           id: string
           is_demo: boolean
           legal_name: string | null
           name: string
+          pipeline_status: Database["public"]["Enums"]["startup_pipeline_status"]
+          responsible_birthdate: string | null
+          responsible_email: string | null
+          responsible_name: string | null
+          responsible_role: string | null
+          responsible_whatsapp: string | null
+          revenue_2025: string | null
+          revenue_2026_target: string | null
           sector: string | null
           stage: string | null
         }
@@ -302,11 +343,25 @@ export type Database = {
           archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
+          company_name?: string | null
           created_at?: string | null
+          demo_day_preferred_date_id?: string | null
+          diagnosis_completed_at?: string | null
+          diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
+          expectations_text?: string | null
+          headcount?: number | null
           id?: string
           is_demo?: boolean
           legal_name?: string | null
           name: string
+          pipeline_status?: Database["public"]["Enums"]["startup_pipeline_status"]
+          responsible_birthdate?: string | null
+          responsible_email?: string | null
+          responsible_name?: string | null
+          responsible_role?: string | null
+          responsible_whatsapp?: string | null
+          revenue_2025?: string | null
+          revenue_2026_target?: string | null
           sector?: string | null
           stage?: string | null
         }
@@ -314,15 +369,37 @@ export type Database = {
           archived_at?: string | null
           business_model?: string | null
           cnpj?: string | null
+          company_name?: string | null
           created_at?: string | null
+          demo_day_preferred_date_id?: string | null
+          diagnosis_completed_at?: string | null
+          diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
+          expectations_text?: string | null
+          headcount?: number | null
           id?: string
           is_demo?: boolean
           legal_name?: string | null
           name?: string
+          pipeline_status?: Database["public"]["Enums"]["startup_pipeline_status"]
+          responsible_birthdate?: string | null
+          responsible_email?: string | null
+          responsible_name?: string | null
+          responsible_role?: string | null
+          responsible_whatsapp?: string | null
+          revenue_2025?: string | null
+          revenue_2026_target?: string | null
           sector?: string | null
           stage?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_demo_day_preferred_date_id_fkey"
+            columns: ["demo_day_preferred_date_id"]
+            isOneToOne: false
+            referencedRelation: "demo_day_dates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       config_versions: {
         Row: {
@@ -667,6 +744,45 @@ export type Database = {
           },
         ]
       }
+      demo_day_dates: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          is_active: boolean
+          location_or_format: string | null
+          start_time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          location_or_format?: string | null
+          start_time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          location_or_format?: string | null
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dimensions: {
         Row: {
           config_version_id: string
@@ -964,10 +1080,12 @@ export type Database = {
       }
       intake_submissions: {
         Row: {
+          assessment_id: string | null
           company_id: string | null
           created_at: string
           created_by: string | null
           expires_at: string | null
+          flow_completed_at: string | null
           id: string
           imported_at: string | null
           label: string | null
@@ -977,10 +1095,12 @@ export type Database = {
           token: string
         }
         Insert: {
+          assessment_id?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at?: string | null
+          flow_completed_at?: string | null
           id?: string
           imported_at?: string | null
           label?: string | null
@@ -990,10 +1110,12 @@ export type Database = {
           token: string
         }
         Update: {
+          assessment_id?: string | null
           company_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at?: string | null
+          flow_completed_at?: string | null
           id?: string
           imported_at?: string | null
           label?: string | null
@@ -1003,6 +1125,13 @@ export type Database = {
           token?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "intake_submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "intake_submissions_company_id_fkey"
             columns: ["company_id"]
@@ -1015,6 +1144,67 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_notifications: {
+        Row: {
+          assessment_id: string | null
+          body: string | null
+          created_at: string
+          data: Json
+          id: string
+          read_at: string | null
+          read_by: string | null
+          startup_id: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          assessment_id?: string | null
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          read_at?: string | null
+          read_by?: string | null
+          startup_id?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          assessment_id?: string | null
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          read_at?: string | null
+          read_by?: string | null
+          startup_id?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_notifications_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notifications_read_by_fkey"
+            columns: ["read_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notifications_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1072,6 +1262,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      onboarding_answers: {
+        Row: {
+          answer_json: Json | null
+          answer_text: string
+          created_at: string
+          id: string
+          question_id: string
+          startup_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_json?: Json | null
+          answer_text: string
+          created_at?: string
+          id?: string
+          question_id: string
+          startup_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_json?: Json | null
+          answer_text?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+          startup_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_answers_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      onboarding_questions: {
+        Row: {
+          created_at: string
+          display_order: number
+          field_type: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          question_key: string
+          question_text: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_order: number
+          field_type: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          question_key: string
+          question_text: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          field_type?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          question_key?: string
+          question_text?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1220,6 +1494,64 @@ export type Database = {
           },
         ]
       }
+      startup_events: {
+        Row: {
+          assessment_id: string | null
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          new_status: string | null
+          old_status: string | null
+          startup_id: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          old_status?: string | null
+          startup_id?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          old_status?: string | null
+          startup_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_events_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_events_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1292,6 +1624,18 @@ export type Database = {
         | "demo_user"
         | "demo_admin"
         | "jv_advisor"
+      startup_diagnosis_status: "not_started" | "started" | "completed"
+      startup_pipeline_status:
+        | "invited"
+        | "registration_started"
+        | "registration_completed"
+        | "diagnosis_started"
+        | "diagnosis_completed"
+        | "debrief_scheduled"
+        | "debrief_completed"
+        | "selected_for_pilot"
+        | "standby"
+        | "in_followup"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1427,6 +1771,19 @@ export const Constants = {
         "demo_user",
         "demo_admin",
         "jv_advisor",
+      ],
+      startup_diagnosis_status: ["not_started", "started", "completed"],
+      startup_pipeline_status: [
+        "invited",
+        "registration_started",
+        "registration_completed",
+        "diagnosis_started",
+        "diagnosis_completed",
+        "debrief_scheduled",
+        "debrief_completed",
+        "selected_for_pilot",
+        "standby",
+        "in_followup",
       ],
     },
   },
