@@ -320,6 +320,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           demo_day_preferred_date_id: string | null
+          demo_day_selected: boolean
           diagnosis_completed_at: string | null
           diagnosis_status: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text: string | null
@@ -346,6 +347,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           demo_day_preferred_date_id?: string | null
+          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           demo_day_preferred_date_id?: string | null
+          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
@@ -395,6 +398,39 @@ export type Database = {
           {
             foreignKeyName: "companies_demo_day_preferred_date_id_fkey"
             columns: ["demo_day_preferred_date_id"]
+            isOneToOne: false
+            referencedRelation: "demo_day_dates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_demo_day_preferences: {
+        Row: {
+          company_id: string
+          created_at: string
+          demo_day_date_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          demo_day_date_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          demo_day_date_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_demo_day_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_demo_day_preferences_demo_day_date_id_fkey"
+            columns: ["demo_day_date_id"]
             isOneToOne: false
             referencedRelation: "demo_day_dates"
             referencedColumns: ["id"]
@@ -749,6 +785,7 @@ export type Database = {
           capacity: number | null
           created_at: string
           date: string
+          date_label: string | null
           end_time: string | null
           id: string
           is_active: boolean
@@ -761,6 +798,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           date: string
+          date_label?: string | null
           end_time?: string | null
           id?: string
           is_active?: boolean
@@ -773,6 +811,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           date?: string
+          date_label?: string | null
           end_time?: string | null
           id?: string
           is_active?: boolean
