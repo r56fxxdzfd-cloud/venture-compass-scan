@@ -823,7 +823,7 @@ function CompletionStep({ debriefUrl, onClickDebrief }: { debriefUrl: string; on
         <div className="mx-auto max-w-2xl space-y-3">
           <h1 className="text-2xl font-bold">Diagnóstico recebido.</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Obrigado por preencher as informações iniciais. A equipe do Darwin Growth / CMJ irá analisar suas respostas e preparar uma devolutiva estruturada com os principais pontos de atenção, oportunidades e próximos passos sugeridos.
+            Obrigado por preencher as informações iniciais. A equipe do Darwin Growth / Boardwise irá analisar suas respostas e preparar uma devolutiva estruturada com os principais pontos de atenção, oportunidades e próximos passos sugeridos.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Para concluir esta etapa, agende agora sua reunião de devolutiva pelo link abaixo.
