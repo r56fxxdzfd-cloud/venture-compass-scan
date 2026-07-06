@@ -65,6 +65,25 @@ function shouldAdvancePipelineStatus(current: StartupPipelineStatus | undefined,
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
 const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
 const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
+const processEventLabel: Record<string, string> = {
+  registration_started: 'Cadastro inicial aberto',
+  registration_completed: 'Cadastro inicial concluído',
+  demo_day_preferred_date_selected: 'Preferência de Demo Day registrada',
+  diagnosis_started: 'Diagnóstico iniciado',
+  diagnosis_completed: 'Diagnóstico concluído',
+  debrief_link_clicked: 'Link de devolutiva acessado',
+  pipeline_status_changed: 'Status do pipeline alterado',
+};
+
+type StartupProcessEvent = {
+  id: string;
+  event_type: string;
+  metadata: Record<string, unknown> | null;
+  old_status: string | null;
+  new_status: string | null;
+  assessment_id: string | null;
+  created_at: string;
+};
 
 function formatDateOnlyBR(dateString?: string | null) {
   if (!dateString) return '-';
@@ -93,6 +112,7 @@ export default function StartupDetailPage() {
   const [lastMeetingProgressSummary, setLastMeetingProgressSummary] = useState({ total: 0, improving: 0, stable: 0, worsening: 0, insufficient_evidence: 0, meetingId: '' });
   const [recentMeetings, setRecentMeetings] = useState<CouncilMeeting[]>([]);
   const [actions, setActions] = useState<CouncilAction[]>([]);
+  const [processEvents, setProcessEvents] = useState<StartupProcessEvent[]>([]);
 
   const canWrite = isAdmin || isAnalyst;
   // Membro do Comitê de Crescimento atribuído alcança esta página (RLS) — pode operar plano/reuniões.
@@ -229,6 +249,14 @@ export default function StartupDetailPage() {
           }
         }
       }
+
+      const { data: eventData } = await supabase
+        .from('startup_events')
+        .select('id, event_type, metadata, old_status, new_status, assessment_id, created_at')
+        .eq('startup_id', id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      setProcessEvents((eventData || []) as StartupProcessEvent[]);
       setLoading(false);
     };
     load();
@@ -643,6 +671,44 @@ export default function StartupDetailPage() {
                 <p className="mt-1 break-words font-medium">{value || '—'}</p>
               </div>
             ))}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Histórico do processo</p>
+            </div>
+            {processEvents.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+                Nenhum evento registrado ainda.
+              </div>
+            ) : (
+              <div className="divide-y rounded-lg border">
+                {processEvents.map((event) => {
+                  const metadata = event.metadata || {};
+                  const source = typeof metadata.source === 'string' ? metadata.source : null;
+                  const demoDayCount = Array.isArray(metadata.demo_day_date_ids) ? metadata.demo_day_date_ids.length : null;
+                  return (
+                    <div key={event.id} className="flex flex-col gap-1 p-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{processEventLabel[event.event_type] || event.event_type}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(event.created_at).toLocaleString('pt-BR')}
+                          {source ? ` · origem: ${source}` : ''}
+                          {demoDayCount ? ` · ${demoDayCount} opção(ões) de Demo Day` : ''}
+                          {event.old_status && event.new_status ? ` · ${event.old_status} → ${event.new_status}` : ''}
+                        </p>
+                      </div>
+                      {event.assessment_id && (
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`/app/assessments/${event.assessment_id}/report`}>Abrir diagnóstico</Link>
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
