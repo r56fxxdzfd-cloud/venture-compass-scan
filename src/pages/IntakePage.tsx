@@ -14,6 +14,7 @@ import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { getDemoDayDateLabel } from '@/utils/demo-day';
+import { getNextDimensionAfterCompletedQuestion, scrollQuestionnaireToTop } from '@/utils/questionnaire-navigation';
 import type { Answer, Company, ConfigJSON, ConfigQuestion, DemoDayDate } from '@/types/darwin';
 import { AlertCircle, Building2, CalendarDays, Check, CheckCircle2, HelpCircle, Loader2 } from 'lucide-react';
 
@@ -393,6 +394,29 @@ export default function IntakePage() {
       .sort((a, b) => a.sort_order - b.sort_order);
   }, [activeDim, answerableQuestions, config]);
 
+  const setDiagnosisAnswer = (questionId: string, value: number | null, isNA = false) => {
+    const updatedAnswers = {
+      ...answers,
+      [questionId]: { value: isNA ? null : value, is_na: isNA, notes: answers[questionId]?.notes || '' },
+    };
+    setAnswers(updatedAnswers);
+
+    if (!config) return;
+    const updatedFlowAnswers = answerStateToRows(updatedAnswers, assessmentId);
+    const updatedAnswerableQuestions = getAnswerableQuestions(config, updatedFlowAnswers, assessmentContext);
+    const nextDimensionId = getNextDimensionAfterCompletedQuestion({
+      config,
+      questionId,
+      currentAnswerableQuestions: answerableQuestions,
+      updatedAnswerableQuestions,
+      updatedAnswers,
+    });
+    if (nextDimensionId) {
+      setActiveDim(nextDimensionId);
+      scrollQuestionnaireToTop();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="mx-auto w-full max-w-5xl space-y-5">
@@ -449,18 +473,8 @@ export default function IntakePage() {
             lastSavedAt={lastSavedAt}
             error={error}
             onSetActiveDim={setActiveDim}
-            onAnswer={(questionId, value) => {
-              setAnswers((current) => ({
-                ...current,
-                [questionId]: { value, is_na: false, notes: current[questionId]?.notes || '' },
-              }));
-            }}
-            onNA={(questionId) => {
-              setAnswers((current) => ({
-                ...current,
-                [questionId]: { value: null, is_na: true, notes: current[questionId]?.notes || '' },
-              }));
-            }}
+            onAnswer={(questionId, value) => setDiagnosisAnswer(questionId, value)}
+            onNA={(questionId) => setDiagnosisAnswer(questionId, null, true)}
             onNotes={(questionId, notes) => {
               setAnswers((current) => ({
                 ...current,

@@ -30,6 +30,7 @@ import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
 import { calculateAssessmentResult } from '@/utils/scoring';
+import { getNextDimensionAfterCompletedQuestion, scrollQuestionnaireToTop } from '@/utils/questionnaire-navigation';
 
 type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
 const PIPELINE_ORDER = [
@@ -155,10 +156,27 @@ export default function QuestionnairePage() {
 
   const setAnswer = (questionId: string, value: number | null, is_na: boolean = false) => {
     setSaveState((state) => state === 'saving' ? state : 'idle');
-    setAnswers((prev) => ({
-      ...prev,
-      [questionId]: { value: is_na ? null : value, is_na, notes: prev[questionId]?.notes || '' },
-    }));
+    const updatedAnswers = {
+      ...answers,
+      [questionId]: { value: is_na ? null : value, is_na, notes: answers[questionId]?.notes || '' },
+    };
+    setAnswers(updatedAnswers);
+
+    if (config) {
+      const updatedFlowAnswers = answerStateToRows(updatedAnswers, id);
+      const updatedAnswerableQuestions = getAnswerableQuestions(config, updatedFlowAnswers, assessmentMeta?.questionContext);
+      const nextDimensionId = getNextDimensionAfterCompletedQuestion({
+        config,
+        questionId,
+        currentAnswerableQuestions: answerableQuestions,
+        updatedAnswerableQuestions,
+        updatedAnswers,
+      });
+      if (nextDimensionId) {
+        setActiveDim(nextDimensionId);
+        scrollQuestionnaireToTop();
+      }
+    }
   };
 
   const setNotes = (questionId: string, notes: string) => {
