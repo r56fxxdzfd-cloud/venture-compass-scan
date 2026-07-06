@@ -180,6 +180,30 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          value: string | null
+          value_json: Json | null
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          value?: string | null
+          value_json?: Json | null
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string | null
+          value_json?: Json | null
+        }
+        Relationships: []
+      }
       assessment_red_flags: {
         Row: {
           assessment_id: string
@@ -295,9 +319,7 @@ export type Database = {
           cnpj: string | null
           company_name: string | null
           created_at: string | null
-          description: string | null
           demo_day_preferred_date_id: string | null
-          demo_day_selected: boolean
           diagnosis_completed_at: string | null
           diagnosis_status: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text: string | null
@@ -323,9 +345,7 @@ export type Database = {
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
-          description?: string | null
           demo_day_preferred_date_id?: string | null
-          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
@@ -351,9 +371,7 @@ export type Database = {
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
-          description?: string | null
           demo_day_preferred_date_id?: string | null
-          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
@@ -420,45 +438,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      demo_day_dates: {
-        Row: {
-          capacity: number | null
-          created_at: string
-          date: string
-          end_time: string | null
-          id: string
-          is_active: boolean
-          location_or_format: string | null
-          start_time: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          capacity?: number | null
-          created_at?: string
-          date: string
-          end_time?: string | null
-          id?: string
-          is_active?: boolean
-          location_or_format?: string | null
-          start_time?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          capacity?: number | null
-          created_at?: string
-          date?: string
-          end_time?: string | null
-          id?: string
-          is_active?: boolean
-          location_or_format?: string | null
-          start_time?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       council_actions: {
         Row: {
@@ -765,6 +744,45 @@ export type Database = {
           },
         ]
       }
+      demo_day_dates: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          is_active: boolean
+          location_or_format: string | null
+          start_time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          location_or_format?: string | null
+          start_time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          is_active?: boolean
+          location_or_format?: string | null
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dimensions: {
         Row: {
           config_version_id: string
@@ -1060,29 +1078,75 @@ export type Database = {
           },
         ]
       }
-      app_settings: {
+      intake_submissions: {
         Row: {
-          description: string | null
-          key: string
-          updated_at: string
-          value: string | null
-          value_json: Json | null
+          assessment_id: string | null
+          company_id: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          flow_completed_at: string | null
+          id: string
+          imported_at: string | null
+          label: string | null
+          payload: Json | null
+          status: string
+          submitted_at: string | null
+          token: string
         }
         Insert: {
-          description?: string | null
-          key: string
-          updated_at?: string
-          value?: string | null
-          value_json?: Json | null
+          assessment_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          flow_completed_at?: string | null
+          id?: string
+          imported_at?: string | null
+          label?: string | null
+          payload?: Json | null
+          status?: string
+          submitted_at?: string | null
+          token: string
         }
         Update: {
-          description?: string | null
-          key?: string
-          updated_at?: string
-          value?: string | null
-          value_json?: Json | null
+          assessment_id?: string | null
+          company_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          flow_completed_at?: string | null
+          id?: string
+          imported_at?: string | null
+          label?: string | null
+          payload?: Json | null
+          status?: string
+          submitted_at?: string | null
+          token?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "intake_submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_submissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_submissions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       internal_notifications: {
         Row: {
@@ -1141,6 +1205,60 @@ export type Database = {
             columns: ["startup_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_logs: {
+        Row: {
+          attendees: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          decisions: string | null
+          id: string
+          meeting_date: string
+          next_steps: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          attendees?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          id?: string
+          meeting_date?: string
+          next_steps?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attendees?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          decisions?: string | null
+          id?: string
+          meeting_date?: string
+          next_steps?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_logs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1228,257 +1346,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      startup_documents: {
-        Row: {
-          created_at: string
-          description: string | null
-          document_category: Database["public"]["Enums"]["startup_document_category"]
-          file_name: string
-          file_size: number
-          file_type: string
-          file_url: string
-          id: string
-          mime_type: string
-          related_entity_id: string | null
-          related_entity_type: string | null
-          startup_id: string
-          updated_at: string
-          uploaded_by_user_id: string
-          visibility: Database["public"]["Enums"]["startup_document_visibility"]
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          document_category?: Database["public"]["Enums"]["startup_document_category"]
-          file_name: string
-          file_size: number
-          file_type: string
-          file_url: string
-          id?: string
-          mime_type: string
-          related_entity_id?: string | null
-          related_entity_type?: string | null
-          startup_id: string
-          updated_at?: string
-          uploaded_by_user_id?: string
-          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          document_category?: Database["public"]["Enums"]["startup_document_category"]
-          file_name?: string
-          file_size?: number
-          file_type?: string
-          file_url?: string
-          id?: string
-          mime_type?: string
-          related_entity_id?: string | null
-          related_entity_type?: string | null
-          startup_id?: string
-          updated_at?: string
-          uploaded_by_user_id?: string
-          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "startup_documents_startup_id_fkey"
-            columns: ["startup_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "startup_documents_uploaded_by_user_id_fkey"
-            columns: ["uploaded_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      startup_events: {
-        Row: {
-          assessment_id: string | null
-          created_at: string
-          created_by: string | null
-          event_type: string
-          id: string
-          metadata: Json
-          new_status: string | null
-          old_status: string | null
-          startup_id: string | null
-        }
-        Insert: {
-          assessment_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          event_type: string
-          id?: string
-          metadata?: Json
-          new_status?: string | null
-          old_status?: string | null
-          startup_id?: string | null
-        }
-        Update: {
-          assessment_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          event_type?: string
-          id?: string
-          metadata?: Json
-          new_status?: string | null
-          old_status?: string | null
-          startup_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "startup_events_assessment_id_fkey"
-            columns: ["assessment_id"]
-            isOneToOne: false
-            referencedRelation: "assessments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "startup_events_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "startup_events_startup_id_fkey"
-            columns: ["startup_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      intake_submissions: {
-        Row: {
-          assessment_id: string | null
-          company_id: string | null
-          created_at: string
-          created_by: string | null
-          expires_at: string | null
-          flow_completed_at: string | null
-          id: string
-          imported_at: string | null
-          label: string | null
-          payload: Json | null
-          status: string
-          submitted_at: string | null
-          token: string
-        }
-        Insert: {
-          assessment_id?: string | null
-          company_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          flow_completed_at?: string | null
-          id?: string
-          imported_at?: string | null
-          label?: string | null
-          payload?: Json | null
-          status?: string
-          submitted_at?: string | null
-          token: string
-        }
-        Update: {
-          assessment_id?: string | null
-          company_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string | null
-          flow_completed_at?: string | null
-          id?: string
-          imported_at?: string | null
-          label?: string | null
-          payload?: Json | null
-          status?: string
-          submitted_at?: string | null
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "intake_submissions_assessment_id_fkey"
-            columns: ["assessment_id"]
-            isOneToOne: false
-            referencedRelation: "assessments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intake_submissions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "intake_submissions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_logs: {
-        Row: {
-          attendees: string | null
-          company_id: string
-          created_at: string
-          created_by: string | null
-          decisions: string | null
-          id: string
-          meeting_date: string
-          next_steps: string | null
-          notes: string | null
-          updated_at: string
-        }
-        Insert: {
-          attendees?: string | null
-          company_id: string
-          created_at?: string
-          created_by?: string | null
-          decisions?: string | null
-          id?: string
-          meeting_date?: string
-          next_steps?: string | null
-          notes?: string | null
-          updated_at?: string
-        }
-        Update: {
-          attendees?: string | null
-          company_id?: string
-          created_at?: string
-          created_by?: string | null
-          decisions?: string | null
-          id?: string
-          meeting_date?: string
-          next_steps?: string | null
-          notes?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_logs_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_logs_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
@@ -1627,6 +1494,64 @@ export type Database = {
           },
         ]
       }
+      startup_events: {
+        Row: {
+          assessment_id: string | null
+          created_at: string
+          created_by: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          new_status: string | null
+          old_status: string | null
+          startup_id: string | null
+        }
+        Insert: {
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          old_status?: string | null
+          startup_id?: string | null
+        }
+        Update: {
+          assessment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          new_status?: string | null
+          old_status?: string | null
+          startup_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_events_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_events_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -1699,17 +1624,6 @@ export type Database = {
         | "demo_user"
         | "demo_admin"
         | "jv_advisor"
-      startup_document_category:
-        | "diagnostic_external"
-        | "pitch_deck"
-        | "financial"
-        | "commercial"
-        | "product"
-        | "legal_corporate"
-        | "board_meeting"
-        | "action_plan"
-        | "other"
-      startup_document_visibility: "internal_only" | "startup_and_internal"
       startup_diagnosis_status: "not_started" | "started" | "completed"
       startup_pipeline_status:
         | "invited"
@@ -1858,18 +1772,6 @@ export const Constants = {
         "demo_admin",
         "jv_advisor",
       ],
-      startup_document_category: [
-        "diagnostic_external",
-        "pitch_deck",
-        "financial",
-        "commercial",
-        "product",
-        "legal_corporate",
-        "board_meeting",
-        "action_plan",
-        "other",
-      ],
-      startup_document_visibility: ["internal_only", "startup_and_internal"],
       startup_diagnosis_status: ["not_started", "started", "completed"],
       startup_pipeline_status: [
         "invited",
