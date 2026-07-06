@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, ClipboardList, ArrowLeft, Pencil, AlertTriangle, ArrowRight, Inbox, Users, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, ClipboardList, ArrowLeft, Pencil, AlertTriangle, ArrowRight, Inbox, Users, CheckCircle2, AlertCircle, Upload, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -33,6 +33,7 @@ import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
 import { StartupDocumentsSection } from '@/components/startup/StartupDocumentsSection';
+import { CompanyLogoMark } from '@/components/startup/CompanyLogoMark';
 import {
   CONTEXT_NUMERIC_FIELDS,
   formatContextNumericInput,
@@ -65,6 +66,8 @@ function shouldAdvancePipelineStatus(current: StartupPipelineStatus | undefined,
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
 const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
 const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
+const COMPANY_LOGO_BUCKET = 'startup-logos';
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
 const processEventLabel: Record<string, string> = {
   registration_started: 'Cadastro inicial aberto',
   registration_completed: 'Cadastro inicial concluído',
@@ -90,6 +93,17 @@ function formatDateOnlyBR(dateString?: string | null) {
   const [year, month, day] = dateString.split('-');
   if (!year || !month || !day) return '-';
   return `${day}/${month}/${year}`;
+}
+
+function sanitizeLogoFileName(fileName: string) {
+  return fileName.trim().replace(/[^a-zA-Z0-9._-]/g, '-').replace(/-+/g, '-').slice(0, 120) || 'logo';
+}
+
+function makeLogoStoragePath(companyId: string, fileName: string) {
+  const uniqueId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${companyId}/${uniqueId}-${sanitizeLogoFileName(fileName)}`;
 }
 
 export default function StartupDetailPage() {
@@ -137,9 +151,22 @@ export default function StartupDetailPage() {
 
   // Edit company dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+  const [editForm, setEditForm] = useState({ name: '', description: '', logo_url: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const [editSaving, setEditSaving] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [logoInputKey, setLogoInputKey] = useState(0);
   const shouldOpenNewDiagnostic = location.pathname.endsWith('/diagnostics/new');
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreviewUrl('');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(logoFile);
+    setLogoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [logoFile]);
 
   useEffect(() => {
     if (!id) return;
@@ -396,12 +423,15 @@ export default function StartupDetailPage() {
     setEditForm({
       name: company.name,
       description: company.description || '',
+      logo_url: company.logo_url || '',
       legal_name: company.legal_name || '',
       cnpj: company.cnpj || '',
       sector: company.sector || '',
       stage: company.stage || '',
       business_model: company.business_model || '',
     });
+    setLogoFile(null);
+    setLogoInputKey((key) => key + 1);
     setEditDialogOpen(true);
   };
 
@@ -412,9 +442,42 @@ export default function StartupDetailPage() {
       return;
     }
     setEditSaving(true);
+    let logoUrl = editForm.logo_url.trim() || null;
+
+    if (logoFile) {
+      if (!logoFile.type.startsWith('image/')) {
+        setEditSaving(false);
+        toast({ title: 'Logo inválido', description: 'Envie uma imagem em PNG, JPG, WEBP ou SVG.', variant: 'destructive' });
+        return;
+      }
+      if (logoFile.size > MAX_LOGO_SIZE_BYTES) {
+        setEditSaving(false);
+        toast({ title: 'Logo muito grande', description: 'Use uma imagem de até 2 MB.', variant: 'destructive' });
+        return;
+      }
+
+      const filePath = makeLogoStoragePath(company.id, logoFile.name);
+      const { error: uploadError } = await supabase.storage
+        .from(COMPANY_LOGO_BUCKET)
+        .upload(filePath, logoFile, {
+          contentType: logoFile.type || 'image/png',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        setEditSaving(false);
+        toast({ title: 'Erro ao enviar logo', description: friendlySupabaseError(uploadError.message), variant: 'destructive' });
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage.from(COMPANY_LOGO_BUCKET).getPublicUrl(filePath);
+      logoUrl = publicUrlData.publicUrl;
+    }
+
     const payload = {
       name: editForm.name,
       description: editForm.description || null,
+      logo_url: logoUrl,
       legal_name: editForm.legal_name || null,
       cnpj: editForm.cnpj || null,
       sector: editForm.sector || null,
@@ -429,22 +492,32 @@ export default function StartupDetailPage() {
       error = fallback.error;
       descriptionSkipped = !fallback.error;
     }
+    let logoSkipped = false;
+    if (error && isMissingCompanyLogoColumn(error.message)) {
+      const { logo_url: _logoUrl, ...fallbackPayload } = payload;
+      const fallback = await supabase.from('companies').update(fallbackPayload).eq('id', company.id);
+      error = fallback.error;
+      logoSkipped = !fallback.error;
+    }
     setEditSaving(false);
     if (!error) {
       setCompany({
         ...company,
         ...editForm,
         description: descriptionSkipped ? company.description : editForm.description || null,
+        logo_url: logoSkipped ? company.logo_url : logoUrl,
         legal_name: editForm.legal_name || null,
         cnpj: editForm.cnpj || null,
         sector: editForm.sector || null,
         stage: (editForm.stage || null) as any,
         business_model: editForm.business_model || null,
       });
+      setLogoFile(null);
+      setLogoInputKey((key) => key + 1);
       setEditDialogOpen(false);
       toast({
         title: 'Organização atualizada',
-        description: descriptionSkipped ? 'A descrição será salva após a migration do banco ser aplicada.' : undefined,
+        description: descriptionSkipped || logoSkipped ? 'Alguns campos serão salvos após a migration do banco ser aplicada.' : undefined,
       });
     } else {
       toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
@@ -548,6 +621,7 @@ export default function StartupDetailPage() {
         </TooltipProvider>
           <div className="flex-1">
           <div className="flex items-start justify-between gap-3">
+            <CompanyLogoMark name={company.name} logoUrl={company.logo_url} className="h-14 w-14 rounded-xl" imageClassName="p-2" />
             <div>
             <h1 className="text-3xl font-bold tracking-tight leading-tight">{company.name}</h1>
             <p className="text-sm text-muted-foreground mt-1">Perfil executivo da organização acompanhada pelo Growth OS.</p>
@@ -1346,6 +1420,59 @@ export default function StartupDetailPage() {
                 placeholder="Ex: Plataforma de pagamentos recorrentes para SaaS B2B"
               />
             </div>
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center gap-3">
+                <CompanyLogoMark name={editForm.name || company.name} logoUrl={logoPreviewUrl || editForm.logo_url} className="h-12 w-12 rounded-xl" />
+                <div className="min-w-0 flex-1">
+                  <Label className="text-xs">Logo da organização</Label>
+                  <p className="text-[11px] text-muted-foreground">PNG, JPG, WEBP ou SVG até 2 MB.</p>
+                </div>
+                {(editForm.logo_url || logoFile) && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setEditForm(prev => ({ ...prev, logo_url: '' }));
+                      setLogoFile(null);
+                      setLogoInputKey((key) => key + 1);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Input
+                  value={editForm.logo_url}
+                  onChange={e => {
+                    setLogoFile(null);
+                    setLogoInputKey((key) => key + 1);
+                    setEditForm(prev => ({ ...prev, logo_url: e.target.value }));
+                  }}
+                  placeholder="URL pública do logo"
+                />
+                <Button type="button" variant="outline" asChild>
+                  <label className="cursor-pointer">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Enviar
+                    <input
+                      key={logoInputKey}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0] || null;
+                        if (!file) return;
+                        setLogoFile(file);
+                        setEditForm(prev => ({ ...prev, logo_url: '' }));
+                      }}
+                    />
+                  </label>
+                </Button>
+              </div>
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Razão Social</Label>
               <Input value={editForm.legal_name} onChange={e => setEditForm(prev => ({ ...prev, legal_name: e.target.value }))} />
@@ -1443,4 +1570,8 @@ export default function StartupDetailPage() {
 
 function isMissingDescriptionColumn(message: string) {
   return message.includes("'description' column") || message.includes('description') && message.includes('schema cache');
+}
+
+function isMissingCompanyLogoColumn(message: string) {
+  return message.includes("'logo_url' column") || (message.includes('logo_url') && message.includes('schema cache'));
 }

@@ -17,6 +17,7 @@ import type { Company } from '@/types/darwin';
 import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { IntakeInbox } from '@/components/startup/IntakeInbox';
+import { CompanyLogoMark } from '@/components/startup/CompanyLogoMark';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
 
@@ -36,7 +37,7 @@ export default function StartupsPage() {
   const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, PortfolioMetric>>({});
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+  const [form, setForm] = useState({ name: '', description: '', logo_url: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const { canOperatePlatform, isDemoUser, isDemoAdmin, isAnalyst, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -141,6 +142,7 @@ export default function StartupsPage() {
     const payload = {
       name: form.name,
       description: form.description || null,
+      logo_url: form.logo_url || null,
       legal_name: form.legal_name || null,
       cnpj: form.cnpj || null,
       sector: form.sector || null,
@@ -150,11 +152,16 @@ export default function StartupsPage() {
 
     let { error } = await supabase.from('companies').insert(payload);
     let descriptionSkipped = false;
-    if (error && isMissingDescriptionColumn(error.message)) {
+    if (error && isMissingOptionalCompanyColumn(error.message, 'description')) {
       const { description: _description, ...fallbackPayload } = payload;
       const fallback = await supabase.from('companies').insert(fallbackPayload);
       error = fallback.error;
       descriptionSkipped = !fallback.error;
+    }
+    if (error && isMissingOptionalCompanyColumn(error.message, 'logo_url')) {
+      const { logo_url: _logoUrl, ...fallbackPayload } = payload;
+      const fallback = await supabase.from('companies').insert(fallbackPayload);
+      error = fallback.error;
     }
     if (error) {
       toast({ title: 'Erro', description: friendlySupabaseError(error.message), variant: 'destructive' });
@@ -164,7 +171,7 @@ export default function StartupsPage() {
         description: descriptionSkipped ? 'A descrição será salva após a migration do banco ser aplicada.' : undefined,
       });
       setOpen(false);
-      setForm({ name: '', description: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
+      setForm({ name: '', description: '', logo_url: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
       fetchCompanies();
     }
   };
@@ -230,6 +237,14 @@ export default function StartupsPage() {
                     maxLength={280}
                   />
                   <p className="text-[11px] text-muted-foreground">Uma linha para contextualizar diagnóstico e relatório.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label>URL do logo</Label>
+                  <Input
+                    value={form.logo_url}
+                    onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+                    placeholder="https://..."
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Razão Social</Label>
@@ -381,9 +396,7 @@ export default function StartupsPage() {
                   <Link to={`/app/startups/${company.id}`} className="block">
                     <CardContent className="flex h-full flex-col gap-4 p-5">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Building2 className="h-5 w-5" />
-                        </div>
+                        <CompanyLogoMark name={company.name} logoUrl={company.logo_url} />
                         <div className="min-w-0 flex-1 space-y-2">
                           <p className="break-words text-base font-semibold leading-tight">{company.name}</p>
                           <div className="flex flex-wrap items-center gap-2">
@@ -494,6 +507,6 @@ export default function StartupsPage() {
   );
 }
 
-function isMissingDescriptionColumn(message: string) {
-  return message.includes("'description' column") || message.includes('description') && message.includes('schema cache');
+function isMissingOptionalCompanyColumn(message: string, column: string) {
+  return message.includes(`'${column}' column`) || (message.includes(column) && message.includes('schema cache'));
 }

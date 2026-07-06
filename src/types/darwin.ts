@@ -163,6 +163,7 @@ export interface Company {
   company_name: string | null;
   legal_name: string | null;
   description: string | null;
+  logo_url?: string | null;
   cnpj: string | null;
   sector: string | null;
   stage: 'pre_seed' | 'seed' | 'series_a' | null;
