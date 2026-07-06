@@ -1536,6 +1536,75 @@ export type Database = {
           },
         ]
       }
+      startup_documents: {
+        Row: {
+          created_at: string
+          description: string | null
+          document_category: Database["public"]["Enums"]["startup_document_category"]
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          mime_type: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          startup_id: string
+          updated_at: string
+          uploaded_by_user_id: string
+          visibility: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          document_category?: Database["public"]["Enums"]["startup_document_category"]
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id?: string
+          mime_type: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          startup_id: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          document_category?: Database["public"]["Enums"]["startup_document_category"]
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          mime_type?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          startup_id?: string
+          updated_at?: string
+          uploaded_by_user_id?: string
+          visibility?: Database["public"]["Enums"]["startup_document_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_documents_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "startup_documents_uploaded_by_user_id_fkey"
+            columns: ["uploaded_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       startup_events: {
         Row: {
           assessment_id: string | null
@@ -1625,6 +1694,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      can_operate_platform: { Args: { _user_id: string }; Returns: boolean }
       current_profile_role: { Args: never; Returns: string }
       delete_company: { Args: { p_company_id: string }; Returns: undefined }
       get_unconfirmed_user_ids: {
@@ -1667,6 +1737,17 @@ export type Database = {
         | "demo_admin"
         | "jv_advisor"
       startup_diagnosis_status: "not_started" | "started" | "completed"
+      startup_document_category:
+        | "diagnostic_external"
+        | "pitch_deck"
+        | "financial"
+        | "commercial"
+        | "product"
+        | "legal_corporate"
+        | "board_meeting"
+        | "action_plan"
+        | "other"
+      startup_document_visibility: "internal_only" | "startup_and_internal"
       startup_pipeline_status:
         | "invited"
         | "registration_started"
@@ -1815,6 +1896,18 @@ export const Constants = {
         "jv_advisor",
       ],
       startup_diagnosis_status: ["not_started", "started", "completed"],
+      startup_document_category: [
+        "diagnostic_external",
+        "pitch_deck",
+        "financial",
+        "commercial",
+        "product",
+        "legal_corporate",
+        "board_meeting",
+        "action_plan",
+        "other",
+      ],
+      startup_document_visibility: ["internal_only", "startup_and_internal"],
       startup_pipeline_status: [
         "invited",
         "registration_started",
