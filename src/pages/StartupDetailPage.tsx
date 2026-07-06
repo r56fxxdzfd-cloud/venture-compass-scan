@@ -470,8 +470,7 @@ export default function StartupDetailPage() {
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage.from(COMPANY_LOGO_BUCKET).getPublicUrl(filePath);
-      logoUrl = publicUrlData.publicUrl;
+      logoUrl = filePath;
     }
 
     const payload = {
