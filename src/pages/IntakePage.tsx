@@ -262,7 +262,12 @@ export default function IntakePage() {
     setError('');
     setPhase('submitting');
     const demoRes = await supabase.functions.invoke('intake-submit', {
-      body: { token, action: 'demo_day', demo_day_date_ids: demoDayDateIds },
+      body: {
+        token,
+        action: 'demo_day',
+        demo_day_date_id: demoDayDateIds[0] || null,
+        demo_day_date_ids: demoDayDateIds,
+      },
     });
     if (demoRes.error || !demoRes.data?.ok) {
       // Do not block the founder from starting the diagnosis if production is
