@@ -15,12 +15,42 @@ import type { ConfigVersion, ConfigJSON, DemoDayDate } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
+const MONTH_NUMBER_BY_PT_NAME: Record<string, string> = {
+  janeiro: '01',
+  fevereiro: '02',
+  marco: '03',
+  março: '03',
+  abril: '04',
+  maio: '05',
+  junho: '06',
+  julho: '07',
+  agosto: '08',
+  setembro: '09',
+  outubro: '10',
+  novembro: '11',
+  dezembro: '12',
+};
 
 type VersionUsage = {
   count: number;
   latestGeneratedAt: string | null;
   companies: string[];
 };
+
+function parseDemoDayDateLabel(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  const slashDate = trimmed.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
+  if (slashDate) {
+    const [, day, month, year] = slashDate;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+
+  const longDate = trimmed.match(/\b(\d{1,2})(?:\s*(?:e|,)\s*\d{1,2})?\s+de\s+([a-zç]+)\s+de\s+(\d{4})\b/);
+  if (!longDate) return null;
+  const [, day, monthName, year] = longDate;
+  const month = MONTH_NUMBER_BY_PT_NAME[monthName];
+  return month ? `${year}-${month}-${day.padStart(2, '0')}` : null;
+}
 
 export default function AdminConfigPage() {
   const [versions, setVersions] = useState<ConfigVersion[]>([]);
@@ -32,7 +62,7 @@ export default function AdminConfigPage() {
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [versionUsage, setVersionUsage] = useState<Record<string, VersionUsage>>({});
   const [demoDayDates, setDemoDayDates] = useState<DemoDayDate[]>([]);
-  const [demoDayForm, setDemoDayForm] = useState({ title: '', date: '', date_label: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+  const [demoDayForm, setDemoDayForm] = useState({ title: '', date_label: '', location_or_format: '' });
   const [savingDemoDay, setSavingDemoDay] = useState(false);
   const [debriefCalendarUrl, setDebriefCalendarUrl] = useState('');
   const [savingDebriefUrl, setSavingDebriefUrl] = useState(false);
@@ -266,19 +296,21 @@ export default function AdminConfigPage() {
   };
 
   const createDemoDayDate = async () => {
-    if (!demoDayForm.title.trim() || !demoDayForm.date) {
-      toast({ title: 'Informe título e data do Demo Day', variant: 'destructive' });
+    const derivedDate = parseDemoDayDateLabel(demoDayForm.date_label);
+    if (!demoDayForm.title.trim() || !demoDayForm.date_label.trim()) {
+      toast({ title: 'Informe título e texto das datas do Demo Day', variant: 'destructive' });
+      return;
+    }
+    if (!derivedDate) {
+      toast({ title: 'Use um texto de datas com dia, mês e ano', description: 'Exemplo: 22 e 23 de julho de 2026.', variant: 'destructive' });
       return;
     }
     setSavingDemoDay(true);
     const { error } = await supabase.from('demo_day_dates').insert({
       title: demoDayForm.title.trim(),
-      date: demoDayForm.date,
+      date: derivedDate,
       date_label: demoDayForm.date_label.trim() || null,
-      start_time: demoDayForm.start_time || null,
-      end_time: demoDayForm.end_time || null,
       location_or_format: demoDayForm.location_or_format || null,
-      capacity: demoDayForm.capacity ? Number(demoDayForm.capacity) : null,
       is_active: true,
     });
     setSavingDemoDay(false);
@@ -286,7 +318,7 @@ export default function AdminConfigPage() {
       toast({ title: 'Erro ao criar data', description: error.message, variant: 'destructive' });
       return;
     }
-    setDemoDayForm({ title: '', date: '', date_label: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+    setDemoDayForm({ title: '', date_label: '', location_or_format: '' });
     toast({ title: 'Data de Demo Day criada' });
     fetchProgramSettings();
   };
@@ -414,10 +446,7 @@ export default function AdminConfigPage() {
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {date.date_label || formatDate(date.date)}
-                        {date.start_time ? ` · ${date.start_time.slice(0, 5)}` : ''}
-                        {date.end_time ? `-${date.end_time.slice(0, 5)}` : ''}
                         {date.location_or_format ? ` · ${date.location_or_format}` : ''}
-                        {date.capacity ? ` · capacidade ${date.capacity}` : ''}
                       </p>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => toggleDemoDayDate(date)} disabled={!canOperatePlatform}>
@@ -435,25 +464,9 @@ export default function AdminConfigPage() {
                 <Label className="text-xs">Título</Label>
                 <Input value={demoDayForm.title} onChange={(event) => setDemoDayForm({ ...demoDayForm, title: event.target.value })} placeholder="Demo Day São Paulo - Opção 1" />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data inicial</Label>
-                <Input type="date" value={demoDayForm.date} onChange={(event) => setDemoDayForm({ ...demoDayForm, date: event.target.value })} />
-              </div>
-              <div className="space-y-1 sm:col-span-3">
+              <div className="space-y-1 sm:col-span-4">
                 <Label className="text-xs">Texto das datas</Label>
                 <Input value={demoDayForm.date_label} onChange={(event) => setDemoDayForm({ ...demoDayForm, date_label: event.target.value })} placeholder="22 e 23 de julho de 2026" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Início</Label>
-                <Input type="time" value={demoDayForm.start_time} onChange={(event) => setDemoDayForm({ ...demoDayForm, start_time: event.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Fim</Label>
-                <Input type="time" value={demoDayForm.end_time} onChange={(event) => setDemoDayForm({ ...demoDayForm, end_time: event.target.value })} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Capacidade</Label>
-                <Input inputMode="numeric" value={demoDayForm.capacity} onChange={(event) => setDemoDayForm({ ...demoDayForm, capacity: event.target.value.replace(/\D/g, '') })} />
               </div>
               <div className="space-y-1 sm:col-span-5">
                 <Label className="text-xs">Local / formato</Label>
