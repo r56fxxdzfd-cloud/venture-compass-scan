@@ -328,7 +328,6 @@ export type Database = {
           id: string
           is_demo: boolean
           legal_name: string | null
-          logo_url: string | null
           name: string
           pipeline_status: Database["public"]["Enums"]["startup_pipeline_status"]
           responsible_birthdate: string | null
@@ -356,7 +355,6 @@ export type Database = {
           id?: string
           is_demo?: boolean
           legal_name?: string | null
-          logo_url?: string | null
           name: string
           pipeline_status?: Database["public"]["Enums"]["startup_pipeline_status"]
           responsible_birthdate?: string | null
@@ -384,7 +382,6 @@ export type Database = {
           id?: string
           is_demo?: boolean
           legal_name?: string | null
-          logo_url?: string | null
           name?: string
           pipeline_status?: Database["public"]["Enums"]["startup_pipeline_status"]
           responsible_birthdate?: string | null
