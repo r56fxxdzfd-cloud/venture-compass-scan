@@ -79,7 +79,7 @@ export default function StartupDetailPage() {
   const { toast } = useToast();
   const { isAdmin, isAnalyst, isAdvisor, isViewer, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
-  const [demoDayDate, setDemoDayDate] = useState<DemoDayDate | null>(null);
+  const [demoDayDates, setDemoDayDates] = useState<DemoDayDate[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
   const [assessmentQuestionTotals, setAssessmentQuestionTotals] = useState<Record<string, number>>({});
@@ -131,15 +131,24 @@ export default function StartupDetailPage() {
         return;
       }
       setCompany(companyData as Company);
-      if ((companyData as Company).demo_day_preferred_date_id) {
+      const { data: preferenceRows } = await supabase
+        .from('company_demo_day_preferences')
+        .select('demo_day_date:demo_day_dates(*)')
+        .eq('company_id', id);
+      const selectedDemoDates = ((preferenceRows || []) as any[])
+        .map((row) => Array.isArray(row.demo_day_date) ? row.demo_day_date[0] : row.demo_day_date)
+        .filter(Boolean) as DemoDayDate[];
+      if (selectedDemoDates.length > 0) {
+        setDemoDayDates(selectedDemoDates);
+      } else if ((companyData as Company).demo_day_preferred_date_id) {
         const { data: selectedDemoDate } = await supabase
           .from('demo_day_dates')
           .select('*')
           .eq('id', (companyData as Company).demo_day_preferred_date_id!)
           .maybeSingle();
-        setDemoDayDate((selectedDemoDate || null) as DemoDayDate | null);
+        setDemoDayDates(selectedDemoDate ? [selectedDemoDate as DemoDayDate] : []);
       } else {
-        setDemoDayDate(null);
+        setDemoDayDates([]);
       }
 
       // Load founders & founder assessments
@@ -586,7 +595,9 @@ export default function StartupDetailPage() {
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Demo Day preferido</p>
               <p className="mt-1 font-semibold">
-                {demoDayDate ? `${demoDayDate.title} · ${formatDateOnlyBR(demoDayDate.date)}` : 'Não selecionado'}
+                {demoDayDates.length > 0
+                  ? demoDayDates.map((date) => `${date.title} · ${date.date_label || formatDateOnlyBR(date.date)}`).join(' / ')
+                  : 'Não selecionado'}
               </p>
             </div>
           </div>

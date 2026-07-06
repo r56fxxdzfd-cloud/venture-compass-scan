@@ -32,7 +32,7 @@ export default function AdminConfigPage() {
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [versionUsage, setVersionUsage] = useState<Record<string, VersionUsage>>({});
   const [demoDayDates, setDemoDayDates] = useState<DemoDayDate[]>([]);
-  const [demoDayForm, setDemoDayForm] = useState({ title: '', date: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+  const [demoDayForm, setDemoDayForm] = useState({ title: '', date: '', date_label: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
   const [savingDemoDay, setSavingDemoDay] = useState(false);
   const [debriefCalendarUrl, setDebriefCalendarUrl] = useState('');
   const [savingDebriefUrl, setSavingDebriefUrl] = useState(false);
@@ -274,6 +274,7 @@ export default function AdminConfigPage() {
     const { error } = await supabase.from('demo_day_dates').insert({
       title: demoDayForm.title.trim(),
       date: demoDayForm.date,
+      date_label: demoDayForm.date_label.trim() || null,
       start_time: demoDayForm.start_time || null,
       end_time: demoDayForm.end_time || null,
       location_or_format: demoDayForm.location_or_format || null,
@@ -285,7 +286,7 @@ export default function AdminConfigPage() {
       toast({ title: 'Erro ao criar data', description: error.message, variant: 'destructive' });
       return;
     }
-    setDemoDayForm({ title: '', date: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+    setDemoDayForm({ title: '', date: '', date_label: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
     toast({ title: 'Data de Demo Day criada' });
     fetchProgramSettings();
   };
@@ -412,7 +413,7 @@ export default function AdminConfigPage() {
                         <Badge variant={date.is_active ? 'default' : 'outline'}>{date.is_active ? 'Ativa' : 'Inativa'}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(date.date)}
+                        {date.date_label || formatDate(date.date)}
                         {date.start_time ? ` · ${date.start_time.slice(0, 5)}` : ''}
                         {date.end_time ? `-${date.end_time.slice(0, 5)}` : ''}
                         {date.location_or_format ? ` · ${date.location_or_format}` : ''}
@@ -432,11 +433,15 @@ export default function AdminConfigPage() {
             <div className="grid gap-3 rounded-lg border border-dashed p-3 sm:grid-cols-6">
               <div className="space-y-1 sm:col-span-2">
                 <Label className="text-xs">Título</Label>
-                <Input value={demoDayForm.title} onChange={(event) => setDemoDayForm({ ...demoDayForm, title: event.target.value })} placeholder="Demo Day Darwin Growth" />
+                <Input value={demoDayForm.title} onChange={(event) => setDemoDayForm({ ...demoDayForm, title: event.target.value })} placeholder="Demo Day São Paulo - Opção 1" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data</Label>
+                <Label className="text-xs">Data inicial</Label>
                 <Input type="date" value={demoDayForm.date} onChange={(event) => setDemoDayForm({ ...demoDayForm, date: event.target.value })} />
+              </div>
+              <div className="space-y-1 sm:col-span-3">
+                <Label className="text-xs">Texto das datas</Label>
+                <Input value={demoDayForm.date_label} onChange={(event) => setDemoDayForm({ ...demoDayForm, date_label: event.target.value })} placeholder="22 e 23 de julho de 2026" />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Início</Label>

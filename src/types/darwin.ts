@@ -181,6 +181,7 @@ export interface Company {
   revenue_2026_target?: string | null;
   expectations_text?: string | null;
   demo_day_preferred_date_id?: string | null;
+  demo_day_preferred_date_ids?: string[] | null;
   diagnosis_status?: StartupDiagnosisStatus;
   pipeline_status?: StartupPipelineStatus;
   diagnosis_completed_at?: string | null;
@@ -190,6 +191,7 @@ export interface DemoDayDate {
   id: string;
   title: string;
   date: string;
+  date_label?: string | null;
   start_time: string | null;
   end_time: string | null;
   location_or_format: string | null;

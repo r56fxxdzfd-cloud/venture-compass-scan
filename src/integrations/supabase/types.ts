@@ -401,6 +401,39 @@ export type Database = {
           },
         ]
       }
+      company_demo_day_preferences: {
+        Row: {
+          company_id: string
+          created_at: string
+          demo_day_date_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          demo_day_date_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          demo_day_date_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_demo_day_preferences_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_demo_day_preferences_demo_day_date_id_fkey"
+            columns: ["demo_day_date_id"]
+            isOneToOne: false
+            referencedRelation: "demo_day_dates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       config_versions: {
         Row: {
           config_json: Json
@@ -749,6 +782,7 @@ export type Database = {
           capacity: number | null
           created_at: string
           date: string
+          date_label: string | null
           end_time: string | null
           id: string
           is_active: boolean
@@ -761,6 +795,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           date: string
+          date_label?: string | null
           end_time?: string | null
           id?: string
           is_active?: boolean
@@ -773,6 +808,7 @@ export type Database = {
           capacity?: number | null
           created_at?: string
           date?: string
+          date_label?: string | null
           end_time?: string | null
           id?: string
           is_active?: boolean

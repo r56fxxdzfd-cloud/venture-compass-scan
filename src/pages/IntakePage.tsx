@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,7 +118,7 @@ export default function IntakePage() {
   const [company, setCompany] = useState<Company | null>(null);
   const [questions, setQuestions] = useState<OnboardingQuestion[]>([]);
   const [demoDates, setDemoDates] = useState<DemoDayDate[]>([]);
-  const [selectedDemoDateId, setSelectedDemoDateId] = useState('');
+  const [selectedDemoDateIds, setSelectedDemoDateIds] = useState<string[]>([]);
   const [debriefUrl, setDebriefUrl] = useState('');
   const [form, setForm] = useState<RegistrationForm>(EMPTY_FORM);
   const [assessmentId, setAssessmentId] = useState('');
@@ -128,7 +128,6 @@ export default function IntakePage() {
   const [activeDim, setActiveDim] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
-  const autoStartAttemptedRef = useRef(false);
 
   const applyValidationPayload = useCallback((data: any) => {
     const companyData = data.company as Company | null;
@@ -136,7 +135,13 @@ export default function IntakePage() {
     setQuestions(((data.onboarding_questions || []) as OnboardingQuestion[]).sort((a, b) => a.display_order - b.display_order));
     setDemoDates((data.demo_day_dates || []) as DemoDayDate[]);
     setDebriefUrl(data.debrief_calendar_url || '');
-    setSelectedDemoDateId(companyData?.demo_day_preferred_date_id || '');
+    setSelectedDemoDateIds(
+      Array.isArray(companyData?.demo_day_preferred_date_ids) && companyData.demo_day_preferred_date_ids.length > 0
+        ? companyData.demo_day_preferred_date_ids
+        : companyData?.demo_day_preferred_date_id
+          ? [companyData.demo_day_preferred_date_id]
+          : []
+    );
 
     const incomingAnswers = data.onboarding_answers || {};
     setForm({
@@ -245,16 +250,18 @@ export default function IntakePage() {
     setPhase('demo_day');
   };
 
-  const startDiagnosis = useCallback(async (demoDayDateId = selectedDemoDateId) => {
+  const toggleDemoDate = (id: string) => {
+    setSelectedDemoDateIds((current) =>
+      current.includes(id) ? current.filter((dateId) => dateId !== id) : [...current, id]
+    );
+  };
+
+  const startDiagnosis = useCallback(async (demoDayDateIds = selectedDemoDateIds) => {
     if (!token) return;
     setError('');
-    if (!demoDayDateId) {
-      setError('Selecione a data preferida de Demo Day.');
-      return;
-    }
     setPhase('submitting');
     const demoRes = await supabase.functions.invoke('intake-submit', {
-      body: { token, action: 'demo_day', demo_day_date_id: demoDayDateId },
+      body: { token, action: 'demo_day', demo_day_date_ids: demoDayDateIds },
     });
     if (demoRes.error || !demoRes.data?.ok) {
       setPhase('demo_day');
@@ -286,13 +293,7 @@ export default function IntakePage() {
     setAnswers(mapped);
     setActiveDim(cfg.dimensions?.[0]?.id || '');
     setPhase('diagnosis');
-  }, [selectedDemoDateId, token]);
-
-  useEffect(() => {
-    if (phase !== 'demo_day' || !selectedDemoDateId || assessmentId || autoStartAttemptedRef.current) return;
-    autoStartAttemptedRef.current = true;
-    void startDiagnosis(selectedDemoDateId);
-  }, [assessmentId, phase, selectedDemoDateId, startDiagnosis]);
+  }, [selectedDemoDateIds, token]);
 
   const flowAnswers = useMemo(() => answerStateToRows(answers, assessmentId), [answers, assessmentId]);
   const answerableQuestions = useMemo(
@@ -419,12 +420,10 @@ export default function IntakePage() {
         {phase === 'demo_day' && (
           <DemoDayStep
             dates={demoDates}
-            selectedId={selectedDemoDateId}
+            selectedIds={selectedDemoDateIds}
             error={error}
-            onSelect={(id) => {
-              setSelectedDemoDateId(id);
-              void startDiagnosis(id);
-            }}
+            onToggle={toggleDemoDate}
+            onContinue={() => void startDiagnosis()}
           />
         )}
 
@@ -537,22 +536,25 @@ function RegistrationStep({
 
 function DemoDayStep({
   dates,
-  selectedId,
+  selectedIds,
   error,
-  onSelect,
+  onToggle,
+  onContinue,
 }: {
   dates: DemoDayDate[];
-  selectedId: string;
+  selectedIds: string[];
   error: string;
-  onSelect: (id: string) => void;
+  onToggle: (id: string) => void;
+  onContinue: () => void;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5" /> Demo Day</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5" /> Preferência de Demo Day</CardTitle>
         <Progress value={66} className="h-1.5" />
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">Você pode selecionar uma, duas ou nenhuma opção para São Paulo.</p>
         {dates.length === 0 ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-muted-foreground">
             Nenhuma data ativa de Demo Day está configurada no momento.
@@ -560,19 +562,19 @@ function DemoDayStep({
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {dates.map((date) => {
-              const selected = selectedId === date.id;
+              const selected = selectedIds.includes(date.id);
               return (
                 <button
                   key={date.id}
                   type="button"
-                  onClick={() => onSelect(date.id)}
+                  onClick={() => onToggle(date.id)}
                   className={`rounded-lg border p-4 text-left transition-colors ${selected ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/50'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold">{date.title}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {formatDateBR(date.date)}
+                        {date.date_label || formatDateBR(date.date)}
                         {date.start_time && `, ${formatTime(date.start_time)}`}
                         {date.end_time && `-${formatTime(date.end_time)}`}
                       </p>
@@ -586,9 +588,9 @@ function DemoDayStep({
           </div>
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <p className="text-xs text-muted-foreground">
-          Ao escolher uma data, sua preferência será salva e o diagnóstico abrirá automaticamente.
-        </p>
+        <div className="flex justify-end">
+          <Button onClick={onContinue}>Continuar para o diagnóstico</Button>
+        </div>
       </CardContent>
     </Card>
   );

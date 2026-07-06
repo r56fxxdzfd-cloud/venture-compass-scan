@@ -138,6 +138,20 @@ function normalizeAnswerRows(answers: unknown, assessmentId: string) {
   });
 }
 
+function normalizeDemoDayDateIds(body: Record<string, any>): string[] {
+  const source = Array.isArray(body?.demo_day_date_ids)
+    ? body.demo_day_date_ids
+    : typeof body?.demo_day_date_id === "string"
+      ? [body.demo_day_date_id]
+      : [];
+  return [...new Set(
+    source
+      .filter((id: unknown): id is string => typeof id === "string")
+      .map((id: string) => id.trim())
+      .filter((id: string) => id.length > 0),
+  )];
+}
+
 function priorityFromRedFlags(redFlags: Array<{ severity?: string }> | undefined): "critical" | "high" | "medium" | "low" {
   const severities = new Set((redFlags || []).map((flag) => flag.severity));
   if (severities.has("high") || severities.has("critical")) return "critical";
@@ -317,34 +331,55 @@ Deno.serve(async (req) => {
     }
 
     if (action === "demo_day") {
-      const demoDayDateId = body?.demo_day_date_id;
-      if (!demoDayDateId || typeof demoDayDateId !== "string") {
-        return json({ ok: false, error: "selecione uma data de Demo Day" }, 400);
+      const demoDayDateIds = normalizeDemoDayDateIds(body);
+      if (demoDayDateIds.length > 0) {
+        const { data: demoDates } = await admin
+          .from("demo_day_dates")
+          .select("id")
+          .in("id", demoDayDateIds)
+          .eq("is_active", true);
+        if ((demoDates || []).length !== demoDayDateIds.length) {
+          return json({ ok: false, error: "data de Demo Day inválida" }, 400);
+        }
       }
-      const { data: demoDate } = await admin
-        .from("demo_day_dates")
-        .select("id")
-        .eq("id", demoDayDateId)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (!demoDate) return json({ ok: false, error: "data de Demo Day inválida" }, 400);
+
+      const { error: deletePreferencesErr } = await admin
+        .from("company_demo_day_preferences")
+        .delete()
+        .eq("company_id", companyId);
+      if (deletePreferencesErr) return json({ ok: false, error: "não foi possível atualizar preferências de Demo Day" }, 500);
+
+      if (demoDayDateIds.length > 0) {
+        const { error: insertPreferencesErr } = await admin
+          .from("company_demo_day_preferences")
+          .insert(demoDayDateIds.map((demoDayDateId) => ({
+            company_id: companyId,
+            demo_day_date_id: demoDayDateId,
+          })));
+        if (insertPreferencesErr) return json({ ok: false, error: "não foi possível salvar preferências de Demo Day" }, 500);
+      }
 
       const { data: updatedCompany, error } = await admin
         .from("companies")
-        .update({ demo_day_preferred_date_id: demoDayDateId, demo_day_selected: true })
+        .update({
+          demo_day_preferred_date_id: demoDayDateIds[0] || null,
+          demo_day_selected: demoDayDateIds.length > 0,
+        })
         .eq("id", companyId)
         .select("*")
         .single();
       if (error) return json({ ok: false, error: "não foi possível salvar Demo Day" }, 500);
-      await recordEvent(admin, companyId, "demo_day_preferred_date_selected", { demo_day_date_id: demoDayDateId });
-      return json({ ok: true, company: updatedCompany });
+      await recordEvent(admin, companyId, "demo_day_preferred_date_selected", { demo_day_date_ids: demoDayDateIds });
+      return json({
+        ok: true,
+        company: {
+          ...updatedCompany,
+          demo_day_preferred_date_ids: demoDayDateIds,
+        },
+      });
     }
 
     if (action === "diagnosis_start") {
-      if (!company.demo_day_preferred_date_id) {
-        return json({ ok: false, error: "selecione a data preferida de Demo Day antes do diagnóstico" }, 400);
-      }
-
       const { data: publishedConfig, error: configErr } = await admin
         .from("config_versions")
         .select("id, version_name, config_json")
@@ -485,8 +520,15 @@ Deno.serve(async (req) => {
         assessmentId,
       );
 
-      const { data: demoDate } = company.demo_day_preferred_date_id
-        ? await admin.from("demo_day_dates").select("title, date, start_time, end_time").eq("id", company.demo_day_preferred_date_id).maybeSingle()
+      const { data: demoPreferenceRows } = await admin
+        .from("company_demo_day_preferences")
+        .select("demo_day_date:demo_day_dates(title, date, date_label, start_time, end_time, location_or_format)")
+        .eq("company_id", companyId);
+      const demoDates = (demoPreferenceRows || [])
+        .map((row: any) => Array.isArray(row.demo_day_date) ? row.demo_day_date[0] : row.demo_day_date)
+        .filter(Boolean);
+      const { data: fallbackDemoDate } = demoDates.length === 0 && company.demo_day_preferred_date_id
+        ? await admin.from("demo_day_dates").select("title, date, date_label, start_time, end_time, location_or_format").eq("id", company.demo_day_preferred_date_id).maybeSingle()
         : { data: null };
       const debriefUrl = await getDebriefUrl(admin);
       const appOrigin = typeof body?.app_origin === "string" ? body.app_origin : "";
@@ -506,7 +548,8 @@ Deno.serve(async (req) => {
           revenue_2026_target: company.revenue_2026_target,
           expectations_text: company.expectations_text,
         },
-        demo_day_preferred_date: demoDate,
+        demo_day_preferred_date: demoDates[0] || fallbackDemoDate,
+        demo_day_preferred_dates: demoDates.length > 0 ? demoDates : fallbackDemoDate ? [fallbackDemoDate] : [],
         score_general: summary.overall_score ?? null,
         score_100: scoreTo100(summary.overall_score),
         red_flags: redFlags,

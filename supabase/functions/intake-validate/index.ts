@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
     const [
       questionsRes,
       demoDatesRes,
+      demoPreferencesRes,
       settingRes,
       onboardingAnswersRes,
     ] = await Promise.all([
@@ -181,6 +182,10 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("is_active", true)
         .order("date", { ascending: true }),
+      admin
+        .from("company_demo_day_preferences")
+        .select("demo_day_date_id")
+        .eq("company_id", companyId),
       admin
         .from("app_settings")
         .select("value")
@@ -222,6 +227,13 @@ Deno.serve(async (req) => {
       const question = Array.isArray(answer.question) ? answer.question[0] : answer.question;
       if (question?.question_key) onboardingAnswers[question.question_key] = answer.answer_text;
     });
+    const demoDayPreferenceIds = (demoPreferencesRes.data || [])
+      .map((preference: any) => preference.demo_day_date_id)
+      .filter((id: unknown): id is string => typeof id === "string" && id.length > 0);
+    const companyWithPreferences = {
+      ...company,
+      demo_day_preferred_date_ids: demoDayPreferenceIds,
+    };
 
     return json({
       valid: true,
@@ -233,7 +245,7 @@ Deno.serve(async (req) => {
         assessment_id: row.assessment_id,
         flow_completed_at: row.flow_completed_at,
       },
-      company,
+      company: companyWithPreferences,
       onboarding_questions: questionsRes.data || [],
       onboarding_answers: onboardingAnswers,
       demo_day_dates: demoDatesRes.data || [],
