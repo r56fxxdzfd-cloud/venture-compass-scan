@@ -152,6 +152,10 @@ function normalizeDemoDayDateIds(body: Record<string, any>): string[] {
   )];
 }
 
+function isMissingRelationError(error: { code?: string; message?: string } | null | undefined): boolean {
+  return error?.code === "PGRST205" || /schema cache|does not exist|could not find/i.test(error?.message || "");
+}
+
 function priorityFromRedFlags(redFlags: Array<{ severity?: string }> | undefined): "critical" | "high" | "medium" | "low" {
   const severities = new Set((redFlags || []).map((flag) => flag.severity));
   if (severities.has("high") || severities.has("critical")) return "critical";
@@ -347,16 +351,21 @@ Deno.serve(async (req) => {
         .from("company_demo_day_preferences")
         .delete()
         .eq("company_id", companyId);
-      if (deletePreferencesErr) return json({ ok: false, error: "não foi possível atualizar preferências de Demo Day" }, 500);
+      const preferencesTableAvailable = !isMissingRelationError(deletePreferencesErr);
+      if (deletePreferencesErr && preferencesTableAvailable) {
+        return json({ ok: false, error: "não foi possível atualizar preferências de Demo Day" }, 500);
+      }
 
-      if (demoDayDateIds.length > 0) {
+      if (preferencesTableAvailable && demoDayDateIds.length > 0) {
         const { error: insertPreferencesErr } = await admin
           .from("company_demo_day_preferences")
           .insert(demoDayDateIds.map((demoDayDateId) => ({
             company_id: companyId,
             demo_day_date_id: demoDayDateId,
           })));
-        if (insertPreferencesErr) return json({ ok: false, error: "não foi possível salvar preferências de Demo Day" }, 500);
+        if (insertPreferencesErr && !isMissingRelationError(insertPreferencesErr)) {
+          return json({ ok: false, error: "não foi possível salvar preferências de Demo Day" }, 500);
+        }
       }
 
       const { data: updatedCompany, error } = await admin

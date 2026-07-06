@@ -52,6 +52,10 @@ function parseDemoDayDateLabel(value: string) {
   return month ? `${year}-${month}-${day.padStart(2, '0')}` : null;
 }
 
+function isMissingSchemaFieldError(error: { code?: string; message?: string } | null) {
+  return error?.code === 'PGRST204' || /schema cache/i.test(error?.message || '');
+}
+
 export default function AdminConfigPage() {
   const [versions, setVersions] = useState<ConfigVersion[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -306,13 +310,19 @@ export default function AdminConfigPage() {
       return;
     }
     setSavingDemoDay(true);
-    const { error } = await supabase.from('demo_day_dates').insert({
+    const insertPayload = {
       title: demoDayForm.title.trim(),
       date: derivedDate,
       date_label: demoDayForm.date_label.trim() || null,
       location_or_format: demoDayForm.location_or_format || null,
       is_active: true,
-    });
+    };
+    let { error } = await supabase.from('demo_day_dates').insert(insertPayload);
+    if (isMissingSchemaFieldError(error)) {
+      const { date_label: _dateLabel, ...legacyPayload } = insertPayload;
+      const retry = await supabase.from('demo_day_dates').insert(legacyPayload);
+      error = retry.error;
+    }
     setSavingDemoDay(false);
     if (error) {
       toast({ title: 'Erro ao criar data', description: error.message, variant: 'destructive' });
