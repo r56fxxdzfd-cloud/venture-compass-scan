@@ -28,6 +28,7 @@ import type { Founder, FounderAssessment } from '@/types/founder';
 import type { CouncilAction, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { getTodayDateOnly, isDateOnlyBefore } from '@/lib/dateOnly';
+import { getDemoDayDateLabel } from '@/utils/demo-day';
 import { AdvisorsSection } from '@/components/startup/AdvisorsSection';
 import { ActionPlanSection } from '@/components/startup/ActionPlanSection';
 import { MeetingLogsSection } from '@/components/startup/MeetingLogsSection';
@@ -596,7 +597,7 @@ export default function StartupDetailPage() {
               <p className="text-xs text-muted-foreground">Demo Day preferido</p>
               <p className="mt-1 font-semibold">
                 {demoDayDates.length > 0
-                  ? demoDayDates.map((date) => `${date.title} · ${date.date_label || formatDateOnlyBR(date.date)}`).join(' / ')
+                  ? demoDayDates.map((date) => `${date.title} · ${getDemoDayDateLabel(date) || formatDateOnlyBR(date.date)}`).join(' / ')
                   : 'Não selecionado'}
               </p>
             </div>

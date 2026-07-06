@@ -377,7 +377,21 @@ Deno.serve(async (req) => {
         .eq("id", companyId)
         .select("*")
         .single();
-      if (error) return json({ ok: false, error: "não foi possível salvar Demo Day" }, 500);
+      if (error) {
+        await recordEvent(admin, companyId, "demo_day_preference_save_failed", {
+          demo_day_date_ids: demoDayDateIds,
+          code: error.code,
+          message: error.message,
+        });
+        return json({
+          ok: true,
+          warning: "preferência de Demo Day não foi salva no schema legado",
+          company: {
+            ...company,
+            demo_day_preferred_date_ids: demoDayDateIds,
+          },
+        });
+      }
       await recordEvent(admin, companyId, "demo_day_preferred_date_selected", { demo_day_date_ids: demoDayDateIds });
       return json({
         ok: true,

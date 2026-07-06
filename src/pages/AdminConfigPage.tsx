@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
 import type { ConfigVersion, ConfigJSON, DemoDayDate } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
+import { getDemoDayDateLabel } from '@/utils/demo-day';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
 const MONTH_NUMBER_BY_PT_NAME: Record<string, string> = {
@@ -456,7 +457,7 @@ export default function AdminConfigPage() {
                         <Badge variant={date.is_active ? 'default' : 'outline'}>{date.is_active ? 'Ativa' : 'Inativa'}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {date.date_label || formatDate(date.date)}
+                        {getDemoDayDateLabel(date) || formatDate(date.date)}
                         {date.location_or_format ? ` · ${date.location_or_format}` : ''}
                       </p>
                     </div>

@@ -13,6 +13,7 @@ import { QuestionTooltipContent } from '@/components/QuestionTooltipContent';
 import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 import { calculateAssessmentResult } from '@/utils/scoring';
+import { getDemoDayDateLabel } from '@/utils/demo-day';
 import type { Answer, Company, ConfigJSON, ConfigQuestion, DemoDayDate } from '@/types/darwin';
 import { AlertCircle, Building2, CalendarDays, Check, CheckCircle2, HelpCircle, Loader2 } from 'lucide-react';
 
@@ -264,11 +265,11 @@ export default function IntakePage() {
       body: { token, action: 'demo_day', demo_day_date_ids: demoDayDateIds },
     });
     if (demoRes.error || !demoRes.data?.ok) {
-      setPhase('demo_day');
-      setError(demoRes.data?.error || 'Não foi possível salvar a data de Demo Day.');
-      return;
+      // Do not block the founder from starting the diagnosis if production is
+      // temporarily between the legacy single-date schema and the multi-option schema.
+      console.warn('Demo Day preference could not be saved before diagnosis start', demoRes.error || demoRes.data?.error);
     }
-    setCompany(demoRes.data.company as Company);
+    if (demoRes.data?.company) setCompany(demoRes.data.company as Company);
 
     const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
       body: { token, action: 'diagnosis_start' },
@@ -563,6 +564,7 @@ function DemoDayStep({
           <div className="grid gap-3 sm:grid-cols-2">
             {dates.map((date) => {
               const selected = selectedIds.includes(date.id);
+              const dateLabel = getDemoDayDateLabel(date) || formatDateBR(date.date);
               return (
                 <button
                   key={date.id}
@@ -574,7 +576,7 @@ function DemoDayStep({
                     <div>
                       <p className="font-semibold">{date.title}</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        {date.date_label || formatDateBR(date.date)}
+                        {dateLabel}
                         {date.start_time && `, ${formatTime(date.start_time)}`}
                         {date.end_time && `-${formatTime(date.end_time)}`}
                       </p>
