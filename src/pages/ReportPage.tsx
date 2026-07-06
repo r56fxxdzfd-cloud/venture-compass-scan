@@ -383,6 +383,21 @@ export default function ReportPage() {
   const startupDescription = (assessment as any).company?.description || '';
   const isSimulation = assessment.is_simulation;
   const missingCtx = missingContextFields(assessment.context_numeric as Record<string, number>);
+  const redFlagSeverities = new Set(result.red_flags.map((flag) => flag.severity));
+  const computedPriorityLevel = redFlagSeverities.has('high') || redFlagSeverities.has('critical')
+    ? 'critical'
+    : redFlagSeverities.has('medium_high')
+      ? 'high'
+      : redFlagSeverities.has('medium')
+        ? 'medium'
+        : 'low';
+  const priorityLevel = assessment.priority_level || computedPriorityLevel;
+  const priorityLabel: Record<string, string> = {
+    critical: 'Prioridade crítica',
+    high: 'Prioridade alta',
+    medium: 'Prioridade média',
+    low: 'Prioridade baixa',
+  };
 
   const scrollTo = (elId: string) => {
     document.getElementById(elId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -443,6 +458,10 @@ export default function ReportPage() {
               {new Date(assessment.created_at).toLocaleDateString('pt-BR')} •{' '}
               <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
                 {assessment.status === 'completed' ? 'Concluído' : 'Parcial'}
+              </Badge>
+              {' '}
+              <Badge variant={priorityLevel === 'critical' || priorityLevel === 'high' ? 'destructive' : 'outline'}>
+                {priorityLabel[priorityLevel] || priorityLevel}
               </Badge>
             </p>
           </div>

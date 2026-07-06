@@ -29,8 +29,27 @@ import { QuestionTooltipContent } from '@/components/QuestionTooltipContent';
 import type { ConfigJSON, ConfigQuestion, Answer } from '@/types/darwin';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
 import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
+import { calculateAssessmentResult } from '@/utils/scoring';
 
 type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
+const PIPELINE_ORDER = [
+  'invited',
+  'registration_started',
+  'registration_completed',
+  'diagnosis_started',
+  'diagnosis_completed',
+  'debrief_scheduled',
+  'debrief_completed',
+  'selected_for_pilot',
+  'standby',
+  'in_followup',
+];
+
+function shouldAdvancePipeline(current: string | null | undefined, next: string) {
+  const currentIndex = PIPELINE_ORDER.indexOf(current || '');
+  const nextIndex = PIPELINE_ORDER.indexOf(next);
+  return currentIndex === -1 || currentIndex < nextIndex;
+}
 
 function answerStateToRows(answers: AnswerState, assessmentId: string | undefined): Answer[] {
   return Object.entries(answers).map(([questionId, answer]) => ({
@@ -57,6 +76,8 @@ export default function QuestionnairePage() {
     status: 'in_progress' | 'completed';
     companyId?: string;
     companyName?: string;
+    stage?: string | null;
+    contextNumeric?: Record<string, number>;
     questionContext?: AssessmentQuestionContext;
   } | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -70,7 +91,7 @@ export default function QuestionnairePage() {
     const load = async () => {
       const { data: assessment } = await supabase
         .from('assessments')
-        .select('config_version_id, status, company_id, revenue_model, customer_type, business_model, company:companies(id, name)')
+        .select('config_version_id, status, company_id, stage, context_numeric, revenue_model, customer_type, business_model, company:companies(id, name)')
         .eq('id', id)
         .single();
 
@@ -82,6 +103,8 @@ export default function QuestionnairePage() {
         status: (assessment as any).status || 'in_progress',
         companyId: (assessment as any).company_id,
         companyName: assessmentCompany?.name,
+        stage: (assessment as any).stage,
+        contextNumeric: ((assessment as any).context_numeric as Record<string, number>) || {},
         questionContext: {
           revenue_model: (assessment as any).revenue_model,
           customer_type: (assessment as any).customer_type,
@@ -214,7 +237,26 @@ export default function QuestionnairePage() {
       setCompleting(false);
       return;
     }
-    const { error } = await supabase.from('assessments').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', id!);
+    const flowAnswers = answerStateToRows(answers, id);
+    const result = config
+      ? calculateAssessmentResult(
+        config,
+        flowAnswers,
+        assessmentMeta?.stage || 'seed',
+        assessmentMeta?.contextNumeric || {},
+        assessmentMeta?.questionContext,
+      )
+      : null;
+    const redFlagSeverities = new Set((result?.red_flags || []).map((flag) => flag.severity));
+    const priorityLevel = redFlagSeverities.has('high') || redFlagSeverities.has('critical')
+      ? 'critical'
+      : redFlagSeverities.has('medium_high')
+        ? 'high'
+        : redFlagSeverities.has('medium')
+          ? 'medium'
+          : 'low';
+    const completedAt = new Date().toISOString();
+    const { error } = await supabase.from('assessments').update({ status: 'completed', completed_at: completedAt, priority_level: priorityLevel }).eq('id', id!);
     setCompleting(false);
     if (error) {
       setSaveState('error');
@@ -222,8 +264,35 @@ export default function QuestionnairePage() {
       toast({ title: 'Erro ao finalizar diagnóstico', description: error.message, variant: 'destructive' });
       return;
     }
+    if (assessmentMeta?.companyId) {
+      const { data: companyRow } = await supabase
+        .from('companies')
+        .select('pipeline_status')
+        .eq('id', assessmentMeta.companyId)
+        .maybeSingle();
+      const companyUpdates: any = {
+        diagnosis_status: 'completed',
+        diagnosis_completed_at: completedAt,
+      };
+      if (shouldAdvancePipeline(companyRow?.pipeline_status, 'diagnosis_completed')) {
+        companyUpdates.pipeline_status = 'diagnosis_completed';
+      }
+      await supabase
+        .from('companies')
+        .update(companyUpdates)
+        .eq('id', assessmentMeta.companyId);
+      await supabase.from('startup_events').insert({
+        startup_id: assessmentMeta.companyId,
+        assessment_id: id!,
+        event_type: 'diagnosis_completed',
+        metadata: {
+          source: 'admin_questionnaire',
+          priority_level: priorityLevel,
+          red_flags: result?.red_flags || [],
+        } as any,
+      });
+    }
     setAssessmentMeta((prev) => prev ? { ...prev, status: 'completed' } : prev);
-    const flowAnswers = answerStateToRows(answers, id);
     const answerableIds = new Set(config ? getAnswerableQuestions(config, flowAnswers, assessmentMeta?.questionContext).map((q) => q.id) : []);
     const answeredCount = Object.entries(answers).filter(([questionId, a]) => answerableIds.has(questionId) && (a.value !== null || a.is_na)).length;
     const totalQuestions = answerableIds.size || 45;

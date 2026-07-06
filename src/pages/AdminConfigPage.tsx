@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy, Sparkles, AlertTriangle } from 'lucide-react';
+import { Upload, Download, Check, Trash2, FileJson, Eye, ChevronDown, ChevronUp, Inbox, Pencil, Copy, Sparkles, AlertTriangle, CalendarDays, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ConfigEditorPanel } from '@/components/config-editor/ConfigEditorPanel';
-import type { ConfigVersion, ConfigJSON } from '@/types/darwin';
+import type { ConfigVersion, ConfigJSON, DemoDayDate } from '@/types/darwin';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 
 const REQUIRED_FIELDS = ['dimensions', 'questions', 'weights_by_stage', 'targets_by_stage', 'methodology', 'simulator'];
@@ -30,8 +31,13 @@ export default function AdminConfigPage() {
   const [publishTarget, setPublishTarget] = useState<ConfigVersion | null>(null);
   const [creatingDraft, setCreatingDraft] = useState(false);
   const [versionUsage, setVersionUsage] = useState<Record<string, VersionUsage>>({});
+  const [demoDayDates, setDemoDayDates] = useState<DemoDayDate[]>([]);
+  const [demoDayForm, setDemoDayForm] = useState({ title: '', date: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+  const [savingDemoDay, setSavingDemoDay] = useState(false);
+  const [debriefCalendarUrl, setDebriefCalendarUrl] = useState('');
+  const [savingDebriefUrl, setSavingDebriefUrl] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const { user, canManageSensitiveParameters, isDemoUser } = useAuth();
+  const { user, canManageSensitiveParameters, canOperatePlatform, isDemoUser } = useAuth();
   const { toast } = useToast();
 
   const fetchVersions = async () => {
@@ -65,7 +71,19 @@ export default function AdminConfigPage() {
     }
   };
 
-  useEffect(() => { fetchVersions(); }, []);
+  const fetchProgramSettings = async () => {
+    const [{ data: dates }, { data: setting }] = await Promise.all([
+      supabase.from('demo_day_dates').select('*').order('date', { ascending: true }),
+      supabase.from('app_settings').select('value').eq('key', 'debrief_calendar_url').maybeSingle(),
+    ]);
+    setDemoDayDates((dates || []) as DemoDayDate[]);
+    setDebriefCalendarUrl(setting?.value || 'https://calendly.com/patricia-sepp-boardwise/diagnostico-inicial-darwin-growth?month=2026-07');
+  };
+
+  useEffect(() => {
+    fetchVersions();
+    fetchProgramSettings();
+  }, []);
 
   const hasDraft = versions.some(v => v.status === 'draft');
   const latestDraft = versions.find(v => v.status === 'draft');
@@ -247,6 +265,51 @@ export default function AdminConfigPage() {
     setVersions(prev => prev.map(v => v.id === versionId ? { ...v, config_json: newConfig } : v));
   };
 
+  const createDemoDayDate = async () => {
+    if (!demoDayForm.title.trim() || !demoDayForm.date) {
+      toast({ title: 'Informe título e data do Demo Day', variant: 'destructive' });
+      return;
+    }
+    setSavingDemoDay(true);
+    const { error } = await supabase.from('demo_day_dates').insert({
+      title: demoDayForm.title.trim(),
+      date: demoDayForm.date,
+      start_time: demoDayForm.start_time || null,
+      end_time: demoDayForm.end_time || null,
+      location_or_format: demoDayForm.location_or_format || null,
+      capacity: demoDayForm.capacity ? Number(demoDayForm.capacity) : null,
+      is_active: true,
+    });
+    setSavingDemoDay(false);
+    if (error) {
+      toast({ title: 'Erro ao criar data', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setDemoDayForm({ title: '', date: '', start_time: '', end_time: '', location_or_format: '', capacity: '' });
+    toast({ title: 'Data de Demo Day criada' });
+    fetchProgramSettings();
+  };
+
+  const toggleDemoDayDate = async (date: DemoDayDate) => {
+    const { error } = await supabase.from('demo_day_dates').update({ is_active: !date.is_active }).eq('id', date.id);
+    if (error) {
+      toast({ title: 'Erro ao atualizar data', description: error.message, variant: 'destructive' });
+      return;
+    }
+    fetchProgramSettings();
+  };
+
+  const saveDebriefUrl = async () => {
+    setSavingDebriefUrl(true);
+    const { error } = await supabase.from('app_settings').update({ value: debriefCalendarUrl }).eq('key', 'debrief_calendar_url');
+    setSavingDebriefUrl(false);
+    if (error) {
+      toast({ title: 'Erro ao salvar Calendly', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: 'Link de devolutiva atualizado' });
+  };
+
   const statusColors: Record<string, string> = { draft: 'secondary', published: 'default', archived: 'outline' };
   const statusLabels: Record<string, string> = { draft: 'draft', published: 'publicada', archived: 'arquivada' };
   const formatDate = (value?: string | null) => value ? new Date(value).toLocaleDateString('pt-BR') : '—';
@@ -310,6 +373,94 @@ export default function AdminConfigPage() {
           </div>
           {validationError && <p className="text-sm text-destructive">{validationError}</p>}
           <p className="text-xs text-muted-foreground">Campos obrigatórios: {REQUIRED_FIELDS.join(', ')}</p>
+        </CardContent>
+      </Card>
+
+      <Card className="executive-surface">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarDays className="h-4 w-4 text-primary" /> Fluxo do empreendedor
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-xs">Link externo de devolutiva</Label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input value={debriefCalendarUrl} onChange={(event) => setDebriefCalendarUrl(event.target.value)} disabled={!canOperatePlatform} />
+              <Button variant="outline" onClick={saveDebriefUrl} disabled={!canOperatePlatform || savingDebriefUrl}>
+                {savingDebriefUrl ? 'Salvando...' : 'Salvar link'}
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-lg border p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Datas de Demo Day</p>
+                <p className="text-xs text-muted-foreground">Datas ativas aparecem para o empreendedor antes do diagnóstico.</p>
+              </div>
+            </div>
+            {demoDayDates.length === 0 ? (
+              <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">Nenhuma data configurada.</p>
+            ) : (
+              <div className="space-y-2">
+                {demoDayDates.map((date) => (
+                  <div key={date.id} className="flex flex-col gap-2 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium">{date.title}</p>
+                        <Badge variant={date.is_active ? 'default' : 'outline'}>{date.is_active ? 'Ativa' : 'Inativa'}</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(date.date)}
+                        {date.start_time ? ` · ${date.start_time.slice(0, 5)}` : ''}
+                        {date.end_time ? `-${date.end_time.slice(0, 5)}` : ''}
+                        {date.location_or_format ? ` · ${date.location_or_format}` : ''}
+                        {date.capacity ? ` · capacidade ${date.capacity}` : ''}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => toggleDemoDayDate(date)} disabled={!canOperatePlatform}>
+                      {date.is_active ? 'Desativar' : 'Ativar'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {canOperatePlatform && (
+            <div className="grid gap-3 rounded-lg border border-dashed p-3 sm:grid-cols-6">
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Título</Label>
+                <Input value={demoDayForm.title} onChange={(event) => setDemoDayForm({ ...demoDayForm, title: event.target.value })} placeholder="Demo Day Darwin Growth" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Data</Label>
+                <Input type="date" value={demoDayForm.date} onChange={(event) => setDemoDayForm({ ...demoDayForm, date: event.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Início</Label>
+                <Input type="time" value={demoDayForm.start_time} onChange={(event) => setDemoDayForm({ ...demoDayForm, start_time: event.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fim</Label>
+                <Input type="time" value={demoDayForm.end_time} onChange={(event) => setDemoDayForm({ ...demoDayForm, end_time: event.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Capacidade</Label>
+                <Input inputMode="numeric" value={demoDayForm.capacity} onChange={(event) => setDemoDayForm({ ...demoDayForm, capacity: event.target.value.replace(/\D/g, '') })} />
+              </div>
+              <div className="space-y-1 sm:col-span-5">
+                <Label className="text-xs">Local / formato</Label>
+                <Input value={demoDayForm.location_or_format} onChange={(event) => setDemoDayForm({ ...demoDayForm, location_or_format: event.target.value })} placeholder="Online, presencial ou local" />
+              </div>
+              <div className="flex items-end">
+                <Button className="w-full" onClick={createDemoDayDate} disabled={savingDemoDay}>
+                  <Plus className="mr-1 h-4 w-4" /> {savingDemoDay ? 'Criando...' : 'Criar'}
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

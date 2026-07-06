@@ -13,6 +13,19 @@ export type StartupDocumentCategory =
   | 'other';
 export type StartupDocumentVisibility = 'internal_only' | 'startup_and_internal';
 export type StartupDocumentRelatedEntityType = 'diagnostic' | 'red_flag' | 'meeting' | 'action_plan';
+export type StartupPipelineStatus =
+  | 'invited'
+  | 'registration_started'
+  | 'registration_completed'
+  | 'diagnosis_started'
+  | 'diagnosis_completed'
+  | 'debrief_scheduled'
+  | 'debrief_completed'
+  | 'selected_for_pilot'
+  | 'standby'
+  | 'in_followup';
+export type StartupDiagnosisStatus = 'not_started' | 'started' | 'completed';
+export type AssessmentPriorityLevel = 'low' | 'medium' | 'high' | 'critical';
 
 export interface ActionItem {
   id: string;
@@ -65,7 +78,15 @@ export interface StartupDocument {
   updated_at: string;
 }
 
-export type IntakeStatus = 'pending' | 'submitted' | 'imported' | 'expired';
+export type IntakeStatus =
+  | 'pending'
+  | 'registration_started'
+  | 'registration_completed'
+  | 'diagnosis_started'
+  | 'diagnosis_completed'
+  | 'submitted'
+  | 'imported'
+  | 'expired';
 
 export interface IntakeSubmission {
   id: string;
@@ -74,27 +95,35 @@ export interface IntakeSubmission {
   label: string | null;
   payload: IntakePayload | null;
   company_id: string | null;
+  assessment_id: string | null;
   created_by: string | null;
   created_at: string;
   submitted_at: string | null;
   imported_at: string | null;
+  flow_completed_at: string | null;
   expires_at: string | null;
 }
 
 export interface IntakePayload {
-  // Perguntas do Formulário Inicial Darwin Growth
-  full_name?: string;        // 1. Nome completo
-  company_name?: string;     // 2. Nome da empresa
-  role?: string;             // 3. Cargo atual
-  email?: string;            // 4. E-mail
-  whatsapp?: string;         // 5. WhatsApp
-  birth_date?: string;       // 6. Data de nascimento (DD/MM/AAAA)
-  summary?: string;          // 7. Resumo da empresa
-  stage_label?: string;      // 8. Estágio informado (Validação/Tração/...)
-  headcount?: string;        // 9. Nº de colaboradores
-  revenue_2025?: string;     // 10. Faturamento 2025
-  revenue_goal_2026?: string;// 11. Meta de faturamento 2026
-  // Chaves canônicas mantidas p/ compatibilidade com a edge function publicada
+  responsible_name?: string;
+  company_name?: string;
+  responsible_role?: string;
+  responsible_email?: string;
+  responsible_whatsapp?: string;
+  responsible_birthdate?: string;
+  headcount?: string;
+  revenue_2025?: string;
+  revenue_2026_target?: string;
+  expectations_text?: string;
+  // Chaves legadas mantidas para intakes antigos.
+  full_name?: string;
+  role?: string;
+  email?: string;
+  whatsapp?: string;
+  birth_date?: string;
+  summary?: string;
+  stage_label?: string;
+  revenue_goal_2026?: string;
   founders?: string;
   stage?: string;
   business_model?: string;
@@ -131,6 +160,7 @@ export interface UserRole {
 export interface Company {
   id: string;
   name: string;
+  company_name: string | null;
   legal_name: string | null;
   description: string | null;
   cnpj: string | null;
@@ -141,6 +171,45 @@ export interface Company {
   is_demo?: boolean;
   archived_at?: string | null;
   demo_day_selected?: boolean;
+  responsible_name?: string | null;
+  responsible_role?: string | null;
+  responsible_email?: string | null;
+  responsible_whatsapp?: string | null;
+  responsible_birthdate?: string | null;
+  headcount?: number | null;
+  revenue_2025?: string | null;
+  revenue_2026_target?: string | null;
+  expectations_text?: string | null;
+  demo_day_preferred_date_id?: string | null;
+  diagnosis_status?: StartupDiagnosisStatus;
+  pipeline_status?: StartupPipelineStatus;
+  diagnosis_completed_at?: string | null;
+}
+
+export interface DemoDayDate {
+  id: string;
+  title: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location_or_format: string | null;
+  capacity: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InternalNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  data: Record<string, unknown>;
+  startup_id: string | null;
+  assessment_id: string | null;
+  read_at: string | null;
+  read_by: string | null;
+  created_at: string;
 }
 
 export interface ConfigVersion {
@@ -258,6 +327,7 @@ export interface Assessment {
   customer_type: string | null;
   revenue_model: string | null;
   context_numeric: Record<string, number>;
+  priority_level?: AssessmentPriorityLevel | null;
   created_by: string | null;
   created_at: string;
   completed_at: string | null;

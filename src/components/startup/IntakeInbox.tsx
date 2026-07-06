@@ -11,25 +11,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/hooks/use-toast';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
 import { Link2, Copy, Inbox, Eye, Trash2, Loader2 } from 'lucide-react';
-import type { IntakeSubmission, IntakePayload } from '@/types/darwin';
+import { Link } from 'react-router-dom';
+import type { IntakeSubmission, IntakePayload, InternalNotification } from '@/types/darwin';
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Aguardando', submitted: 'Recebido', imported: 'Importado', expired: 'Expirado',
+  pending: 'Aguardando',
+  registration_started: 'Cadastro iniciado',
+  registration_completed: 'Cadastro concluído',
+  diagnosis_started: 'Diagnóstico iniciado',
+  diagnosis_completed: 'Diagnóstico concluído',
+  submitted: 'Recebido',
+  imported: 'Importado',
+  expired: 'Expirado',
 };
 
-// Rótulos amigáveis das 11 perguntas do Formulário Inicial Darwin Growth (na ordem)
 const FIELD_LABELS: [keyof IntakePayload, string][] = [
-  ['full_name', 'Nome completo'],
-  ['role', 'Cargo atual'],
-  ['email', 'E-mail'],
-  ['whatsapp', 'WhatsApp'],
-  ['birth_date', 'Data de nascimento'],
+  ['responsible_name', 'Nome completo do sócio responsável pela participação no programa (ponto focal)'],
   ['company_name', 'Nome da empresa'],
-  ['summary', 'Resumo da empresa'],
-  ['stage_label', 'Estágio informado'],
-  ['headcount', 'Colaboradores'],
+  ['responsible_role', 'Cargo atual na empresa'],
+  ['responsible_email', 'E-mail'],
+  ['responsible_whatsapp', 'WhatsApp'],
+  ['responsible_birthdate', 'Data de nascimento'],
+  ['headcount', 'Quantos colaboradores a empresa possui?'],
   ['revenue_2025', 'Faturamento 2025'],
-  ['revenue_goal_2026', 'Meta de faturamento 2026'],
+  ['revenue_2026_target', 'Meta de faturamento 2026'],
+  ['expectations_text', 'O que você espera obter com a participação no Darwin Growth?'],
 ];
 const SCORING_STAGES: { value: string; label: string }[] = [
   { value: 'pre_seed', label: 'Pre-Seed' },
@@ -37,7 +43,14 @@ const SCORING_STAGES: { value: string; label: string }[] = [
   { value: 'series_a', label: 'Series A' },
 ];
 const STATUS_VARIANT: Record<string, 'outline' | 'secondary' | 'default' | 'destructive'> = {
-  pending: 'outline', submitted: 'secondary', imported: 'default', expired: 'destructive',
+  pending: 'outline',
+  registration_started: 'secondary',
+  registration_completed: 'secondary',
+  diagnosis_started: 'secondary',
+  diagnosis_completed: 'default',
+  submitted: 'secondary',
+  imported: 'default',
+  expired: 'destructive',
 };
 const EXPIRY_DAYS = 14;
 
@@ -77,6 +90,7 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [rows, setRows] = useState<IntakeSubmission[]>([]);
+  const [notifications, setNotifications] = useState<InternalNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [label, setLabel] = useState('');
   const [creating, setCreating] = useState(false);
@@ -86,13 +100,17 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase.from('intake_submissions').select('*').order('created_at', { ascending: false });
+    const [{ data, error }, { data: notificationRows }] = await Promise.all([
+      supabase.from('intake_submissions').select('*').order('created_at', { ascending: false }),
+      supabase.from('internal_notifications').select('*').eq('type', 'diagnosis_completed').order('created_at', { ascending: false }).limit(10),
+    ]);
     if (error) {
       toast({ title: 'Erro ao carregar intakes', description: friendlySupabaseError(error.message), variant: 'destructive' });
       setLoading(false);
       return;
     }
     setRows((data || []) as IntakeSubmission[]);
+    setNotifications((notificationRows || []) as unknown as InternalNotification[]);
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -145,6 +163,16 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
     const stage = (importStage || null) as 'pre_seed' | 'seed' | 'series_a' | null;
     const { data: comp, error: compErr } = await supabase.from('companies').insert({
       name: payload.company_name,
+      company_name: payload.company_name,
+      responsible_name: payload.responsible_name || payload.full_name || null,
+      responsible_role: payload.responsible_role || payload.role || null,
+      responsible_email: payload.responsible_email || payload.email || null,
+      responsible_whatsapp: payload.responsible_whatsapp || payload.whatsapp || null,
+      responsible_birthdate: payload.responsible_birthdate || payload.birth_date || null,
+      headcount: payload.headcount ? Number(String(payload.headcount).replace(/\D/g, '')) || null : null,
+      revenue_2025: payload.revenue_2025 || null,
+      revenue_2026_target: payload.revenue_2026_target || payload.revenue_goal_2026 || null,
+      expectations_text: payload.expectations_text || null,
       business_model: payload.summary || payload.business_model || null,
       stage,
     }).select().single();
@@ -166,6 +194,56 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
 
   return (
     <div className="space-y-4">
+      {notifications.length > 0 && (
+        <Card className="executive-panel">
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-primary" />
+              <h3 className="text-base font-semibold">Diagnósticos concluídos</h3>
+            </div>
+            <div className="space-y-2">
+              {notifications.map((notification) => {
+                const data = (notification.data || {}) as any;
+                return (
+                  <div key={notification.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {!notification.read_at && <Badge className="text-xs">Novo</Badge>}
+                        <p className="truncate text-sm font-medium">{notification.title}</p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {new Date(notification.created_at).toLocaleString('pt-BR')}
+                        {data?.priority_level ? ` · prioridade ${data.priority_level}` : ''}
+                        {typeof data?.score_100 === 'number' ? ` · score ${data.score_100}/100` : ''}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      {notification.assessment_id && (
+                        <Button asChild size="sm">
+                          <Link to={`/app/assessments/${notification.assessment_id}/report`}>Abrir diagnóstico</Link>
+                        </Button>
+                      )}
+                      {!notification.read_at && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await supabase.from('internal_notifications').update({ read_at: new Date().toISOString(), read_by: user?.id || null }).eq('id', notification.id);
+                            load();
+                          }}
+                        >
+                          Marcar lida
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="executive-panel">
         <CardContent className="pt-6 space-y-3">
           <div className="flex items-center gap-2">
@@ -212,7 +290,12 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
                 {r.status === 'pending' && (
                   <Button variant="outline" size="sm" onClick={() => copyLink(r.token)}><Copy className="h-3.5 w-3.5 mr-1" /> Copiar link</Button>
                 )}
-                {r.status === 'submitted' && (
+                {r.company_id && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/app/startups/${r.company_id}`}>Abrir startup</Link>
+                  </Button>
+                )}
+                {r.status === 'submitted' && !r.company_id && (
                   <Button size="sm" onClick={() => { setImportStage(''); setReview(r); }}><Eye className="h-3.5 w-3.5 mr-1" /> Revisar</Button>
                 )}
                 <Button

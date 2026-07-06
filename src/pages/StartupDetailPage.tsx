@@ -23,7 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { scoreTo100, getLevel } from '@/utils/report-helpers';
 import { getCurrentSemester, getFounderStageLabel } from '@/utils/founder-scoring';
-import type { Company, Assessment, ConfigJSON, Answer } from '@/types/darwin';
+import type { Company, Assessment, ConfigJSON, Answer, DemoDayDate, StartupPipelineStatus } from '@/types/darwin';
 import type { Founder, FounderAssessment } from '@/types/founder';
 import type { CouncilAction, CouncilMeeting } from '@/types/council';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
@@ -42,6 +42,25 @@ import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
+const pipelineStatusLabels: Record<StartupPipelineStatus, string> = {
+  invited: 'Convidada',
+  registration_started: 'Cadastro iniciado',
+  registration_completed: 'Cadastro concluído',
+  diagnosis_started: 'Diagnóstico iniciado',
+  diagnosis_completed: 'Diagnóstico concluído',
+  debrief_scheduled: 'Devolutiva agendada',
+  debrief_completed: 'Devolutiva realizada',
+  selected_for_pilot: 'Selecionada para piloto',
+  standby: 'Standby',
+  in_followup: 'Em follow-up',
+};
+const pipelineStatusOptions = Object.entries(pipelineStatusLabels) as [StartupPipelineStatus, string][];
+const pipelineStatusOrder = pipelineStatusOptions.map(([value]) => value);
+function shouldAdvancePipelineStatus(current: StartupPipelineStatus | undefined, next: StartupPipelineStatus) {
+  const currentIndex = current ? pipelineStatusOrder.indexOf(current) : -1;
+  const nextIndex = pipelineStatusOrder.indexOf(next);
+  return currentIndex === -1 || currentIndex < nextIndex;
+}
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
 const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
 const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
@@ -60,6 +79,7 @@ export default function StartupDetailPage() {
   const { toast } = useToast();
   const { isAdmin, isAnalyst, isAdvisor, isViewer, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
+  const [demoDayDate, setDemoDayDate] = useState<DemoDayDate | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
   const [assessmentQuestionTotals, setAssessmentQuestionTotals] = useState<Record<string, number>>({});
@@ -111,6 +131,16 @@ export default function StartupDetailPage() {
         return;
       }
       setCompany(companyData as Company);
+      if ((companyData as Company).demo_day_preferred_date_id) {
+        const { data: selectedDemoDate } = await supabase
+          .from('demo_day_dates')
+          .select('*')
+          .eq('id', (companyData as Company).demo_day_preferred_date_id!)
+          .maybeSingle();
+        setDemoDayDate((selectedDemoDate || null) as DemoDayDate | null);
+      } else {
+        setDemoDayDate(null);
+      }
 
       // Load founders & founder assessments
       const currentSem = getCurrentSemester();
@@ -251,6 +281,17 @@ export default function StartupDetailPage() {
 
     setCreating(false);
     if (data) {
+      const companyUpdates: { diagnosis_status: 'started'; pipeline_status?: StartupPipelineStatus } = { diagnosis_status: 'started' };
+      if (shouldAdvancePipelineStatus(company?.pipeline_status, 'diagnosis_started')) {
+        companyUpdates.pipeline_status = 'diagnosis_started';
+      }
+      await supabase.from('companies').update(companyUpdates).eq('id', id!);
+      await supabase.from('startup_events').insert({
+        startup_id: id!,
+        assessment_id: data.id,
+        event_type: 'diagnosis_started',
+        metadata: { source: 'admin_startup_detail' } as any,
+      });
       setNewDialogOpen(false);
       setNewAssessmentStep(0);
       navigate(`/app/assessments/${data.id}/questionnaire`);
@@ -294,6 +335,21 @@ export default function StartupDetailPage() {
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setCompany({ ...company, demo_day_selected: next });
     toast({ title: next ? 'Marcada para o Demo Day' : 'Removida do Demo Day' });
+  };
+
+  const updatePipelineStatus = async (status: StartupPipelineStatus) => {
+    if (!company) return;
+    const updates: { pipeline_status: StartupPipelineStatus; diagnosis_status?: Company['diagnosis_status'] } = { pipeline_status: status };
+    if (status === 'debrief_completed') {
+      updates.diagnosis_status = company.diagnosis_status === 'completed' ? 'completed' : company.diagnosis_status;
+    }
+    const { error } = await supabase.from('companies').update(updates).eq('id', company.id);
+    if (error) {
+      toast({ title: 'Erro ao atualizar status', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setCompany({ ...company, ...updates });
+    toast({ title: 'Status atualizado' });
   };
 
   // ---- Edit Company Dialog ----
@@ -510,6 +566,75 @@ export default function StartupDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+      <Card className="executive-panel">
+        <CardHeader>
+          <p className="executive-section-title text-xs">Fluxo Darwin Growth</p>
+          <CardTitle>Cadastro inicial, Demo Day e devolutiva</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Pipeline</p>
+              <p className="mt-1 font-semibold">{company.pipeline_status ? pipelineStatusLabels[company.pipeline_status] || company.pipeline_status : '—'}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Diagnóstico</p>
+              <p className="mt-1 font-semibold">
+                {company.diagnosis_status === 'completed' ? 'Concluído' : company.diagnosis_status === 'started' ? 'Iniciado' : 'Não iniciado'}
+              </p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Demo Day preferido</p>
+              <p className="mt-1 font-semibold">
+                {demoDayDate ? `${demoDayDate.title} · ${formatDateOnlyBR(demoDayDate.date)}` : 'Não selecionado'}
+              </p>
+            </div>
+          </div>
+
+          {canWrite && (
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed p-3 sm:flex-row sm:items-end">
+              <div className="space-y-1 sm:w-72">
+                <Label className="text-xs">Alterar status do pipeline</Label>
+                <Select value={company.pipeline_status || 'invited'} onValueChange={(value) => updatePipelineStatus(value as StartupPipelineStatus)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {pipelineStatusOptions.map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => updatePipelineStatus('debrief_completed')}
+                disabled={company.pipeline_status === 'debrief_completed'}
+              >
+                Marcar devolutiva realizada
+              </Button>
+            </div>
+          )}
+
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {[
+              ['Responsável', company.responsible_name],
+              ['Cargo', company.responsible_role],
+              ['E-mail', company.responsible_email],
+              ['WhatsApp', company.responsible_whatsapp],
+              ['Data de nascimento', company.responsible_birthdate ? formatDateOnlyBR(company.responsible_birthdate) : null],
+              ['Colaboradores', company.headcount != null ? String(company.headcount) : null],
+              ['Faturamento 2025', company.revenue_2025],
+              ['Meta 2026', company.revenue_2026_target],
+              ['Expectativa', company.expectations_text],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">{label}</p>
+                <p className="mt-1 break-words font-medium">{value || '—'}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {inProgressAssessment && inProgressLink && (
         <Card className="border-amber-500/35 bg-amber-500/10">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -956,7 +1081,6 @@ export default function StartupDetailPage() {
           </CardContent>
         </Card>
       </div>
-
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-4">
