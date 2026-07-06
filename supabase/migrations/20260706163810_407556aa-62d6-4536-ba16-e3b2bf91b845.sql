@@ -1,0 +1,2 @@
+UPDATE demo_day_dates SET date_label = '22 ou 23 de julho de 2026' WHERE id = 'efca3f81-9f4f-459a-9f86-fa6c4aa5c06e';
+UPDATE demo_day_dates SET date_label = '28 ou 30 de julho de 2026' WHERE id = 'c3a2a975-5493-404c-b2b9-51fc97e41b64';
