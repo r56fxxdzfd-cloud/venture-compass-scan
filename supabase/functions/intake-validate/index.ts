@@ -136,10 +136,11 @@ Deno.serve(async (req) => {
       if (createErr || !created) return json({ error: "internal" }, 500);
 
       company = created;
-      await admin
+      const { error: intakeUpdateErr } = await admin
         .from("intake_submissions")
         .update({ status: "registration_started", company_id: created.id })
         .eq("id", row.id);
+      if (intakeUpdateErr) return json({ error: "não foi possível iniciar cadastro" }, 500);
       row.status = "registration_started";
       row.company_id = created.id;
       await recordEvent(admin, created.id, "registration_started", { source: "public_intake_opened" });
@@ -151,7 +152,11 @@ Deno.serve(async (req) => {
         await recordEvent(admin, String(advancedCompany.id), "registration_started", { source: "public_intake_opened" });
       }
       if (row.status === "pending") {
-        await admin.from("intake_submissions").update({ status: "registration_started" }).eq("id", row.id);
+        const { error: intakeUpdateErr } = await admin
+          .from("intake_submissions")
+          .update({ status: "registration_started" })
+          .eq("id", row.id);
+        if (intakeUpdateErr) return json({ error: "não foi possível iniciar cadastro" }, 500);
         row.status = "registration_started";
       }
     }

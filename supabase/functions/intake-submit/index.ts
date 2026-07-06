@@ -306,10 +306,11 @@ Deno.serve(async (req) => {
         if (answersErr) return json({ ok: false, error: "não foi possível salvar respostas iniciais" }, 500);
       }
 
-      await admin
+      const { error: intakeUpdateErr } = await admin
         .from("intake_submissions")
         .update({ status: "registration_completed", payload: payloadForInbox })
         .eq("id", row.id);
+      if (intakeUpdateErr) return json({ ok: false, error: "não foi possível avançar cadastro" }, 500);
       await recordEvent(admin, companyId, "registration_completed", { source: "public_intake" });
 
       return json({ ok: true, company: updatedCompany });
@@ -377,15 +378,24 @@ Deno.serve(async (req) => {
         if (assessmentErr || !createdAssessment) return json({ ok: false, error: "não foi possível iniciar diagnóstico" }, 500);
         assessment = createdAssessment;
         assessmentId = createdAssessment.id;
-        await admin.from("intake_submissions").update({ assessment_id: assessmentId }).eq("id", row.id);
+        const { error: intakeAssessmentErr } = await admin
+          .from("intake_submissions")
+          .update({ assessment_id: assessmentId })
+          .eq("id", row.id);
+        if (intakeAssessmentErr) return json({ ok: false, error: "não foi possível vincular diagnóstico" }, 500);
       }
 
       const companyAfterPipeline = await advancePipelineStatus(admin, company, "diagnosis_started");
-      await admin
+      const { error: companyDiagnosisErr } = await admin
         .from("companies")
         .update({ diagnosis_status: "started", pipeline_status: companyAfterPipeline.pipeline_status })
         .eq("id", companyId);
-      await admin.from("intake_submissions").update({ status: "diagnosis_started" }).eq("id", row.id);
+      if (companyDiagnosisErr) return json({ ok: false, error: "não foi possível marcar diagnóstico iniciado" }, 500);
+      const { error: intakeDiagnosisErr } = await admin
+        .from("intake_submissions")
+        .update({ status: "diagnosis_started" })
+        .eq("id", row.id);
+      if (intakeDiagnosisErr) return json({ ok: false, error: "não foi possível avançar intake" }, 500);
       await recordEvent(admin, companyId, "diagnosis_started", { source: "public_intake" }, assessmentId);
 
       const { data: answers } = await admin.from("answers").select("*").eq("assessment_id", assessmentId);
@@ -443,7 +453,7 @@ Deno.serve(async (req) => {
         .eq("id", assessmentId);
       if (assessmentErr) return json({ ok: false, error: "não foi possível finalizar diagnóstico" }, 500);
 
-      await admin
+      const { error: companyCompleteErr } = await admin
         .from("companies")
         .update({
           diagnosis_status: "completed",
@@ -453,11 +463,13 @@ Deno.serve(async (req) => {
           diagnosis_completed_at: completedAt,
         })
         .eq("id", companyId);
+      if (companyCompleteErr) return json({ ok: false, error: "não foi possível marcar diagnóstico concluído" }, 500);
 
-      await admin
+      const { error: intakeCompleteErr } = await admin
         .from("intake_submissions")
         .update({ status: "diagnosis_completed", flow_completed_at: completedAt })
         .eq("id", row.id);
+      if (intakeCompleteErr) return json({ ok: false, error: "não foi possível concluir intake" }, 500);
 
       await recordEvent(
         admin,
