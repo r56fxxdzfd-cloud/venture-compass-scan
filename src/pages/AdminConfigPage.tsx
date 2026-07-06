@@ -45,11 +45,12 @@ function parseDemoDayDateLabel(value: string) {
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
-  const longDate = trimmed.match(/\b(\d{1,2})(?:\s*(?:e|,)\s*\d{1,2})?\s+de\s+([a-zç]+)\s+de\s+(\d{4})\b/);
+  const longDate = trimmed.match(/\b(\d{1,2})(?:\s*(?:e|ou|,)\s*\d{1,2})?\s+de\s+([a-zç]+)(?:\s+de\s+(\d{4}))?\b/);
   if (!longDate) return null;
   const [, day, monthName, year] = longDate;
   const month = MONTH_NUMBER_BY_PT_NAME[monthName];
-  return month ? `${year}-${month}-${day.padStart(2, '0')}` : null;
+  const resolvedYear = year || String(new Date().getFullYear());
+  return month ? `${resolvedYear}-${month}-${day.padStart(2, '0')}` : null;
 }
 
 function isMissingSchemaFieldError(error: { code?: string; message?: string } | null) {
@@ -306,7 +307,7 @@ export default function AdminConfigPage() {
       return;
     }
     if (!derivedDate) {
-      toast({ title: 'Use um texto de datas com dia, mês e ano', description: 'Exemplo: 22 e 23 de julho de 2026.', variant: 'destructive' });
+      toast({ title: 'Use um texto de datas com dia e mês', description: 'Exemplo: 28 e 30 de julho.', variant: 'destructive' });
       return;
     }
     setSavingDemoDay(true);
