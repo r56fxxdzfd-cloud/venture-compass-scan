@@ -320,6 +320,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           demo_day_preferred_date_id: string | null
+          demo_day_selected: boolean
           diagnosis_completed_at: string | null
           diagnosis_status: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text: string | null
@@ -346,6 +347,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           demo_day_preferred_date_id?: string | null
+          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           demo_day_preferred_date_id?: string | null
+          demo_day_selected?: boolean
           diagnosis_completed_at?: string | null
           diagnosis_status?: Database["public"]["Enums"]["startup_diagnosis_status"]
           expectations_text?: string | null
