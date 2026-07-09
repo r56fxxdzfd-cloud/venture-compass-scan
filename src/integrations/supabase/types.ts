@@ -1695,6 +1695,10 @@ export type Database = {
         Returns: boolean
       }
       can_operate_platform: { Args: { _user_id: string }; Returns: boolean }
+      can_upload_startup_document_object: {
+        Args: { p_object_name: string }
+        Returns: boolean
+      }
       current_profile_role: { Args: never; Returns: string }
       delete_company: { Args: { p_company_id: string }; Returns: undefined }
       get_unconfirmed_user_ids: {
