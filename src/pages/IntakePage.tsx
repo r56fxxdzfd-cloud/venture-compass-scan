@@ -338,6 +338,24 @@ export default function IntakePage() {
     return true;
   }, [assessmentId, flowAnswers, token]);
 
+  // Autosave diagnosis answers ~2s after last change to avoid losing progress
+  // if the founder refreshes, closes the tab, or times out mid-questionnaire.
+  const autosaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstDiagnosisRenderRef = useRef(true);
+  useEffect(() => {
+    if (phase !== 'diagnosis' || !assessmentId) return;
+    if (firstDiagnosisRenderRef.current) {
+      firstDiagnosisRenderRef.current = false;
+      return;
+    }
+    if (autosaveRef.current) clearTimeout(autosaveRef.current);
+    autosaveRef.current = setTimeout(() => { saveDiagnosis(); }, 2000);
+    return () => { if (autosaveRef.current) clearTimeout(autosaveRef.current); };
+  }, [answers, assessmentId, phase, saveDiagnosis]);
+  useEffect(() => {
+    if (phase === 'diagnosis') firstDiagnosisRenderRef.current = true;
+  }, [assessmentId]);
+
   const completeDiagnosis = async () => {
     if (!token || !config || !assessmentId) return;
     setError('');
