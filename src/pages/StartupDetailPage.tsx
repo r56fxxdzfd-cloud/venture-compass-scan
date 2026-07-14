@@ -65,7 +65,7 @@ function shouldAdvancePipelineStatus(current: StartupPipelineStatus | undefined,
 }
 const openActionStatuses = new Set(['not_started', 'in_progress', 'blocked']);
 const statusLabel: Record<string, string> = { not_started: 'Não iniciada', in_progress: 'Em andamento', completed: 'Concluída', blocked: 'Travada', cancelled: 'Cancelada' };
-const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta' };
+const priorityLabel: Record<string, string> = { low: 'Baixa', medium: 'Média', high: 'Alta', critical: 'Crítica' };
 const COMPANY_LOGO_BUCKET = 'startup-logos';
 const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024;
 const processEventLabel: Record<string, string> = {

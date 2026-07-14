@@ -116,8 +116,12 @@ function validateRegistration(payload: unknown): { ok: true; data: Record<string
   return { ok: true, data };
 }
 
+const MAX_ANSWER_ROWS = 300;
+const MAX_NOTE_LEN = 2000;
+
 function normalizeAnswerRows(answers: unknown, assessmentId: string) {
   if (!Array.isArray(answers)) return null;
+  if (answers.length > MAX_ANSWER_ROWS) throw new Error("respostas em excesso");
   return answers.map((item) => {
     const row = item as Record<string, unknown>;
     const questionId = typeof row.question_id === "string" ? row.question_id.trim() : "";
@@ -133,7 +137,7 @@ function normalizeAnswerRows(answers: unknown, assessmentId: string) {
       question_id: questionId,
       value,
       is_na: isNa,
-      notes: typeof row.notes === "string" && row.notes.trim() ? row.notes.trim() : null,
+      notes: typeof row.notes === "string" && row.notes.trim() ? row.notes.trim().slice(0, MAX_NOTE_LEN) : null,
     };
   });
 }
@@ -436,6 +440,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "diagnosis_start") {
+      if (!company) return json({ ok: false, error: "cadastro não concluído" }, 409);
       const { data: publishedConfig, error: configErr } = await admin
         .from("config_versions")
         .select("id, version_name, config_json")
@@ -506,6 +511,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "complete_diagnosis") {
+      if (!company) return json({ ok: false, error: "cadastro não concluído" }, 409);
       const assessmentId = row.assessment_id as string | null;
       if (!assessmentId) return json({ ok: false, error: "diagnóstico não iniciado" }, 409);
 
@@ -614,14 +620,23 @@ Deno.serve(async (req) => {
         debrief_calendar_url: debriefUrl,
       };
 
-      await admin.from("internal_notifications").insert({
-        type: "diagnosis_completed",
-        title: `Diagnóstico concluído: ${company.company_name || company.name}`,
-        body: "Diagnóstico recebido pelo fluxo público do empreendedor.",
-        data: notificationData,
-        startup_id: companyId,
-        assessment_id: assessmentId,
-      });
+      // Idempotente: não cria segunda notificação para o mesmo assessment (retry/duplo submit).
+      const { data: existingNotif } = await admin
+        .from("internal_notifications")
+        .select("id")
+        .eq("assessment_id", assessmentId)
+        .eq("type", "diagnosis_completed")
+        .maybeSingle();
+      if (!existingNotif) {
+        await admin.from("internal_notifications").insert({
+          type: "diagnosis_completed",
+          title: `Diagnóstico concluído: ${company.company_name || company.name}`,
+          body: "Diagnóstico recebido pelo fluxo público do empreendedor.",
+          data: notificationData,
+          startup_id: companyId,
+          assessment_id: assessmentId,
+        });
+      }
 
       return json({ ok: true, debrief_calendar_url: debriefUrl, priority_level: priorityLevel });
     }
