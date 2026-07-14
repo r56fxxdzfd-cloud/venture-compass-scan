@@ -251,9 +251,13 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: "diagnóstico já concluído" }, 409);
     }
 
-    const company = await loadCompany(admin, row.company_id);
-    if (!company) return json({ ok: false, error: "cadastro não iniciado" }, 409);
-    const companyId = String(company.id);
+    let company = await loadCompany(admin, row.company_id);
+    // Registration is the only action that may create the company.
+    // All other actions require an existing company.
+    if (!company && action !== "registration") {
+      return json({ ok: false, error: "cadastro não iniciado" }, 409);
+    }
+    let companyId = company ? String(company.id) : "";
 
     if (action === "registration") {
       const check = validateRegistration(body?.payload);
