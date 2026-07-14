@@ -30,6 +30,7 @@ const result: AssessmentResult = {
     { dimension_id: 'PT', label: 'Produto & Tecnologia', score: 4, target: 3.5, coverage: 1, answered: 5, total: 5 },
   ],
   red_flags: [],
+  deep_dive_dimensions: [],
   strengths: [],
   gaps: [],
   recommendations: [],

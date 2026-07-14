@@ -100,7 +100,7 @@ export function getSeverityCategory(severity: string): string {
 
 function resolveTargetBenchmark(target: StageTarget | undefined, fallback: number): number {
   if (typeof target === 'number' && Number.isFinite(target)) return target;
-  if (target && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
+  if (target && typeof target === 'object' && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
     return target.benchmark;
   }
   return fallback;
@@ -108,7 +108,7 @@ function resolveTargetBenchmark(target: StageTarget | undefined, fallback: numbe
 
 function resolveTargetPotential(target: StageTarget | undefined, fallback: number): number {
   if (typeof target === 'number' && Number.isFinite(target)) return target;
-  if (target && typeof target.potential === 'number' && Number.isFinite(target.potential)) {
+  if (target && typeof target === 'object' && typeof target.potential === 'number' && Number.isFinite(target.potential)) {
     return target.potential;
   }
   return resolveTargetBenchmark(target, fallback);

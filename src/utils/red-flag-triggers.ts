@@ -190,8 +190,10 @@ export function formatRedFlagTrigger(trigger: RedFlagTrigger, options: FormatOpt
       sentence = code ? `Dispara quando a red flag ${String(code)} estiver ativa` : 'Dispara quando qualquer red flag configurada estiver ativa';
       break;
     }
-    default:
-      sentence = trigger.type ? `Dispara por regra ${trigger.type.replace(/_/g, ' ')}` : 'Gatilho configurado';
+    default: {
+      const fallbackType = (trigger as { type?: string }).type;
+      sentence = fallbackType ? `Dispara por regra ${fallbackType.replace(/_/g, ' ')}` : 'Gatilho configurado';
+    }
   }
 
   return `${appendExtraConditions(sentence, trigger, options)}.`;

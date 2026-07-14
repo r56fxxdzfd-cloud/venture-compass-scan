@@ -48,7 +48,7 @@ export function formatContextNumericValue(field: ContextNumericField, value: str
   const parsed = parseContextNumericInput(value, field);
   if (!Number.isFinite(parsed)) return '';
 
-  if (field.format === 'currency') return currencyFormatter.format(parsed);
+  if (field.format === 'currency') return currencyFormatter.format(parsed).replace(/\u00A0/g, ' ');
   if (field.format === 'percent') return `${decimalFormatter.format(parsed)}%`;
   if (field.format === 'integer') return integerFormatter.format(parsed);
   return decimalFormatter.format(parsed);

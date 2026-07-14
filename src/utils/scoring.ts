@@ -4,7 +4,7 @@ import { getRedFlagTriggerMode } from '@/utils/red-flag-triggers';
 
 function resolveBenchmarkTarget(target: StageTarget | undefined, fallback = 3.5): number {
   if (typeof target === 'number' && Number.isFinite(target)) return target;
-  if (target && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
+  if (target && typeof target === 'object' && typeof target.benchmark === 'number' && Number.isFinite(target.benchmark)) {
     return target.benchmark;
   }
   return fallback;
