@@ -251,9 +251,13 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: "diagnóstico já concluído" }, 409);
     }
 
-    const company = await loadCompany(admin, row.company_id);
-    if (!company) return json({ ok: false, error: "cadastro não iniciado" }, 409);
-    const companyId = String(company.id);
+    let company = await loadCompany(admin, row.company_id);
+    // Registration is the only action that may create the company.
+    // All other actions require an existing company.
+    if (!company && action !== "registration") {
+      return json({ ok: false, error: "cadastro não iniciado" }, 409);
+    }
+    let companyId = company ? String(company.id) : "";
 
     if (action === "registration") {
       const check = validateRegistration(body?.payload);
@@ -269,7 +273,7 @@ Deno.serve(async (req) => {
         revenue_goal_2026: data.revenue_2026_target,
       };
 
-      const updatePayload = {
+      const basePayload = {
         name: data.company_name,
         company_name: data.company_name,
         responsible_name: data.responsible_name,
@@ -281,18 +285,47 @@ Deno.serve(async (req) => {
         revenue_2025: data.revenue_2025,
         revenue_2026_target: data.revenue_2026_target,
         expectations_text: data.expectations_text,
-        pipeline_status: isLaterOrEqual(String(company.pipeline_status), "registration_completed")
-          ? company.pipeline_status
-          : "registration_completed",
       };
 
-      const { data: updatedCompany, error: companyErr } = await admin
-        .from("companies")
-        .update(updatePayload)
-        .eq("id", companyId)
-        .select("*")
-        .single();
-      if (companyErr) return json({ ok: false, error: "não foi possível salvar cadastro" }, 500);
+      let updatedCompany: Record<string, unknown> | null = null;
+
+      if (!company) {
+        const { data: createdCompany, error: createErr } = await admin
+          .from("companies")
+          .insert({
+            ...basePayload,
+            pipeline_status: "registration_completed",
+            diagnosis_status: "not_started",
+          })
+          .select("*")
+          .single();
+        if (createErr || !createdCompany) {
+          return json({ ok: false, error: "não foi possível criar cadastro" }, 500);
+        }
+        updatedCompany = createdCompany;
+        company = createdCompany;
+        companyId = String(createdCompany.id);
+        const { error: linkErr } = await admin
+          .from("intake_submissions")
+          .update({ company_id: companyId })
+          .eq("id", row.id);
+        if (linkErr) return json({ ok: false, error: "não foi possível vincular cadastro" }, 500);
+        await recordEvent(admin, companyId, "registration_started", { source: "public_intake_submit" });
+      } else {
+        const { data: updated, error: companyErr } = await admin
+          .from("companies")
+          .update({
+            ...basePayload,
+            pipeline_status: isLaterOrEqual(String(company.pipeline_status), "registration_completed")
+              ? company.pipeline_status
+              : "registration_completed",
+          })
+          .eq("id", companyId)
+          .select("*")
+          .single();
+        if (companyErr) return json({ ok: false, error: "não foi possível salvar cadastro" }, 500);
+        updatedCompany = updated;
+      }
 
       const { data: questions } = await admin
         .from("onboarding_questions")

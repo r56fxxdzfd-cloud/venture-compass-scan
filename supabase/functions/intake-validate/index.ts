@@ -120,49 +120,13 @@ Deno.serve(async (req) => {
       company = data;
     }
 
-    if (!company) {
-      const placeholderName = row.label?.trim() || "Cadastro em andamento";
-      const { data: created, error: createErr } = await admin
-        .from("companies")
-        .insert({
-          name: placeholderName,
-          company_name: placeholderName,
-          pipeline_status: "registration_started",
-          diagnosis_status: "not_started",
-        })
-        .select("*")
-        .single();
+    // Do NOT auto-create a company just because the intake link was opened.
+    // Placeholder companies were polluting the pipeline whenever email
+    // preview services, link scanners, or curious clicks hit this endpoint.
+    // The company is created on the first real registration submit
+    // (intake-submit action=registration).
 
-      if (createErr || !created) return json({ error: "internal" }, 500);
-
-      company = created;
-      const { error: intakeUpdateErr } = await admin
-        .from("intake_submissions")
-        .update({ status: "registration_started", company_id: created.id })
-        .eq("id", row.id);
-      if (intakeUpdateErr) return json({ error: "não foi possível iniciar cadastro" }, 500);
-      row.status = "registration_started";
-      row.company_id = created.id;
-      await recordEvent(admin, created.id, "registration_started", { source: "public_intake_opened" });
-    } else {
-      const beforeStatus = String(company.pipeline_status || "invited");
-      const advancedCompany = await advancePipelineStatus(admin, company, "registration_started");
-      company = advancedCompany;
-      if (beforeStatus !== advancedCompany.pipeline_status) {
-        await recordEvent(admin, String(advancedCompany.id), "registration_started", { source: "public_intake_opened" });
-      }
-      if (row.status === "pending") {
-        const { error: intakeUpdateErr } = await admin
-          .from("intake_submissions")
-          .update({ status: "registration_started" })
-          .eq("id", row.id);
-        if (intakeUpdateErr) return json({ error: "não foi possível iniciar cadastro" }, 500);
-        row.status = "registration_started";
-      }
-    }
-
-    if (!company) return json({ error: "internal" }, 500);
-    const companyId = String(company.id);
+    const companyId = company ? String(company.id) : null;
 
     const [
       questionsRes,
@@ -182,19 +146,23 @@ Deno.serve(async (req) => {
         .select("*")
         .eq("is_active", true)
         .order("date", { ascending: true }),
-      admin
-        .from("company_demo_day_preferences")
-        .select("demo_day_date_id")
-        .eq("company_id", companyId),
+      companyId
+        ? admin
+            .from("company_demo_day_preferences")
+            .select("demo_day_date_id")
+            .eq("company_id", companyId)
+        : Promise.resolve({ data: [] as { demo_day_date_id: string }[] }),
       admin
         .from("app_settings")
         .select("value")
         .eq("key", "debrief_calendar_url")
         .maybeSingle(),
-      admin
-        .from("onboarding_answers")
-        .select("question_id, answer_text, question:onboarding_questions(question_key)")
-        .eq("startup_id", companyId),
+      companyId
+        ? admin
+            .from("onboarding_answers")
+            .select("question_id, answer_text, question:onboarding_questions(question_key)")
+            .eq("startup_id", companyId)
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     let assessment: Record<string, unknown> | null = null;

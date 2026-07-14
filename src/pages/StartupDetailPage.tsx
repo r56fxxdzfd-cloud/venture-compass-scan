@@ -1482,29 +1482,28 @@ export default function StartupDetailPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Setor</Label>
-              <Select value={editForm.sector} onValueChange={v => setEditForm(prev => ({ ...prev, sector: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fintech">Fintech</SelectItem>
-                  <SelectItem value="healthtech">Healthtech</SelectItem>
-                  <SelectItem value="edtech">Edtech</SelectItem>
-                  <SelectItem value="agtech">Agtech</SelectItem>
-                  <SelectItem value="retailtech">Retailtech</SelectItem>
-                  <SelectItem value="logtech">Logtech</SelectItem>
-                  <SelectItem value="proptech">Proptech</SelectItem>
-                  <SelectItem value="legaltech">Legaltech</SelectItem>
-                  <SelectItem value="hrtech">HRtech</SelectItem>
-                  <SelectItem value="martech">Martech</SelectItem>
-                  <SelectItem value="foodtech">Foodtech</SelectItem>
-                  <SelectItem value="eventech">Eventech</SelectItem>
-                  <SelectItem value="cleantech">Cleantech</SelectItem>
-                  <SelectItem value="insurtech">Insurtech</SelectItem>
-                  <SelectItem value="deeptech">Deeptech</SelectItem>
-                  <SelectItem value="saas">SaaS</SelectItem>
-                  <SelectItem value="marketplace">Marketplace</SelectItem>
-                  <SelectItem value="outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
+              {(() => {
+                const presets = [
+                  ['fintech', 'Fintech'], ['healthtech', 'Healthtech'], ['edtech', 'Edtech'],
+                  ['agtech', 'Agtech'], ['retailtech', 'Retailtech'], ['logtech', 'Logtech'],
+                  ['proptech', 'Proptech'], ['legaltech', 'Legaltech'], ['hrtech', 'HRtech'],
+                  ['martech', 'Martech'], ['foodtech', 'Foodtech'], ['eventech', 'Eventech'],
+                  ['cleantech', 'Cleantech'], ['insurtech', 'Insurtech'], ['deeptech', 'Deeptech'],
+                  ['saas', 'SaaS'], ['marketplace', 'Marketplace'], ['outros', 'Outros'],
+                ] as const;
+                const known = new Set(presets.map(([v]) => v));
+                const current = editForm.sector?.trim() || '';
+                const isLegacy = current && !known.has(current as any);
+                return (
+                  <Select value={editForm.sector} onValueChange={v => setEditForm(prev => ({ ...prev, sector: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      {isLegacy && <SelectItem value={current}>{current} (atual)</SelectItem>}
+                      {presets.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Estágio</Label>
@@ -1519,16 +1518,25 @@ export default function StartupDetailPage() {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Modelo de Receita</Label>
-              <Select value={editForm.business_model} onValueChange={v => setEditForm(prev => ({ ...prev, business_model: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="non_recurring">Não recorrente</SelectItem>
-                  <SelectItem value="recurring">Recorrente</SelectItem>
-                  <SelectItem value="subscription">Assinatura</SelectItem>
-                  <SelectItem value="usage_based">Baseado em uso</SelectItem>
-                  <SelectItem value="hybrid">Híbrido</SelectItem>
-                </SelectContent>
-              </Select>
+              {(() => {
+                const presets = [
+                  ['non_recurring', 'Não recorrente'], ['recurring', 'Recorrente'],
+                  ['subscription', 'Assinatura'], ['usage_based', 'Baseado em uso'],
+                  ['hybrid', 'Híbrido'],
+                ] as const;
+                const known = new Set(presets.map(([v]) => v));
+                const current = editForm.business_model?.trim() || '';
+                const isLegacy = current && !known.has(current as any);
+                return (
+                  <Select value={editForm.business_model} onValueChange={v => setEditForm(prev => ({ ...prev, business_model: v }))}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                    <SelectContent>
+                      {isLegacy && <SelectItem value={current}>{current} (atual)</SelectItem>}
+                      {presets.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
           </div>
           <DialogFooter>

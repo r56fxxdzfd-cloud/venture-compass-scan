@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -337,6 +337,24 @@ export default function IntakePage() {
     setLastSavedAt(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
     return true;
   }, [assessmentId, flowAnswers, token]);
+
+  // Autosave diagnosis answers ~2s after last change to avoid losing progress
+  // if the founder refreshes, closes the tab, or times out mid-questionnaire.
+  const autosaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstDiagnosisRenderRef = useRef(true);
+  useEffect(() => {
+    if (phase !== 'diagnosis' || !assessmentId) return;
+    if (firstDiagnosisRenderRef.current) {
+      firstDiagnosisRenderRef.current = false;
+      return;
+    }
+    if (autosaveRef.current) clearTimeout(autosaveRef.current);
+    autosaveRef.current = setTimeout(() => { saveDiagnosis(); }, 2000);
+    return () => { if (autosaveRef.current) clearTimeout(autosaveRef.current); };
+  }, [answers, assessmentId, phase, saveDiagnosis]);
+  useEffect(() => {
+    if (phase === 'diagnosis') firstDiagnosisRenderRef.current = true;
+  }, [assessmentId]);
 
   const completeDiagnosis = async () => {
     if (!token || !config || !assessmentId) return;
