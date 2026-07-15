@@ -3,6 +3,7 @@ import {
   computeBlocks, getBlocks, getLevel, scoreTo100, overallScore100,
   generateOverallNarrative, getCompleteness, computeGaps, generateRoadmap,
 } from '@/utils/report-helpers';
+import { noRedFlagsConclusion } from '@/utils/context-fields';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
 
 // Darwin palette (hex without #)
@@ -227,8 +228,13 @@ export async function exportReportToDOCX(opts: {
   // --- Red Flags (each = own card)
   body.push(h2('Red Flags'));
   if (result.red_flags.length === 0) {
+    const rfConclusion = noRedFlagsConclusion(assessment.context_numeric as Record<string, number>);
     body.push(card([
-      p([t('✓ Nenhum red flag ativo no momento.', { bold: true, size: 24, color: C.primary })], { alignment: AlignmentType.CENTER }),
+      p([t(`${rfConclusion.complete ? '✓' : '⚠'} ${rfConclusion.detail}`, {
+        bold: rfConclusion.complete,
+        size: rfConclusion.complete ? 24 : 20,
+        color: rfConclusion.complete ? C.primary : C.warning,
+      })], { alignment: rfConclusion.complete ? AlignmentType.CENTER : AlignmentType.LEFT }),
     ]));
     body.push(spacer());
   } else {

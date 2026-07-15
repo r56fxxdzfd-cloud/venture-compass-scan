@@ -10,6 +10,7 @@ import {
   computeGaps,
   generateRoadmap,
 } from '@/utils/report-helpers';
+import { noRedFlagsConclusion } from '@/utils/context-fields';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
 import logoDarwinUrl from '@/assets/logo-darwin.png';
 
@@ -293,17 +294,19 @@ export async function exportReportToPPTX(opts: {
 
   // ===== SLIDE 5: Red Flags =====
   const rfs = result.red_flags;
+  const rfConclusion = noRedFlagsConclusion(assessment.context_numeric as Record<string, number>);
   const rfPages = Math.max(1, Math.ceil(rfs.length / 6));
   for (let p = 0; p < rfPages; p++) {
     const slide = pptx.addSlide(); addBg(slide);
     addHeader(slide, `Red Flags ${rfPages > 1 ? `(${p + 1}/${rfPages})` : ''}`,
-      rfs.length === 0 ? 'Nenhum red flag identificado' : `${rfs.length} red flag(s) identificado(s)`);
+      rfs.length === 0 ? rfConclusion.headline : `${rfs.length} red flag(s) identificado(s)`);
     const slice = rfs.slice(p * 6, p * 6 + 6);
     if (slice.length === 0) {
       card(slide, MARGIN, 2.5, SLIDE_W - MARGIN * 2, 2.5);
-      slide.addText('✓ Nenhum red flag ativo no momento.', {
-        x: MARGIN, y: 3.5, w: SLIDE_W - MARGIN * 2, h: 0.6,
-        fontSize: 20, color: C.primary, align: 'center', bold: true,
+      slide.addText(`${rfConclusion.complete ? '✓' : '⚠'} ${rfConclusion.detail}`, {
+        x: MARGIN + 0.4, y: 2.8, w: SLIDE_W - MARGIN * 2 - 0.8, h: 1.9,
+        fontSize: rfConclusion.complete ? 20 : 13, color: rfConclusion.complete ? C.primary : C.warning,
+        align: rfConclusion.complete ? 'center' : 'left', valign: 'middle', bold: rfConclusion.complete,
       });
     } else {
       const cols = 2;

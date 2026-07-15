@@ -69,3 +69,41 @@ export function missingContextFields(contextNumeric: Record<string, number> | nu
   const ctx = contextNumeric || {};
   return CONTEXT_NUMERIC_FIELDS.filter((f) => ctx[f.key] === undefined || ctx[f.key] === null);
 }
+
+const CONTAGEM_EXTENSO = ['nenhuma', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito'];
+
+// "Nenhum red flag" só é uma conclusão honesta quando todos os dados numéricos
+// foram informados. Sem eles, os triggers que dependem de contexto (runway,
+// concentração de clientes, unit economics) retornam false silenciosamente — e
+// ausência de avaliação vira, no relatório, ausência de risco. Estas frases
+// separam os dois casos para que capa, slide e documento nunca afirmem o que não
+// foi verificado.
+export interface NoRedFlagsConclusion {
+  complete: boolean;
+  headline: string;
+  detail: string;
+}
+
+export function noRedFlagsConclusion(contextNumeric: Record<string, number> | null | undefined): NoRedFlagsConclusion {
+  const missing = missingContextFields(contextNumeric);
+  if (missing.length === 0) {
+    return {
+      complete: true,
+      headline: 'Nenhum red flag identificado',
+      detail: 'Nenhum red flag ativo no momento.',
+    };
+  }
+
+  const n = missing.length;
+  const extenso = CONTAGEM_EXTENSO[n] ?? String(n);
+  const plural = n > 1;
+  return {
+    complete: false,
+    headline: `Nenhum red flag acionado — ${n} variáve${plural ? 'is' : 'l'} não informada${plural ? 's' : ''}`,
+    detail:
+      `Nenhum red flag foi acionado com os dados disponíveis. Entretanto, ${extenso} ` +
+      `variáve${plural ? 'is críticas não foram informadas' : 'l crítica não foi informada'}, impedindo a ` +
+      `avaliação completa de riscos financeiros, comerciais e de concentração: ` +
+      `${missing.map((f) => f.label).join(' · ')}.`,
+  };
+}
