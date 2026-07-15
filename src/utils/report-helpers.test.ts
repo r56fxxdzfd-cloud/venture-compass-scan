@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { computeGaps, scoreTo100 } from './report-helpers';
+import { computeGaps, overallScore100, scoreTo100 } from './report-helpers';
 import { calculateDimensionScores } from './scoring';
-import type { Answer, ConfigJSON, DimensionScore } from '@/types/darwin';
+import type { Answer, AssessmentResult, ConfigJSON, DimensionScore } from '@/types/darwin';
 
 const baseConfig: ConfigJSON = {
   dimensions: [{ id: 'PM', label: 'Processos & Métricas', sort_order: 1 }],
@@ -62,5 +62,35 @@ describe('report target handling', () => {
       gap_potential: scoreTo100(4.5) - scoreTo100(2),
       priority_score: (scoreTo100(4.5) - scoreTo100(2)) * 2,
     });
+  });
+});
+
+describe('overallScore100 — score único no relatório', () => {
+  const resultWith = (weighted: number): AssessmentResult =>
+    ({
+      overall_score: Math.round(weighted * 100) / 100,
+      overall_weighted: weighted,
+      dimension_scores: [],
+      red_flags: [],
+      deep_dive_dimensions: [],
+    }) as AssessmentResult;
+
+  it('não arredonda duas vezes na fronteira (caso Planium: capa 88 vs sumário 89)', () => {
+    const result = resultWith(4.5399);
+    // overall_score foi arredondado para 4.54, que cai exatamente em 88.5 e sobe para 89.
+    expect(scoreTo100(result.overall_score)).toBe(89);
+    // O valor bruto é o correto, e é ele que vale em todo lugar.
+    expect(overallScore100(result)).toBe(88);
+  });
+
+  it('usa o valor bruto, não o arredondado', () => {
+    for (const weighted of [4.5399, 4.535, 3.9999, 2.0201, 4.9999]) {
+      expect(overallScore100(resultWith(weighted))).toBe(scoreTo100(weighted));
+    }
+  });
+
+  it('cai para overall_score quando não há overall_weighted (resultados antigos)', () => {
+    const legacy = { overall_score: 4.54, dimension_scores: [], red_flags: [], deep_dive_dimensions: [] } as unknown as AssessmentResult;
+    expect(overallScore100(legacy)).toBe(89);
   });
 });

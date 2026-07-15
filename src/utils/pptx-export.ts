@@ -4,6 +4,7 @@ import {
   getBlocks,
   getLevel,
   scoreTo100,
+  overallScore100,
   generateOverallNarrative,
   getCompleteness,
   computeGaps,
@@ -82,7 +83,7 @@ export async function exportReportToPPTX(opts: {
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
   const completeness = getCompleteness(result);
 
-  const overallPct = scoreTo100(result.overall_weighted ?? result.overall_score);
+  const overallPct = overallScore100(result);
   const level = getLevel(overallPct);
   const blocks = computeBlocks(getBlocks(config), result.dimension_scores, config, stage);
   const narrative = generateOverallNarrative(result, config, stage);

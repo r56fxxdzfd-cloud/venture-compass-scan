@@ -21,7 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { calculateAssessmentResult } from '@/utils/scoring';
-import { scoreTo100, getLevel } from '@/utils/report-helpers';
+import { overallScore100, getLevel } from '@/utils/report-helpers';
 import { getCurrentSemester, getFounderStageLabel } from '@/utils/founder-scoring';
 import type { Company, Assessment, ConfigJSON, Answer, DemoDayDate, StartupPipelineStatus } from '@/types/darwin';
 import type { Founder, FounderAssessment } from '@/types/founder';
@@ -257,7 +257,7 @@ export default function StartupDetailPage() {
             const cfg = cv.config_json as unknown as ConfigJSON;
             const { data: answers } = await supabase.from('answers').select('*').eq('assessment_id', lastCompleted.id);
             const result = calculateAssessmentResult(cfg, (answers || []) as Answer[], lastCompleted.stage || 'seed', (lastCompleted.context_numeric as Record<string, number>) || {}, { revenue_model: lastCompleted.revenue_model, customer_type: lastCompleted.customer_type, business_model: lastCompleted.business_model });
-            const s100 = scoreTo100(result.overall_score);
+            const s100 = overallScore100(result);
             const level = getLevel(s100);
             setLastResult({ score100: s100, level: level.label, levelColor: level.color, redFlagCount: result.red_flags.length, assessmentId: lastCompleted.id });
           }

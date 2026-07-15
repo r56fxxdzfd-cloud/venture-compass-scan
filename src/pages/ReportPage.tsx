@@ -24,7 +24,7 @@ import {
 import { calculateAssessmentResult } from '@/utils/scoring';
 import { filterSkippedAnswers } from '@/utils/question-flow';
 import { getCurrentSemester, getFounderStageLabel, computePillarScoreUsed } from '@/utils/founder-scoring';
-import { getCompleteness, scoreTo100 } from '@/utils/report-helpers';
+import { getCompleteness, overallScore100 } from '@/utils/report-helpers';
 import { validateReportExportReadiness } from '@/utils/export-readiness';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,7 +121,7 @@ export default function ReportPage() {
             const merged = {
               ...((notif.data as Record<string, unknown>) || {}),
               score_general: res.overall_score,
-              score_100: scoreTo100(res.overall_score),
+              score_100: overallScore100(res),
               red_flags: res.red_flags.map((f) => ({ code: f.code, label: f.label, severity: f.severity })),
               priority_level: priority,
             };
@@ -787,6 +787,6 @@ export default function ReportPage() {
 }
 
 function scoreLabel(result: AssessmentResult) {
-  const score = scoreTo100((result as any).overall_weighted ?? result.overall_score);
+  const score = overallScore100(result);
   return `${score}/100`;
 }

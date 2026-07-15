@@ -8,6 +8,17 @@ export function scoreTo100(score: number): number {
   return Math.max(0, Math.min(100, v));
 }
 
+// O AssessmentResult carrega o score geral em duas formas: `overall_weighted`
+// (bruto) e `overall_score` (arredondado em 2 casas, para exibir na escala 0-5).
+// Converter a forma arredondada para 0-100 arredonda duas vezes e desloca o
+// resultado em 1 ponto na fronteira — ex.: 4.5399 -> 88, mas 4.54 -> 89. Todo
+// ponto que exibe o score em /100 passa por aqui, para capa, sumário, gráfico e
+// notificação nunca discordarem entre si.
+export function overallScore100(result: AssessmentResult): number {
+  const raw = (result as { overall_weighted?: number }).overall_weighted;
+  return scoreTo100(Number.isFinite(raw) ? (raw as number) : result.overall_score);
+}
+
 export function getLevel(score100: number): { label: string; color: string } {
   if (score100 >= 75) return { label: 'Avançado', color: 'text-success' };
   if (score100 >= 55) return { label: 'Estruturado', color: 'text-primary' };
@@ -408,7 +419,7 @@ export function generateOverallNarrative(
   stage: string,
   answers?: Answer[]
 ): string {
-  const score100 = scoreTo100(result.overall_score);
+  const score100 = overallScore100(result);
   const level = getLevel(score100);
   const gaps = computeGaps(result.dimension_scores, config, stage);
   const topGaps = gaps.slice(0, 2).map((g) => g.label);

@@ -5,7 +5,7 @@ import { AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import type { AssessmentResult, ConfigJSON, DimensionScore, EvaluatedRedFlag, Answer } from '@/types/darwin';
 import { Users } from 'lucide-react';
 import {
-  scoreTo100, getLevel, getCompleteness, computeBlocks, getBlocks,
+  scoreTo100, overallScore100, getLevel, getCompleteness, computeBlocks, getBlocks,
   computeGaps, getPenalty, computeCouncilRisk, getSeverityCategory,
   generateOverallNarrative, generateDimensionNarrative, generateRoadmap,
   type BlockResult, type PrioritizedGap, type RoadmapAction, type CompletenessInfo,
@@ -100,7 +100,7 @@ export function ReportHeader({
 
 // ======== B. Overall Score ========
 export function OverallScoreCard({ result, config, stage, answers }: { result: AssessmentResult; config: ConfigJSON; stage: string; answers?: Answer[] }) {
-  const score100 = scoreTo100(result.overall_score);
+  const score100 = overallScore100(result);
   const level = getLevel(score100);
   const narrative = generateOverallNarrative(result, config, stage, answers);
 

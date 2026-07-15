@@ -1,6 +1,6 @@
 import type { Assessment, AssessmentResult, ConfigJSON, Answer } from '@/types/darwin';
 import {
-  computeBlocks, getBlocks, getLevel, scoreTo100,
+  computeBlocks, getBlocks, getLevel, scoreTo100, overallScore100,
   generateOverallNarrative, getCompleteness, computeGaps, generateRoadmap,
 } from '@/utils/report-helpers';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
@@ -50,7 +50,7 @@ export async function exportReportToDOCX(opts: {
   const stage = assessment.stage || 'seed';
   const dateStr = new Date(assessment.created_at).toLocaleDateString('pt-BR');
   const completeness = getCompleteness(result);
-  const overallPct = scoreTo100((result as any).overall_weighted ?? result.overall_score);
+  const overallPct = overallScore100(result);
   const level = getLevel(overallPct);
   const blocks = computeBlocks(getBlocks(config), result.dimension_scores, config, stage);
   const narrative = generateOverallNarrative(result, config, stage, answers);
