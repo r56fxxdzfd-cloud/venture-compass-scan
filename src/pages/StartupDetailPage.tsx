@@ -42,22 +42,9 @@ import {
 } from '@/utils/context-fields';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
+import { pipelineStatusLabels, pipelineStatusOptions, pipelineStatusOrder } from '@/utils/pipeline';
 
 const stageLabels: Record<string, string> = { pre_seed: 'Pre-Seed', seed: 'Seed', series_a: 'Series A' };
-const pipelineStatusLabels: Record<StartupPipelineStatus, string> = {
-  invited: 'Convidada',
-  registration_started: 'Cadastro iniciado',
-  registration_completed: 'Cadastro concluído',
-  diagnosis_started: 'Diagnóstico iniciado',
-  diagnosis_completed: 'Diagnóstico concluído',
-  debrief_scheduled: 'Devolutiva agendada',
-  debrief_completed: 'Devolutiva realizada',
-  selected_for_pilot: 'Selecionada para piloto',
-  standby: 'Standby',
-  in_followup: 'Em follow-up',
-};
-const pipelineStatusOptions = Object.entries(pipelineStatusLabels) as [StartupPipelineStatus, string][];
-const pipelineStatusOrder = pipelineStatusOptions.map(([value]) => value);
 function shouldAdvancePipelineStatus(current: StartupPipelineStatus | undefined, next: StartupPipelineStatus) {
   const currentIndex = current ? pipelineStatusOrder.indexOf(current) : -1;
   const nextIndex = pipelineStatusOrder.indexOf(next);

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   LayoutDashboard, Building2, SlidersHorizontal, BookOpen, CalendarRange,
-  Settings, Users, LogOut, Menu, Moon, Sun, Scale } from
+  Settings, Users, LogOut, Menu, Moon, Sun, Scale, Bell } from
 'lucide-react';
 import logoDarwin from '@/assets/logo-darwin.png';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
   const { theme, setTheme } = useTheme();
   const mainRef = useRef<HTMLElement>(null);
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
   const isDemoMode = isDemoUser || isDemoAdmin;
   // Membro do Comitê de Crescimento (advisor) e modo demo não acessam ferramentas internas de metodologia/simulador.
   const hideInternalTools = isDemoMode || isAdvisor;
@@ -54,6 +55,21 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
     const interval = setInterval(fetchPending, 60000);
     return () => clearInterval(interval);
   }, [isSuperAdmin]);
+
+  // Notificações internas não lidas (ex.: diagnóstico concluído). A RLS já limita
+  // quem enxerga — para quem não tem acesso, a contagem volta 0 e o sino não aparece.
+  useEffect(() => {
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from('internal_notifications')
+        .select('*', { count: 'exact', head: true })
+        .is('read_at', null);
+      setUnreadCount(count || 0);
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -196,6 +212,28 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
           <div className="min-w-0 flex-1">
             <AppBreadcrumbs />
           </div>
+          {unreadCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative shrink-0"
+                    onClick={() => navigate('/app/startups?tab=intakes')}
+                    aria-label={`${unreadCount} diagnóstico(s) concluído(s) não lido(s)`}>
+                    <Bell className="h-5 w-5" />
+                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                      {unreadCount}
+                    </span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {unreadCount} diagnóstico{unreadCount > 1 ? 's' : ''} concluído{unreadCount > 1 ? 's' : ''} — abrir Intakes
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </header>
 
         {/* Content */}

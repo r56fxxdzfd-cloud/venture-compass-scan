@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import type { Company } from '@/types/darwin';
+import type { Company, StartupPipelineStatus } from '@/types/darwin';
+import { pipelineStatusLabels, pipelineStatusOptions } from '@/utils/pipeline';
 import { motion } from 'framer-motion';
 import { BackToTopFooter } from '@/components/BackToTopFooter';
 import { IntakeInbox } from '@/components/startup/IntakeInbox';
@@ -36,6 +37,13 @@ export default function StartupsPage() {
   const [archived, setArchived] = useState<Company[]>([]);
   const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, PortfolioMetric>>({});
   const [search, setSearch] = useState('');
+  const [pipelineFilter, setPipelineFilter] = useState<StartupPipelineStatus | 'all'>('all');
+  // O sino do cabeçalho navega para ?tab=intakes — abre a aba já com o painel.
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') === 'intakes' ? 'intakes' : 'portfolio');
+  useEffect(() => {
+    if (searchParams.get('tab') === 'intakes') setTab('intakes');
+  }, [searchParams]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', logo_url: '', legal_name: '', cnpj: '', sector: '', stage: '', business_model: '' });
   const { canOperatePlatform, isDemoUser, isDemoAdmin, isAnalyst, isSuperAdmin } = useAuth();
@@ -177,7 +185,8 @@ export default function StartupsPage() {
   };
 
   const filtered = companies.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase()) &&
+    (pipelineFilter === 'all' || (c.pipeline_status || 'invited') === pipelineFilter)
   );
   const cnpjDigits = form.cnpj.replace(/\D/g, '');
   const cnpjError = cnpjDigits.length === 0
@@ -339,7 +348,7 @@ export default function StartupsPage() {
         </div>
       </section>
 
-      <Tabs defaultValue="portfolio" className="space-y-6">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
         {isOperator && (
           <TabsList>
             <TabsTrigger value="portfolio">Portfólio</TabsTrigger>
@@ -349,14 +358,27 @@ export default function StartupsPage() {
         )}
         <TabsContent value="portfolio" className="space-y-6">
       {companies.length > 0 && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar organização..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar organização..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={pipelineFilter} onValueChange={(v) => setPipelineFilter(v as StartupPipelineStatus | 'all')}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Todos os estágios" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os estágios</SelectItem>
+              {pipelineStatusOptions.map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -400,6 +422,9 @@ export default function StartupsPage() {
                         <div className="min-w-0 flex-1 space-y-2">
                           <p className="break-words text-base font-semibold leading-tight">{company.name}</p>
                           <div className="flex flex-wrap items-center gap-2">
+                            <span className="executive-pill text-xs border border-border/70 text-muted-foreground">
+                              {pipelineStatusLabels[company.pipeline_status || 'invited']}
+                            </span>
                             {company.demo_day_selected && (
                               <span className="executive-pill text-xs bg-primary/80 text-primary-foreground">Demo Day</span>
                             )}
