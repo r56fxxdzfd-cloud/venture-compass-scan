@@ -12,7 +12,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { QuestionTooltipContent } from '@/components/QuestionTooltipContent';
 import { hasQuestionTooltipContent } from '@/utils/question-tooltip';
 import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionContext } from '@/utils/question-flow';
-import { calculateAssessmentResult } from '@/utils/scoring';
 import { getDemoDayDateLabel } from '@/utils/demo-day';
 import { getNextDimensionAfterCompletedQuestion, scrollQuestionnaireToTop } from '@/utils/questionnaire-navigation';
 import type { Answer, Company, ConfigJSON, ConfigQuestion, DemoDayDate } from '@/types/darwin';
@@ -364,13 +363,9 @@ export default function IntakePage() {
       return;
     }
     setPhase('submitting');
-    const result = calculateAssessmentResult(
-      config,
-      flowAnswers,
-      company?.stage || 'seed',
-      { ...(company?.headcount ? { headcount: company.headcount } : {}) },
-      assessmentContext,
-    );
+    // O score/red flags NÃO são calculados no cliente — a config de scoring não é
+    // enviada ao público. O servidor apenas registra a conclusão; o score e a
+    // prioridade são calculados de forma autoritativa quando o admin abre o diagnóstico.
     const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
       body: {
         token,
@@ -378,15 +373,6 @@ export default function IntakePage() {
         answers: flowAnswers,
         answerable_question_ids: [...answerableIds],
         app_origin: window.location.origin,
-        result_summary: {
-          overall_score: result.overall_score,
-          overall_weighted: result.overall_weighted,
-          red_flags: result.red_flags.map((flag) => ({
-            code: flag.code,
-            label: flag.label,
-            severity: flag.severity,
-          })),
-        },
       },
     });
     if (fnError || !data?.ok) {

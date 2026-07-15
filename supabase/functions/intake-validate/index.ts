@@ -15,6 +15,15 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Config enviada ao cliente público: apenas o necessário para renderizar e
+// navegar o questionário (dimensões + perguntas, com suas skip rules/tooltips).
+// Remove pesos, targets, red flags, action_library, metodologia, etc. — assim o
+// empreendedor NÃO consegue recomputar o score/red flags localmente.
+function publicConfigJson(configJson: unknown): Record<string, unknown> {
+  const c = (configJson || {}) as Record<string, unknown>;
+  return { dimensions: c.dimensions ?? [], questions: c.questions ?? [] };
+}
+
 const RL_WINDOW_MS = 60_000;
 const RL_MAX = 30;
 const hits = new Map<string, number[]>();
@@ -181,7 +190,7 @@ Deno.serve(async (req) => {
           .select("id, version_name, config_json")
           .eq("id", assessmentRow.config_version_id)
           .maybeSingle();
-        config = configRow;
+        config = configRow ? { ...configRow, config_json: publicConfigJson(configRow.config_json) } : null;
       }
       const { data: answerRows } = await admin
         .from("answers")

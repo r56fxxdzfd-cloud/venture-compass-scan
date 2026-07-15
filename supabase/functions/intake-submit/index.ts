@@ -14,6 +14,17 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// Config enviada ao cliente público: só dimensões + perguntas (renderizar/navegar
+// o questionário). Remove pesos, targets, red flags, etc. — o empreendedor não
+// consegue recomputar o score localmente.
+function publicConfigJson(configJson: unknown): Record<string, unknown> {
+  const c = (configJson || {}) as Record<string, unknown>;
+  return { dimensions: c.dimensions ?? [], questions: c.questions ?? [] };
+}
+function publicConfig(configRow: Record<string, unknown> | null): Record<string, unknown> | null {
+  return configRow ? { ...configRow, config_json: publicConfigJson(configRow.config_json) } : null;
+}
+
 const RL_WINDOW_MS = 60_000;
 const RL_MAX = 20;
 const hits = new Map<string, number[]>();
@@ -158,20 +169,6 @@ function normalizeDemoDayDateIds(body: Record<string, any>): string[] {
 
 function isMissingRelationError(error: { code?: string; message?: string } | null | undefined): boolean {
   return error?.code === "PGRST205" || /schema cache|does not exist|could not find/i.test(error?.message || "");
-}
-
-function priorityFromRedFlags(redFlags: Array<{ severity?: string }> | undefined): "critical" | "high" | "medium" | "low" {
-  const severities = new Set((redFlags || []).map((flag) => flag.severity));
-  if (severities.has("high") || severities.has("critical")) return "critical";
-  if (severities.has("medium_high")) return "high";
-  if (severities.has("medium")) return "medium";
-  return "low";
-}
-
-function scoreTo100(score: number | null | undefined): number | null {
-  if (typeof score !== "number" || !Number.isFinite(score)) return null;
-  if (score <= 1) return 0;
-  return Math.max(0, Math.min(100, Math.round(((score - 1) / 4) * 100)));
 }
 
 async function recordEvent(
@@ -495,7 +492,7 @@ Deno.serve(async (req) => {
       await recordEvent(admin, companyId, "diagnosis_started", { source: "public_intake" }, assessmentId);
 
       const { data: answers } = await admin.from("answers").select("*").eq("assessment_id", assessmentId);
-      return json({ ok: true, assessment, config: publishedConfig, answers: answers || [] });
+      return json({ ok: true, assessment, config: publicConfig(publishedConfig), answers: answers || [] });
     }
 
     if (action === "save_diagnosis") {
@@ -537,16 +534,14 @@ Deno.serve(async (req) => {
         return json({ ok: false, error: `faltam respostas obrigatórias: ${missing.length}` }, 400);
       }
 
-      const summary = body?.result_summary && typeof body.result_summary === "object"
-        ? body.result_summary as Record<string, any>
-        : {};
-      const redFlags = Array.isArray(summary.red_flags) ? summary.red_flags : [];
-      const priorityLevel = priorityFromRedFlags(redFlags);
+      // Score e red flags NÃO são recebidos do cliente (a config de scoring não é
+      // exposta ao público). priority_level fica pendente e é calculado de forma
+      // autoritativa quando o admin abre o diagnóstico (ver ReportPage).
       const completedAt = new Date().toISOString();
 
       const { error: assessmentErr } = await admin
         .from("assessments")
-        .update({ status: "completed", completed_at: completedAt, priority_level: priorityLevel })
+        .update({ status: "completed", completed_at: completedAt, priority_level: null })
         .eq("id", assessmentId);
       if (assessmentErr) return json({ ok: false, error: "não foi possível finalizar diagnóstico" }, 500);
 
@@ -572,13 +567,7 @@ Deno.serve(async (req) => {
         admin,
         companyId,
         "diagnosis_completed",
-        {
-          source: "public_intake",
-          score_general: summary.overall_score ?? null,
-          score_100: scoreTo100(summary.overall_score),
-          red_flags: redFlags,
-          priority_level: priorityLevel,
-        },
+        { source: "public_intake" },
         assessmentId,
       );
 
@@ -612,10 +601,11 @@ Deno.serve(async (req) => {
         },
         demo_day_preferred_date: demoDates[0] || fallbackDemoDate,
         demo_day_preferred_dates: demoDates.length > 0 ? demoDates : fallbackDemoDate ? [fallbackDemoDate] : [],
-        score_general: summary.overall_score ?? null,
-        score_100: scoreTo100(summary.overall_score),
-        red_flags: redFlags,
-        priority_level: priorityLevel,
+        // Preenchidos de forma autoritativa quando o admin abrir o diagnóstico (backfill).
+        score_general: null,
+        score_100: null,
+        red_flags: [],
+        priority_level: null,
         admin_url: adminUrl,
         debrief_calendar_url: debriefUrl,
       };
@@ -638,7 +628,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      return json({ ok: true, debrief_calendar_url: debriefUrl, priority_level: priorityLevel });
+      return json({ ok: true, debrief_calendar_url: debriefUrl });
     }
 
     if (action === "debrief_link_clicked") {

@@ -102,6 +102,34 @@ export default function ReportPage() {
       const res = calculateAssessmentResult(cfg, loadedAnswers, a.stage || 'seed', (a.context_numeric as Record<string, number>) || {}, assessmentContext);
       setResult(res);
 
+      // "Calcular ao abrir": o fluxo público não computa score/red flags no cliente.
+      // Quando um operador abre o diagnóstico, derivamos a prioridade aqui (fonte
+      // autoritativa), persistimos e preenchemos a notificação. É auto-corretivo:
+      // recalcula sempre e só grava se divergir do armazenado — assim corrige
+      // valores herdados do fluxo antigo (quando o cliente enviava o resumo).
+      if (canEditContext) {
+        const sev = new Set(res.red_flags.map((f) => f.severity));
+        const priority = (sev.has('high') || sev.has('critical')) ? 'critical'
+          : sev.has('medium_high') ? 'high'
+          : sev.has('medium') ? 'medium' : 'low';
+        const stored = (a as { priority_level?: string | null }).priority_level ?? null;
+        if (stored !== priority) {
+          await supabase.from('assessments').update({ priority_level: priority }).eq('id', id);
+          const { data: notif } = await supabase.from('internal_notifications')
+            .select('id, data').eq('assessment_id', id).eq('type', 'diagnosis_completed').maybeSingle();
+          if (notif) {
+            const merged = {
+              ...((notif.data as Record<string, unknown>) || {}),
+              score_general: res.overall_score,
+              score_100: scoreTo100(res.overall_score),
+              red_flags: res.red_flags.map((f) => ({ code: f.code, label: f.label, severity: f.severity })),
+              priority_level: priority,
+            };
+            await supabase.from('internal_notifications').update({ data: merged }).eq('id', notif.id);
+          }
+        }
+      }
+
       // Quais quick wins já viraram action_items nesta company (evita duplicar)
       const { data: aiRows } = await supabase.from('action_items').select('source_action_id').eq('company_id', a.company_id);
       setActionItemSourceIds(new Set((aiRows || []).map((r: any) => r.source_action_id).filter(Boolean) as string[]));
