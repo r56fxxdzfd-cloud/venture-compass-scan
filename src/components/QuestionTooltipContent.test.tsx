@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { QuestionTooltipContent } from './QuestionTooltipContent';
 import { DIAGNOSTIC_QUESTION_EXPLANATION_IDS } from '@/utils/question-explanations';
