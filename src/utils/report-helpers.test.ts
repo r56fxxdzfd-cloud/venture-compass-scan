@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeGaps, overallScore100, scoreTo100 } from './report-helpers';
+import { computeGaps, generateRoadmap, overallScore100, scoreTo100, type PrioritizedGap } from './report-helpers';
 import { calculateDimensionScores } from './scoring';
 import type { Answer, AssessmentResult, ConfigJSON, DimensionScore } from '@/types/darwin';
 
@@ -92,5 +92,37 @@ describe('overallScore100 — score único no relatório', () => {
   it('cai para overall_score quando não há overall_weighted (resultados antigos)', () => {
     const legacy = { overall_score: 4.54, dimension_scores: [], red_flags: [], deep_dive_dimensions: [] } as unknown as AssessmentResult;
     expect(overallScore100(legacy)).toBe(89);
+  });
+});
+
+describe('generateRoadmap — Pauta ↔ Roadmap alinhados', () => {
+  const gap = (over: Partial<PrioritizedGap>): PrioritizedGap => ({
+    dimension_id: 'GT', label: 'Go-to-market & Tração', score: 3.4,
+    score100: 60, target: 3.6, target100: 65, potential100: 65,
+    gap_potential: 5, priority_score: 10, ...over,
+  });
+
+  it('caso 4MDG: gap único de dimensão madura ancora a Wave 1 (não fica só na Wave 3)', () => {
+    // score100 60 + gap 5 -> getGapBaseWave devolveria Wave 3. Antes: curto prazo
+    // "A definir". Agora o gap nº 1 (o mesmo que a Pauta eleva) ancora a Wave 1.
+    const actions = generateRoadmap([gap({})], [], baseConfig);
+    const waves = new Set(actions.map((a) => a.wave));
+    expect(waves.has(1)).toBe(true);
+    expect(waves.has(2)).toBe(true);
+    expect(waves.has(3)).toBe(true);
+    const wave1 = actions.filter((a) => a.wave === 1);
+    expect(wave1.length).toBeGreaterThan(0);
+    expect(wave1.every((a) => a.title.includes('Go-to-market & Tração'))).toBe(true);
+  });
+
+  it('gap de baixa prioridade (3º+) mantém a régua de maturidade — não é forçado à Wave 1', () => {
+    const gaps = [
+      gap({ dimension_id: 'A', label: 'Dim A' }),
+      gap({ dimension_id: 'B', label: 'Dim B' }),
+      gap({ dimension_id: 'C', label: 'Dim C madura', score100: 70, gap_potential: 3, priority_score: 3 }),
+    ];
+    const wave1Titles = generateRoadmap(gaps, [], baseConfig)
+      .filter((a) => a.wave === 1).map((a) => a.title).join(' | ');
+    expect(wave1Titles).not.toContain('Dim C madura');
   });
 });

@@ -183,6 +183,10 @@ export interface RoadmapAction {
 
 const WAVE_LIMITS: Record<1 | 2 | 3, number> = { 1: 2, 2: 3, 3: 3 };
 const WAVE_LABELS: Record<1 | 2 | 3, string> = { 1: '0-30 dias', 2: '31-90 dias', 3: '91-180 dias' };
+// Quantos dos maiores gaps ancoram a Wave 1 do roadmap. Espelha a fatia que a
+// Pauta do próximo comitê usa (generateMeetingAgenda: gaps.slice(0, 2)), para
+// que as duas seções não se contradigam. Ao mudar aqui, alinhar lá também.
+const ROADMAP_NEAR_TERM_GAPS = 2;
 
 interface TemporalTrail {
   wave1: string;
@@ -368,8 +372,16 @@ export function generateRoadmap(
     }
   });
 
-  gaps.forEach((g) => {
-    const baseWave = getGapBaseWave(g);
+  gaps.forEach((g, gapIndex) => {
+    const naturalWave = getGapBaseWave(g);
+    // Alinhamento Pauta ↔ Roadmap: os gaps que a Pauta eleva como prioridade da
+    // próxima reunião (os ROADMAP_NEAR_TERM_GAPS primeiros) ancoram a Wave 1.
+    // Sem isso, um gap de dimensão já madura (score ≥ 55, gap pequeno) cai só na
+    // Wave 3 e o curto prazo fica "A definir" — contradizendo a Pauta, que trata
+    // o mesmo gap como prioridade imediata. Os demais gaps seguem a régua de
+    // maturidade do getGapBaseWave. Red flags, quando existem, disputam a Wave 1
+    // com score bem maior e naturalmente têm precedência sobre estas âncoras.
+    const baseWave = gapIndex < ROADMAP_NEAR_TERM_GAPS ? 1 : naturalWave;
     const baseScore = Math.round(g.priority_score);
 
     pushCandidate({
