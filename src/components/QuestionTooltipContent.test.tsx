@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { QuestionTooltipContent } from './QuestionTooltipContent';
 import { DIAGNOSTIC_QUESTION_EXPLANATION_IDS } from '@/utils/question-explanations';
@@ -24,17 +24,17 @@ describe('QuestionTooltipContent', () => {
       },
     };
 
-    render(<QuestionTooltipContent question={question} />);
+    const { getByText } = render(<QuestionTooltipContent question={question} />);
 
-    expect(screen.getByText('O que significa')).toBeInTheDocument();
-    expect(screen.getByText('Como interpretar')).toBeInTheDocument();
-    expect(screen.getByText('Interprete se founders e time explicam a empresa de forma consistente.')).toBeInTheDocument();
-    expect(screen.getByText('Por que importa')).toBeInTheDocument();
-    expect(screen.getByText('Isso reduz desalinhamento em decisões críticas.')).toBeInTheDocument();
-    expect(screen.getByText('Referências para pontuar 1 / 3 / 5')).toBeInTheDocument();
-    expect(screen.getByText(/Cada pessoa explica de um jeito/)).toBeInTheDocument();
-    expect(screen.getByText('Exemplos de evidências')).toBeInTheDocument();
-    expect(screen.getByText('Materiais de onboarding')).toBeInTheDocument();
+    expect(getByText('O que significa')).toBeInTheDocument();
+    expect(getByText('Como interpretar')).toBeInTheDocument();
+    expect(getByText('Interprete se founders e time explicam a empresa de forma consistente.')).toBeInTheDocument();
+    expect(getByText('Por que importa')).toBeInTheDocument();
+    expect(getByText('Isso reduz desalinhamento em decisões críticas.')).toBeInTheDocument();
+    expect(getByText('Referências para pontuar 1 / 3 / 5')).toBeInTheDocument();
+    expect(getByText(/Cada pessoa explica de um jeito/)).toBeInTheDocument();
+    expect(getByText('Exemplos de evidências')).toBeInTheDocument();
+    expect(getByText('Materiais de onboarding')).toBeInTheDocument();
   });
 
   it('keeps explanations available for all 45 diagnostic question ids', () => {
