@@ -487,10 +487,14 @@ export default function ReportPage() {
               <Badge variant={assessment.status === 'completed' ? 'default' : 'secondary'}>
                 {assessment.status === 'completed' ? 'Concluído' : 'Parcial'}
               </Badge>
-              {' '}
-              <Badge variant={priorityLevel === 'critical' || priorityLevel === 'high' ? 'destructive' : 'outline'}>
-                {priorityLabel[priorityLevel] || priorityLevel}
-              </Badge>
+              {priorityLevel !== 'low' && (
+                <>
+                  {' '}
+                  <Badge variant={priorityLevel === 'critical' || priorityLevel === 'high' ? 'destructive' : 'outline'}>
+                    {priorityLabel[priorityLevel] || priorityLevel}
+                  </Badge>
+                </>
+              )}
             </p>
           </div>
         </div>
