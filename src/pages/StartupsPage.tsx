@@ -21,6 +21,7 @@ import { IntakeInbox } from '@/components/startup/IntakeInbox';
 import { CompanyLogoMark } from '@/components/startup/CompanyLogoMark';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
+import { downloadCompaniesCsv } from '@/utils/companies-export';
 
 interface PortfolioMetric {
   diagnostics: number;
