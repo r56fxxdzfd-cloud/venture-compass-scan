@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Building2, Sparkles, ArrowRight } from 'lucide-react';
+import { Plus, Search, Building2, Sparkles, ArrowRight, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,6 +21,7 @@ import { IntakeInbox } from '@/components/startup/IntakeInbox';
 import { CompanyLogoMark } from '@/components/startup/CompanyLogoMark';
 import { formatCnpj, isValidCnpj } from '@/utils/cnpj';
 import { friendlySupabaseError } from '@/utils/supabase-errors';
+import { downloadCompaniesCsv } from '@/utils/companies-export';
 
 interface PortfolioMetric {
   diagnostics: number;
@@ -53,6 +54,22 @@ export default function StartupsPage() {
   const isDemoOnly = (isDemoUser || isDemoAdmin) && !canOperatePlatform && !isAnalyst && !isSuperAdmin;
   const canCreateOrganization = (canOperatePlatform || isAnalyst || isSuperAdmin) && !isDemoOnly;
   const isOperator = canOperatePlatform || isAnalyst; // admin/analyst → acesso a Intakes
+  const canExportData = (canOperatePlatform || isSuperAdmin) && !isDemoOnly;
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCsv = async (onlyDemoDay: boolean) => {
+    setExporting(true);
+    try {
+      const count = await downloadCompaniesCsv({ onlyDemoDay });
+      toast({ title: 'Exportação concluída', description: `${count} organizações exportadas em CSV.` });
+    } catch (e) {
+      toast({ title: 'Erro ao exportar', description: friendlySupabaseError(e), variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
 
   const fetchCompanies = async () => {
     // Lista principal esconde organizações arquivadas
@@ -216,6 +233,16 @@ export default function StartupsPage() {
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Growth OS.</p>
           </div>
+          {canExportData && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button size="sm" variant="outline" className="rounded-full" disabled={exporting} onClick={() => handleExportCsv(false)}>
+                <Download className="mr-2 h-4 w-4" /> Exportar cadastros (CSV)
+              </Button>
+              <Button size="sm" variant="ghost" className="rounded-full" disabled={exporting} onClick={() => handleExportCsv(true)}>
+                <Download className="mr-2 h-4 w-4" /> Somente Demo Day
+              </Button>
+            </div>
+          )}
           {canCreateOrganization && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
