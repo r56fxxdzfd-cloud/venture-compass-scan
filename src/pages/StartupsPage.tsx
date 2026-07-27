@@ -233,6 +233,16 @@ export default function StartupsPage() {
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">Portfólio de Organizações</h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">Empresas e instituições acompanhadas pelo Growth OS.</p>
           </div>
+          {canExportData && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button size="sm" variant="outline" className="rounded-full" disabled={exporting} onClick={() => handleExportCsv(false)}>
+                <Download className="mr-2 h-4 w-4" /> Exportar cadastros (CSV)
+              </Button>
+              <Button size="sm" variant="ghost" className="rounded-full" disabled={exporting} onClick={() => handleExportCsv(true)}>
+                <Download className="mr-2 h-4 w-4" /> Somente Demo Day
+              </Button>
+            </div>
+          )}
           {canCreateOrganization && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
