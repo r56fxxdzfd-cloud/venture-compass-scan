@@ -54,6 +54,22 @@ export default function StartupsPage() {
   const isDemoOnly = (isDemoUser || isDemoAdmin) && !canOperatePlatform && !isAnalyst && !isSuperAdmin;
   const canCreateOrganization = (canOperatePlatform || isAnalyst || isSuperAdmin) && !isDemoOnly;
   const isOperator = canOperatePlatform || isAnalyst; // admin/analyst → acesso a Intakes
+  const canExportData = (canOperatePlatform || isSuperAdmin) && !isDemoOnly;
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportCsv = async (onlyDemoDay: boolean) => {
+    setExporting(true);
+    try {
+      const count = await downloadCompaniesCsv({ onlyDemoDay });
+      toast({ title: 'Exportação concluída', description: `${count} organizações exportadas em CSV.` });
+    } catch (e) {
+      toast({ title: 'Erro ao exportar', description: friendlySupabaseError(e), variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+
 
   const fetchCompanies = async () => {
     // Lista principal esconde organizações arquivadas
