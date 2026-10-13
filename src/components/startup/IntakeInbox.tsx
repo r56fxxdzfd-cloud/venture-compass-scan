@@ -98,12 +98,15 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
   const [importStage, setImportStage] = useState('');
   const [importing, setImporting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [events, setEvents] = useState<{ id: string; name: string; description: string | null; public_token: string }[]>([]);
 
   const load = async () => {
-    const [{ data, error }, { data: notificationRows }] = await Promise.all([
+    const [{ data, error }, { data: notificationRows }, { data: eventRows }] = await Promise.all([
       supabase.from('intake_submissions').select('*').order('created_at', { ascending: false }),
       supabase.from('internal_notifications').select('*').eq('type', 'diagnosis_completed').order('created_at', { ascending: false }).limit(10),
+      supabase.from('intake_events').select('id, name, description, public_token').eq('is_active', true).order('created_at', { ascending: false }),
     ]);
+    setEvents(eventRows || []);
     if (error) {
       toast({ title: 'Erro ao carregar intakes', description: friendlySupabaseError(error.message), variant: 'destructive' });
       setLoading(false);
@@ -243,6 +246,39 @@ export function IntakeInbox({ onImported }: { onImported?: () => void }) {
           </CardContent>
         </Card>
       )}
+
+      {events.map((event) => {
+        const eventUrl = `${window.location.origin}/evento/${event.public_token}`;
+        const eventCount = rows.filter((r) => (r as { event_id?: string | null }).event_id === event.id).length;
+        return (
+          <Card key={event.id} className="executive-panel">
+            <CardContent className="pt-6 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Link2 className="h-4 w-4 text-primary" />
+                <h3 className="text-base font-semibold">Link do evento — {event.name}</h3>
+                {event.description && <Badge variant="secondary">{event.description}</Badge>}
+                <Badge variant="outline">{eventCount} inscrição(ões)</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Link único e compartilhável: cada participante faz o cadastro, o diagnóstico e confirma a(s) data(s).
+                Abrir o link não cria nada — a inscrição aparece aqui só após o envio do cadastro.
+              </p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input readOnly value={eventUrl} className="h-9 font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const copied = await copyToClipboard(eventUrl);
+                    toast(copied ? { title: 'Link do evento copiado', description: eventUrl } : { title: 'Copie o link manualmente', description: eventUrl });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-1" /> Copiar link
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <Card className="executive-panel">
         <CardContent className="pt-6 space-y-3">

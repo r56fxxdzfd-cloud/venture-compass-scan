@@ -790,6 +790,7 @@ export type Database = {
           date: string
           date_label: string | null
           end_time: string | null
+          event_id: string | null
           id: string
           is_active: boolean
           location_or_format: string | null
@@ -803,6 +804,7 @@ export type Database = {
           date: string
           date_label?: string | null
           end_time?: string | null
+          event_id?: string | null
           id?: string
           is_active?: boolean
           location_or_format?: string | null
@@ -816,6 +818,7 @@ export type Database = {
           date?: string
           date_label?: string | null
           end_time?: string | null
+          event_id?: string | null
           id?: string
           is_active?: boolean
           location_or_format?: string | null
@@ -1120,10 +1123,41 @@ export type Database = {
           },
         ]
       }
+      intake_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          public_token: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          public_token?: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          public_token?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       intake_submissions: {
         Row: {
           assessment_id: string | null
           company_id: string | null
+          event_id: string | null
           created_at: string
           created_by: string | null
           expires_at: string | null
@@ -1139,6 +1173,7 @@ export type Database = {
         Insert: {
           assessment_id?: string | null
           company_id?: string | null
+          event_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at?: string | null
@@ -1154,6 +1189,7 @@ export type Database = {
         Update: {
           assessment_id?: string | null
           company_id?: string | null
+          event_id?: string | null
           created_at?: string
           created_by?: string | null
           expires_at?: string | null

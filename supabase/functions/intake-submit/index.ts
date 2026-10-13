@@ -206,7 +206,7 @@ async function advancePipelineStatus(
 async function loadIntake(admin: ReturnType<typeof adminClient>, token: string) {
   const { data: row, error } = await admin
     .from("intake_submissions")
-    .select("id, token, status, payload, company_id, assessment_id, expires_at")
+    .select("id, token, status, payload, company_id, assessment_id, expires_at, event_id, flow_completed_at")
     .eq("token", token)
     .maybeSingle();
   if (error) throw new Error("internal");
@@ -239,16 +239,52 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => null);
-    const token = body?.token;
-    const action = body?.action || "registration";
+    let token = body?.token;
+    let action = body?.action || "registration";
+    const admin = adminClient();
+
+    // Link único de evento: o intake individual nasce aqui, no envio do cadastro
+    // (nunca na abertura do link). O payload é validado ANTES de criar a linha,
+    // para não deixar intakes órfãos; depois segue o fluxo normal de registration
+    // com o token pessoal recém-criado, que volta na resposta.
+    if (action === "event_start") {
+      const eventToken = body?.event_token;
+      if (!eventToken || typeof eventToken !== "string" || eventToken.length < 32) {
+        return json({ ok: false, error: "link do evento inválido" }, 400);
+      }
+      const check = validateRegistration(body?.payload);
+      if (!check.ok) return json({ ok: false, error: check.error }, 400);
+      const { data: event } = await admin
+        .from("intake_events")
+        .select("id, name")
+        .eq("public_token", eventToken)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (!event) return json({ ok: false, error: "evento não encontrado ou encerrado" }, 404);
+      const personalToken = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
+      const { error: createErr } = await admin.from("intake_submissions").insert({
+        token: personalToken,
+        status: "pending",
+        label: `${check.data.company_name} · ${event.name}`,
+        event_id: event.id,
+        expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+      if (createErr) return json({ ok: false, error: "não foi possível iniciar o cadastro" }, 500);
+      token = personalToken;
+      action = "registration";
+    }
+
     if (!token || typeof token !== "string" || token.length < 32) {
       return json({ ok: false, error: "token inválido" }, 400);
     }
 
-    const admin = adminClient();
     const row = await loadIntake(admin, token);
     if (!row) return json({ ok: false, error: "token não encontrado" }, 404);
-    if (row.status === "diagnosis_completed" && action !== "debrief_link_clicked") {
+    // No fluxo de evento a escolha de data vem DEPOIS do diagnóstico: com o
+    // diagnóstico concluído, ainda se aceita a confirmação de data até o fluxo
+    // ser encerrado (flow_completed_at).
+    const eventDatesPending = !!row.event_id && !row.flow_completed_at && action === "demo_day";
+    if (row.status === "diagnosis_completed" && action !== "debrief_link_clicked" && !eventDatesPending) {
       return json({ ok: false, error: "diagnóstico já concluído" }, 409);
     }
 
@@ -365,17 +401,23 @@ Deno.serve(async (req) => {
       if (intakeUpdateErr) return json({ ok: false, error: "não foi possível avançar cadastro" }, 500);
       await recordEvent(admin, companyId, "registration_completed", { source: "public_intake" });
 
-      return json({ ok: true, company: updatedCompany });
+      return json({ ok: true, company: updatedCompany, token: row.token });
     }
 
     if (action === "demo_day") {
       const demoDayDateIds = normalizeDemoDayDateIds(body);
+      if (row.event_id && demoDayDateIds.length === 0) {
+        return json({ ok: false, error: "selecione ao menos uma data" }, 400);
+      }
       if (demoDayDateIds.length > 0) {
-        const { data: demoDates } = await admin
+        // Só aceita datas do próprio evento (ou, fora de evento, datas sem evento).
+        let datesQuery = admin
           .from("demo_day_dates")
           .select("id")
           .in("id", demoDayDateIds)
           .eq("is_active", true);
+        datesQuery = row.event_id ? datesQuery.eq("event_id", row.event_id) : datesQuery.is("event_id", null);
+        const { data: demoDates } = await datesQuery;
         if ((demoDates || []).length !== demoDayDateIds.length) {
           return json({ ok: false, error: "data de Demo Day inválida" }, 400);
         }
@@ -400,6 +442,44 @@ Deno.serve(async (req) => {
         if (insertPreferencesErr && !isMissingRelationError(insertPreferencesErr)) {
           return json({ ok: false, error: "não foi possível salvar preferências de Demo Day" }, 500);
         }
+      }
+
+      // Fluxo de evento: a data é a última etapa. Com o diagnóstico já concluído,
+      // a confirmação encerra o fluxo e completa a notificação interna com as datas.
+      if (row.event_id && row.status === "diagnosis_completed") {
+        const { data: chosenDates } = await admin
+          .from("demo_day_dates")
+          .select("title, date, date_label, start_time, end_time, location_or_format")
+          .in("id", demoDayDateIds)
+          .order("date", { ascending: true });
+        const { error: closeErr } = await admin
+          .from("intake_submissions")
+          .update({ flow_completed_at: new Date().toISOString() })
+          .eq("id", row.id);
+        if (closeErr) return json({ ok: false, error: "não foi possível confirmar a data" }, 500);
+        await recordEvent(admin, companyId, "event_dates_confirmed", { demo_day_date_ids: demoDayDateIds }, row.assessment_id || null);
+        if (row.assessment_id) {
+          const { data: notif } = await admin
+            .from("internal_notifications")
+            .select("id, data")
+            .eq("assessment_id", row.assessment_id)
+            .eq("type", "diagnosis_completed")
+            .maybeSingle();
+          if (notif) {
+            await admin.from("internal_notifications").update({
+              data: {
+                ...((notif.data as Record<string, unknown>) || {}),
+                demo_day_preferred_date: (chosenDates || [])[0] || null,
+                demo_day_preferred_dates: chosenDates || [],
+              },
+            }).eq("id", notif.id);
+          }
+        }
+        await admin
+          .from("companies")
+          .update({ demo_day_preferred_date_id: demoDayDateIds[0], demo_day_selected: true })
+          .eq("id", companyId);
+        return json({ ok: true, completed: true, chosen_dates: chosenDates || [] });
       }
 
       const { data: updatedCompany, error } = await admin
@@ -557,9 +637,12 @@ Deno.serve(async (req) => {
         .eq("id", companyId);
       if (companyCompleteErr) return json({ ok: false, error: "não foi possível marcar diagnóstico concluído" }, 500);
 
+      // Em evento, o fluxo só termina na confirmação de data (ação demo_day).
       const { error: intakeCompleteErr } = await admin
         .from("intake_submissions")
-        .update({ status: "diagnosis_completed", flow_completed_at: completedAt })
+        .update(row.event_id
+          ? { status: "diagnosis_completed" }
+          : { status: "diagnosis_completed", flow_completed_at: completedAt })
         .eq("id", row.id);
       if (intakeCompleteErr) return json({ ok: false, error: "não foi possível concluir intake" }, 500);
 
@@ -628,7 +711,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      return json({ ok: true, debrief_calendar_url: debriefUrl });
+      return json({ ok: true, debrief_calendar_url: debriefUrl, event_dates_pending: !!row.event_id });
     }
 
     if (action === "debrief_link_clicked") {

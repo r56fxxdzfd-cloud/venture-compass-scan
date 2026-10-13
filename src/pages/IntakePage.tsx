@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,8 +111,23 @@ function formatTime(value?: string | null) {
   return value ? value.slice(0, 5) : '';
 }
 
+type IntakeEvent = { name: string; description: string | null };
+
+// Link único de evento (/evento/:eventToken): depois do cadastro, o participante
+// segue no link pessoal. Guardamos esse token por evento para que reabrir o link
+// do evento no mesmo aparelho retome o fluxo em vez de criar um cadastro novo.
+const eventResumeKey = (eventToken: string) => `growthos:event-intake:${eventToken}`;
+function readEventResume(eventToken: string): string | null {
+  try { return localStorage.getItem(eventResumeKey(eventToken)); } catch { return null; }
+}
+function writeEventResume(eventToken: string, personalToken: string) {
+  try { localStorage.setItem(eventResumeKey(eventToken), personalToken); } catch { /* sem storage: só não retoma */ }
+}
+
 export default function IntakePage() {
-  const { token } = useParams();
+  const { token, eventToken } = useParams();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<IntakeEvent | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [invalidReason, setInvalidReason] = useState('');
   const [error, setError] = useState('');
@@ -130,8 +145,12 @@ export default function IntakePage() {
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
+  const [autoStartDiagnosis, setAutoStartDiagnosis] = useState(false);
+
   const applyValidationPayload = useCallback((data: any) => {
     const companyData = data.company as Company | null;
+    const isEvent = !!data.event;
+    setEvent((data.event as IntakeEvent) || null);
     setCompany(companyData);
     setQuestions(((data.onboarding_questions || []) as OnboardingQuestion[]).sort((a, b) => a.display_order - b.display_order));
     setDemoDates((data.demo_day_dates || []) as DemoDayDate[]);
@@ -179,12 +198,25 @@ export default function IntakePage() {
       setActiveDim(cfg.dimensions?.[0]?.id || '');
     }
 
-    if (data.status === 'diagnosis_completed' || data.intake?.flow_completed_at) {
+    const registered = !!companyData?.pipeline_status
+      && companyData.pipeline_status !== 'invited'
+      && companyData.pipeline_status !== 'registration_started';
+
+    if (data.intake?.flow_completed_at || (!isEvent && data.status === 'diagnosis_completed')) {
       setPhase('done');
+    } else if (isEvent && data.status === 'diagnosis_completed') {
+      // Evento: a data é escolhida depois do diagnóstico.
+      setPhase('demo_day');
     } else if (data.assessment?.id && data.config?.config_json) {
       setPhase('diagnosis');
-    } else if (companyData?.pipeline_status && companyData.pipeline_status !== 'invited' && companyData.pipeline_status !== 'registration_started') {
-      setPhase('demo_day');
+    } else if (registered) {
+      if (isEvent) {
+        // Evento: cadastro feito, diagnóstico ainda não iniciado -> inicia direto.
+        setPhase('submitting');
+        setAutoStartDiagnosis(true);
+      } else {
+        setPhase('demo_day');
+      }
     } else {
       setPhase('registration');
     }
@@ -193,6 +225,25 @@ export default function IntakePage() {
   useEffect(() => {
     let active = true;
     const validate = async () => {
+      if (!token && eventToken) {
+        const resumeToken = readEventResume(eventToken);
+        if (resumeToken) {
+          navigate(`/intake/${resumeToken}`, { replace: true });
+          return;
+        }
+        const { data, error: fnError } = await supabase.functions.invoke('intake-validate', { body: { event_token: eventToken } });
+        if (!active) return;
+        if (fnError || !data?.valid) {
+          setInvalidReason(fnError ? 'Não foi possível validar este link.' : 'Este evento não está mais recebendo inscrições.');
+          setPhase('invalid');
+          return;
+        }
+        setEvent(data.event as IntakeEvent);
+        setQuestions(((data.onboarding_questions || []) as OnboardingQuestion[]).sort((a, b) => a.display_order - b.display_order));
+        setDemoDates((data.demo_day_dates || []) as DemoDayDate[]);
+        setPhase('registration');
+        return;
+      }
       if (!token) {
         setInvalidReason('Link inválido.');
         setPhase('invalid');
@@ -214,7 +265,7 @@ export default function IntakePage() {
     };
     validate();
     return () => { active = false; };
-  }, [applyValidationPayload, token]);
+  }, [applyValidationPayload, eventToken, navigate, token]);
 
   const setField = (key: keyof RegistrationForm, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -232,13 +283,27 @@ export default function IntakePage() {
   }, [form]);
 
   const submitRegistration = async () => {
-    if (!token) return;
+    if (!token && !eventToken) return;
     setError('');
     if (registrationErrors.length > 0) {
       setError('Preencha todos os campos obrigatórios com e-mail válido e headcount positivo.');
       return;
     }
     setPhase('submitting');
+    if (!token && eventToken) {
+      // Link do evento: o servidor cria o intake individual e devolve o token pessoal.
+      const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
+        body: { event_token: eventToken, action: 'event_start', payload: form },
+      });
+      if (fnError || !data?.ok || !data.token) {
+        setPhase('registration');
+        setError(data?.error || 'Não foi possível salvar o cadastro inicial.');
+        return;
+      }
+      writeEventResume(eventToken, data.token);
+      navigate(`/intake/${data.token}`, { replace: true });
+      return;
+    }
     const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
       body: { token, action: 'registration', payload: form },
     });
@@ -261,25 +326,33 @@ export default function IntakePage() {
     if (!token) return;
     setError('');
     setPhase('submitting');
-    const demoRes = await supabase.functions.invoke('intake-submit', {
-      body: {
-        token,
-        action: 'demo_day',
-        demo_day_date_id: demoDayDateIds[0] || null,
-        demo_day_date_ids: demoDayDateIds,
-      },
-    });
-    if (demoRes.error || !demoRes.data?.ok) {
-      // Do not block the founder from starting the diagnosis if production is
-      // temporarily between the legacy single-date schema and the multi-option schema.
-      console.warn('Demo Day preference could not be saved before diagnosis start', demoRes.error || demoRes.data?.error);
+    // No fluxo de evento a data vem depois do diagnóstico — não salva preferência aqui.
+    if (!event) {
+      const demoRes = await supabase.functions.invoke('intake-submit', {
+        body: {
+          token,
+          action: 'demo_day',
+          demo_day_date_id: demoDayDateIds[0] || null,
+          demo_day_date_ids: demoDayDateIds,
+        },
+      });
+      if (demoRes.error || !demoRes.data?.ok) {
+        // Do not block the founder from starting the diagnosis if production is
+        // temporarily between the legacy single-date schema and the multi-option schema.
+        console.warn('Demo Day preference could not be saved before diagnosis start', demoRes.error || demoRes.data?.error);
+      }
+      if (demoRes.data?.company) setCompany(demoRes.data.company as Company);
     }
-    if (demoRes.data?.company) setCompany(demoRes.data.company as Company);
 
     const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
       body: { token, action: 'diagnosis_start' },
     });
     if (fnError || !data?.ok) {
+      if (event) {
+        setInvalidReason(data?.error || 'Não foi possível iniciar o diagnóstico. Recarregue a página para tentar de novo.');
+        setPhase('invalid');
+        return;
+      }
       setPhase('demo_day');
       setError(data?.error || 'Não foi possível iniciar o diagnóstico.');
       return;
@@ -299,7 +372,39 @@ export default function IntakePage() {
     setAnswers(mapped);
     setActiveDim(cfg.dimensions?.[0]?.id || '');
     setPhase('diagnosis');
-  }, [selectedDemoDateIds, token]);
+  }, [event, selectedDemoDateIds, token]);
+
+  // Evento: logo após o cadastro (ou ao retomar um cadastro sem diagnóstico
+  // iniciado), o diagnóstico começa sem passar pela etapa de data.
+  useEffect(() => {
+    if (!autoStartDiagnosis || !event) return;
+    setAutoStartDiagnosis(false);
+    void startDiagnosis();
+  }, [autoStartDiagnosis, event, startDiagnosis]);
+
+  const confirmEventDates = async () => {
+    if (!token) return;
+    setError('');
+    if (selectedDemoDateIds.length === 0) {
+      setError('Selecione ao menos uma data.');
+      return;
+    }
+    setPhase('submitting');
+    const { data, error: fnError } = await supabase.functions.invoke('intake-submit', {
+      body: {
+        token,
+        action: 'demo_day',
+        demo_day_date_id: selectedDemoDateIds[0],
+        demo_day_date_ids: selectedDemoDateIds,
+      },
+    });
+    if (fnError || !data?.ok) {
+      setPhase('demo_day');
+      setError(data?.error || 'Não foi possível confirmar a data.');
+      return;
+    }
+    setPhase('done');
+  };
 
   const flowAnswers = useMemo(() => answerStateToRows(answers, assessmentId), [answers, assessmentId]);
   const answerableQuestions = useMemo(
@@ -381,7 +486,7 @@ export default function IntakePage() {
       return;
     }
     setDebriefUrl(data.debrief_calendar_url || debriefUrl);
-    setPhase('done');
+    setPhase(data.event_dates_pending ? 'demo_day' : 'done');
   };
 
   const clickDebrief = async () => {
@@ -426,8 +531,23 @@ export default function IntakePage() {
       <div className="mx-auto w-full max-w-5xl space-y-5">
         <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Building2 className="h-5 w-5" />
-          <span className="text-sm font-semibold tracking-wide">Darwin Growth - Cadastro inicial</span>
+          <span className="text-sm font-semibold tracking-wide">
+            {event ? `${event.name} · Darwin Growth` : 'Darwin Growth - Cadastro inicial'}
+          </span>
         </div>
+
+        {event && phase === 'registration' && (
+          <Card>
+            <CardContent className="space-y-2 py-5">
+              <p className="text-lg font-semibold">{event.name}{event.description ? ` — ${event.description}` : ''}</p>
+              <p className="text-sm text-muted-foreground">
+                São três etapas: <strong>cadastro inicial</strong>, <strong>diagnóstico de maturidade</strong> e{' '}
+                <strong>confirmação da(s) data(s)</strong> em que você pode participar. Seu progresso fica salvo
+                automaticamente — se precisar parar, é só reabrir este link no mesmo aparelho.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {phase === 'loading' && (
           <Card><CardContent className="flex items-center justify-center gap-3 py-10 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> Validando link...</CardContent></Card>
@@ -457,7 +577,8 @@ export default function IntakePage() {
             selectedIds={selectedDemoDateIds}
             error={error}
             onToggle={toggleDemoDate}
-            onContinue={() => void startDiagnosis()}
+            onContinue={() => void (event ? confirmEventDates() : startDiagnosis())}
+            event={event}
           />
         )}
 
@@ -494,9 +615,14 @@ export default function IntakePage() {
           <Card><CardContent className="flex items-center justify-center gap-3 py-10 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /> Salvando...</CardContent></Card>
         )}
 
-        {phase === 'done' && (
+        {phase === 'done' && (event ? (
+          <EventCompletionStep
+            event={event}
+            chosenDates={demoDates.filter((date) => selectedDemoDateIds.includes(date.id))}
+          />
+        ) : (
           <CompletionStep debriefUrl={debriefUrl} onClickDebrief={clickDebrief} />
-        )}
+        ))}
       </div>
     </div>
   );
@@ -564,24 +690,32 @@ function DemoDayStep({
   error,
   onToggle,
   onContinue,
+  event = null,
 }: {
   dates: DemoDayDate[];
   selectedIds: string[];
   error: string;
   onToggle: (id: string) => void;
   onContinue: () => void;
+  event?: IntakeEvent | null;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg"><CalendarDays className="h-5 w-5" /> Preferência de Demo Day</CardTitle>
-        <Progress value={66} className="h-1.5" />
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <CalendarDays className="h-5 w-5" /> {event ? `Confirme sua participação — ${event.name}` : 'Preferência de Demo Day'}
+        </CardTitle>
+        <Progress value={event ? 90 : 66} className="h-1.5" />
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">Você pode selecionar uma, duas ou nenhuma opção para São Paulo.</p>
+        <p className="text-sm text-muted-foreground">
+          {event
+            ? 'Diagnóstico concluído! Agora selecione o(s) dia(s) em que você pode participar — um ou os dois.'
+            : 'Você pode selecionar uma, duas ou nenhuma opção para São Paulo.'}
+        </p>
         {dates.length === 0 ? (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-muted-foreground">
-            Nenhuma data ativa de Demo Day está configurada no momento.
+            {event ? 'As datas deste evento ainda não estão disponíveis.' : 'Nenhuma data ativa de Demo Day está configurada no momento.'}
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -614,7 +748,9 @@ function DemoDayStep({
         )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <div className="flex justify-end">
-          <Button onClick={onContinue}>Continuar para o diagnóstico</Button>
+          <Button onClick={onContinue} disabled={!!event && selectedIds.length === 0}>
+            {event ? 'Confirmar data(s)' : 'Continuar para o diagnóstico'}
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -827,6 +963,37 @@ function QuestionCard({
               />
             )}
           </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EventCompletionStep({ event, chosenDates }: { event: IntakeEvent; chosenDates: DemoDayDate[] }) {
+  return (
+    <Card>
+      <CardContent className="space-y-5 py-10 text-center">
+        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-500" />
+        <div className="mx-auto max-w-2xl space-y-3">
+          <h1 className="text-2xl font-bold">Tudo certo — nos vemos no {event.name}!</h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Recebemos seu cadastro, seu diagnóstico e sua preferência de data. A equipe do Darwin Growth / Boardwise
+            vai analisar suas respostas e preparar a devolutiva, que será apresentada no evento.
+          </p>
+          {chosenDates.length > 0 && (
+            <div className="mx-auto max-w-sm rounded-lg border border-border p-4 text-left">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Data{chosenDates.length > 1 ? 's' : ''} escolhida{chosenDates.length > 1 ? 's' : ''}
+              </p>
+              {chosenDates.map((date) => (
+                <p key={date.id} className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-primary" />
+                  {getDemoDayDateLabel(date) || formatDateBR(date.date)}
+                </p>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Em breve entraremos em contato com os detalhes do evento.</p>
         </div>
       </CardContent>
     </Card>

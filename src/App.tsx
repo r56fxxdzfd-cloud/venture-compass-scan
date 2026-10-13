@@ -48,6 +48,7 @@ function AnimatedRoutes() {
         <Route path="/login" element={<AnimatedPage><LoginPage /></AnimatedPage>} />
         <Route path="/waiting-approval" element={<AnimatedPage><WaitingApprovalPage /></AnimatedPage>} />
         <Route path="/intake/:token" element={<AnimatedPage><IntakePage /></AnimatedPage>} />
+        <Route path="/evento/:eventToken" element={<AnimatedPage><IntakePage /></AnimatedPage>} />
         <Route path="/.lovable/oauth/consent" element={<AnimatedPage><OAuthConsentPage /></AnimatedPage>} />
         <Route path="/app/dashboard" element={<ProtectedRoute><AppLayout><AnimatedPage><DashboardPage /></AnimatedPage></AppLayout></ProtectedRoute>} />
         <Route path="/app/startups" element={<ProtectedRoute><AppLayout><AnimatedPage><StartupsPage /></AnimatedPage></AppLayout></ProtectedRoute>} />

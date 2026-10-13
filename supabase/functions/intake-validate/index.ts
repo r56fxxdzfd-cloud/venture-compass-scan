@@ -102,7 +102,45 @@ Deno.serve(async (req) => {
   if (rateLimited(ip)) return json({ error: "Too many requests" }, 429);
 
   try {
-    const { token } = await req.json().catch(() => ({ token: null }));
+    const { token, event_token: eventToken } = await req.json().catch(() => ({ token: null, event_token: null }));
+
+    // Link único de evento: só devolve o necessário para o cadastro (perguntas e
+    // datas do evento). Não cria intake nem company — isso acontece no envio do
+    // cadastro (intake-submit action=event_start).
+    if (eventToken !== undefined && eventToken !== null) {
+      if (typeof eventToken !== "string" || eventToken.length < 32) return json({ valid: false, status: null });
+      const admin = adminClient();
+      const { data: event, error: eventErr } = await admin
+        .from("intake_events")
+        .select("id, name, description")
+        .eq("public_token", eventToken)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (eventErr) return json({ error: "internal" }, 500);
+      if (!event) return json({ valid: false, status: null });
+      const [questionsRes, eventDatesRes] = await Promise.all([
+        admin
+          .from("onboarding_questions")
+          .select("id, question_key, question_text, field_type, is_required, display_order")
+          .eq("source", "darwin_growth_initial_form")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true }),
+        admin
+          .from("demo_day_dates")
+          .select("*")
+          .eq("event_id", event.id)
+          .eq("is_active", true)
+          .order("date", { ascending: true }),
+      ]);
+      return json({
+        valid: true,
+        status: "event_entry",
+        event: { name: event.name, description: event.description },
+        onboarding_questions: questionsRes.data || [],
+        demo_day_dates: eventDatesRes.data || [],
+      });
+    }
+
     if (!token || typeof token !== "string" || token.length < 32) {
       return json({ valid: false, status: null });
     }
@@ -110,7 +148,7 @@ Deno.serve(async (req) => {
     const admin = adminClient();
     const { data: row, error } = await admin
       .from("intake_submissions")
-      .select("id, token, status, label, payload, company_id, assessment_id, expires_at, flow_completed_at")
+      .select("id, token, status, label, payload, company_id, assessment_id, expires_at, flow_completed_at, event_id")
       .eq("token", token)
       .maybeSingle();
 
@@ -137,6 +175,21 @@ Deno.serve(async (req) => {
 
     const companyId = company ? String(company.id) : null;
 
+    let event: { name: string; description: string | null } | null = null;
+    if (row.event_id) {
+      const { data: eventRow } = await admin
+        .from("intake_events")
+        .select("name, description")
+        .eq("id", row.event_id)
+        .maybeSingle();
+      event = eventRow || null;
+    }
+
+    // Datas isoladas por evento: um link de evento só vê as datas do evento, e o
+    // fluxo normal de Demo Day só vê datas sem evento.
+    let demoDatesQuery = admin.from("demo_day_dates").select("*").eq("is_active", true);
+    demoDatesQuery = row.event_id ? demoDatesQuery.eq("event_id", row.event_id) : demoDatesQuery.is("event_id", null);
+
     const [
       questionsRes,
       demoDatesRes,
@@ -150,11 +203,7 @@ Deno.serve(async (req) => {
         .eq("source", "darwin_growth_initial_form")
         .eq("is_active", true)
         .order("display_order", { ascending: true }),
-      admin
-        .from("demo_day_dates")
-        .select("*")
-        .eq("is_active", true)
-        .order("date", { ascending: true }),
+      demoDatesQuery.order("date", { ascending: true }),
       companyId
         ? admin
             .from("company_demo_day_preferences")
@@ -222,6 +271,7 @@ Deno.serve(async (req) => {
         assessment_id: row.assessment_id,
         flow_completed_at: row.flow_completed_at,
       },
+      event,
       company: companyWithPreferences,
       onboarding_questions: questionsRes.data || [],
       onboarding_answers: onboardingAnswers,
