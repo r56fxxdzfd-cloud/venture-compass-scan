@@ -462,9 +462,7 @@ export default function CounselorOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
-        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+      <section className="relative overflow-hidden dark rounded-3xl border border-border bg-background text-foreground p-7 sm:p-8">
         <div className="relative grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <div className="space-y-3 max-w-3xl">
             <span className="executive-pill inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">
@@ -543,7 +541,6 @@ export default function CounselorOverviewPage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
         <Card className="executive-panel rounded-3xl border-primary/50 relative overflow-hidden shadow-xl shadow-primary/10 ring-1 ring-primary/10">
-          <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
           <CardContent className="p-6 sm:p-8 relative">
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 border border-primary/35 text-primary shrink-0">

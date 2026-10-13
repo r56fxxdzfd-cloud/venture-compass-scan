@@ -8,10 +8,10 @@ const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unse
 
 export default defineMcp({
   name: "darwin-growth-mcp",
-  title: "Darwin Growth MCP",
+  title: "Comitte MCP",
   version: "0.1.0",
   instructions:
-    "Ferramentas para acessar startups, diagnósticos e planos de ação da plataforma Darwin Growth. Use list_startups para descobrir empresas, get_startup para detalhes, list_assessments para diagnósticos e list_action_items para o plano de ação.",
+    "Ferramentas para acessar startups, diagnósticos e planos de ação da plataforma Comitte. Use list_startups para descobrir empresas, get_startup para detalhes, list_assessments para diagnósticos e list_action_items para o plano de ação.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

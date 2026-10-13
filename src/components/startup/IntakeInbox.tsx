@@ -35,7 +35,7 @@ const FIELD_LABELS: [keyof IntakePayload, string][] = [
   ['headcount', 'Quantos colaboradores a empresa possui?'],
   ['revenue_2025', 'Faturamento 2025'],
   ['revenue_2026_target', 'Meta de faturamento 2026'],
-  ['expectations_text', 'O que você espera obter com a participação no Darwin Growth?'],
+  ['expectations_text', 'O que você espera obter com a participação no Comitte?'],
 ];
 const SCORING_STAGES: { value: string; label: string }[] = [
   { value: 'pre_seed', label: 'Pre-Seed' },

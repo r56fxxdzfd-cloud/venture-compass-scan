@@ -14,7 +14,7 @@ interface DashboardHeaderProps {
 
 const getMethodologyLabel = (configName?: string | null) => {
   if (!configName) return null;
-  if (configName.toLowerCase().includes('darwin')) return 'Darwin Readiness';
+  if (configName.toLowerCase().includes('darwin')) return 'Comitte Readiness';
   return null;
 };
 

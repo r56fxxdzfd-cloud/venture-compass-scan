@@ -505,9 +505,7 @@ export default function AgendaPage() {
   };
 
   return <div className='space-y-6'>
-    <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
-      <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/20 blur-3xl pointer-events-none" />
+    <section className="relative overflow-hidden dark rounded-3xl border border-border bg-background text-foreground p-7 sm:p-8">
       <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-3 max-w-2xl">
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">

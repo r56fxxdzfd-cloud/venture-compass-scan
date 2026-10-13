@@ -46,8 +46,8 @@ const cards: CardDef[] = [
     label: 'Diagnósticos em andamento',
     sublabel: 'coleta ou validação pendente',
     icon: ClipboardList,
-    iconWrap: 'bg-cyan-500/10 border border-cyan-500/25',
-    iconColor: 'text-cyan-600 dark:text-cyan-300',
+    iconWrap: 'bg-primary/10 border border-primary/25',
+    iconColor: 'text-primary',
     href: '/app/startups',
   },
   {

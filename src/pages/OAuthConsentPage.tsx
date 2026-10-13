@@ -96,7 +96,7 @@ export default function OAuthConsentPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {clientName} poderá acessar a plataforma Darwin Growth em seu nome, respeitando suas permissões.
+            {clientName} poderá acessar a plataforma Comitte em seu nome, respeitando suas permissões.
           </p>
           <div className="flex gap-2">
             <Button className="flex-1" disabled={busy} onClick={() => decide(true)}>

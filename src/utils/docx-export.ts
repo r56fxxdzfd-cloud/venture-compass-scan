@@ -6,17 +6,18 @@ import {
 import { noRedFlagsConclusion } from '@/utils/context-fields';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
 
-// Darwin palette (hex without #)
+// Paleta Comitte (hex sem #)
 const C = {
-  text: '111827',
-  textMuted: '64748B',
-  primary: '15803D',     // green-700 for print contrast
-  accent: '7C3AED',      // purple-600
+  text: '181B20',        // grafite Comitte
+  textMuted: '6B7080',
+  primary: 'D24E4E',     // coral Comitte (tom de hover, mais contraste na impressão)
+  accent: '4C515A',      // ink Comitte (secundário)
+  success: '15803D',     // semântico: "positivo" (a marca não tem verde)
   warning: 'B45309',
   danger: 'B91C1C',
-  border: 'CBD5E1',
-  cardBg: 'F8FAFC',
-  panelBg: 'F1F5F9',
+  border: 'DCE0E5',
+  cardBg: 'F8FAFB',
+  panelBg: 'E8ECEF',
 };
 
 const SEV_LABEL: Record<string, string> = {
@@ -159,7 +160,7 @@ export async function exportReportToDOCX(opts: {
 
   // --- Cover / Header card
   body.push(card([
-    p([t('DARWIN GROWTH', { bold: true, size: 18, color: C.primary, characterSpacing: 30 })]),
+    p([t('COMITTE', { bold: true, size: 18, color: C.primary, characterSpacing: 30 })]),
     p([t('Comitê de Crescimento', { size: 16, color: C.textMuted })]),
     new Paragraph({ children: [t('')], spacing: { after: 120 } }),
     p([t('Relatório de Diagnóstico', { size: 36, color: C.textMuted })]),
@@ -195,7 +196,7 @@ export async function exportReportToDOCX(opts: {
     ],
     [
       p([t('Red Flags', { size: 18, color: C.textMuted })], { alignment: AlignmentType.CENTER }),
-      p([t(String(result.red_flags.length), { bold: true, size: 56, color: result.red_flags.length ? C.warning : C.primary })], { alignment: AlignmentType.CENTER }),
+      p([t(String(result.red_flags.length), { bold: true, size: 56, color: result.red_flags.length ? C.warning : C.success })], { alignment: AlignmentType.CENTER }),
       p([t('identificados', { size: 16, color: C.textMuted })], { alignment: AlignmentType.CENTER }),
     ],
     [
@@ -233,7 +234,7 @@ export async function exportReportToDOCX(opts: {
       p([t(`${rfConclusion.complete ? '✓' : '⚠'} ${rfConclusion.detail}`, {
         bold: rfConclusion.complete,
         size: rfConclusion.complete ? 24 : 20,
-        color: rfConclusion.complete ? C.primary : C.warning,
+        color: rfConclusion.complete ? C.success : C.warning,
       })], { alignment: rfConclusion.complete ? AlignmentType.CENTER : AlignmentType.LEFT }),
     ]));
     body.push(spacer());
@@ -264,7 +265,7 @@ export async function exportReportToDOCX(opts: {
       body.push(card([
         p([t('Itens priorizados por risco e impacto potencial.', { size: 18, color: C.textMuted })], { spacing: { after: 160 } }),
         ...matrixPoints.slice(0, 12).map((pt, i) => {
-          const color = pt.type === 'red_flag' ? C.danger : C.primary;
+          const color = pt.type === 'red_flag' ? C.danger : C.accent;
           const tag = pt.type === 'red_flag' ? 'Red Flag' : 'Dimensão';
           return p([
             t(`${i + 1}. `, { bold: true, size: 20, color }),
@@ -310,7 +311,7 @@ export async function exportReportToDOCX(opts: {
     const waves = [
       { wave: 1 as const, label: 'WAVE 1 — 0-30 DIAS', color: C.danger },
       { wave: 2 as const, label: 'WAVE 2 — 31-90 DIAS', color: C.warning },
-      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.primary },
+      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.success },
     ];
     waves.forEach(w => {
       const items = roadmap.filter(r => r.wave === w.wave);
@@ -488,11 +489,11 @@ export async function exportReportToDOCX(opts: {
     p([t('3. Endereçar Red Flags ativos antes do próximo ciclo.', { size: 20, color: C.text })]),
     p([t('4. Reavaliar maturidade em 90 dias para medir evolução.', { size: 20, color: C.text })]),
     new Paragraph({ children: [t('')], spacing: { after: 120 } }),
-    p([t('Darwin Growth · Comitê de Crescimento', { size: 16, color: C.textMuted })], { alignment: AlignmentType.CENTER }),
+    p([t('Comitte · Comitê de Crescimento', { size: 16, color: C.textMuted })], { alignment: AlignmentType.CENTER }),
   ]));
 
   const doc = new Document({
-    creator: 'Darwin Growth',
+    creator: 'Comitte',
     title: `Relatório de Diagnóstico — ${startupName}`,
     styles: {
       default: { document: { run: { font: 'Arial', size: 22 } } },
@@ -514,7 +515,7 @@ export async function exportReportToDOCX(opts: {
           children: [new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              t(`Darwin Growth · ${startupName} · ${dateStr}  ·  Página `, { size: 16, color: C.textMuted }),
+              t(`Comitte · ${startupName} · ${dateStr}  ·  Página `, { size: 16, color: C.textMuted }),
               new TextRun({ children: [PageNumber.CURRENT], size: 16, color: C.textMuted, font: 'Arial' }),
               t(' de ', { size: 16, color: C.textMuted }),
               new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 16, color: C.textMuted, font: 'Arial' }),

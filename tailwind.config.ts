@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Play', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
@@ -82,9 +82,14 @@ export default {
         },
       },
       borderRadius: {
+        // Comitte: cantos quase retos (raio de marca = 2px). xl/2xl/3xl também são
+        // sobrescritos porque muitos componentes usam essas classes direto.
+        sm: "1px",
+        md: "2px",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 2px)",
+        "2xl": "calc(var(--radius) + 4px)",
+        "3xl": "calc(var(--radius) + 6px)",
       },
       keyframes: {
         "accordion-down": {

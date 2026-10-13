@@ -14,7 +14,7 @@ import {
 } from '@/utils/founder-scoring';
 import type { FounderAssessment, FounderPillarScore, FounderActionPlan, Founder } from '@/types/founder';
 import type { Company } from '@/types/darwin';
-import logoDarwin from '@/assets/logo-darwin.png';
+import logoComitte from '@/assets/logo-comitte.png';
 
 export default function FounderAssessmentPdfPage() {
   const { id } = useParams();
@@ -146,7 +146,7 @@ export default function FounderAssessmentPdfPage() {
             <h1 className="text-2xl font-bold">Founder Score — {founder.name}</h1>
             <p className="text-muted-foreground text-sm">{company?.name} · {assessment.semester} · {new Date(assessment.assessment_date).toLocaleDateString('pt-BR')}</p>
           </div>
-          <img src={logoDarwin} alt="Darwin Growth" className="h-12 w-auto object-contain dark:brightness-100 brightness-0" />
+          <img src={logoComitte} alt="Comitte" className="h-8 w-auto max-w-[220px] object-contain" />
         </div>
 
         {/* Score */}
@@ -215,7 +215,7 @@ export default function FounderAssessmentPdfPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground pt-4">
-          Documento confidencial — uso interno JV / Darwin
+          Documento confidencial — uso interno JV / Comitte
         </p>
       </div>
     </div>

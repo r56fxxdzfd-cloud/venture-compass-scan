@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import type { QuestionAnswer } from '@/utils/pareto-engine';
-import logoDarwin from '@/assets/logo-darwin.png';
+import logoComitte from '@/assets/logo-comitte.png';
 
 // ======== A. Header ========
 export function ReportHeader({
@@ -44,7 +44,7 @@ export function ReportHeader({
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <img src={logoDarwin} alt="Darwin Growth" className="h-12 w-auto object-contain shrink-0" />
+            <img src={logoComitte} alt="Comitte" className="h-8 w-auto max-w-[220px] object-contain shrink-0" />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">{startupName}</h2>

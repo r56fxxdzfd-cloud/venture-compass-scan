@@ -143,7 +143,7 @@ export default function MethodologyPage() {
       const originalTitle = document.title;
       const versionSlug = version.version_name.replace(/\s+/g, '_').toLowerCase();
       const today = new Date().toISOString().slice(0, 10);
-      document.title = `metodologia_darwin_${versionSlug}_${today}`;
+      document.title = `metodologia_comitte_${versionSlug}_${today}`;
 
       // 4. Trigger print
       window.print();
@@ -323,15 +323,13 @@ export default function MethodologyPage() {
         {/* Cover page — only visible in print */}
         <div id="pdf-cover">
           <h1>Metodologia</h1>
-          <h2>Darwin Organization Readiness</h2>
+          <h2>Comitte Organization Readiness</h2>
           <p>Versão: {version.version_name}</p>
           <p>Publicada em: {version.published_at ? new Date(version.published_at).toLocaleDateString('pt-BR') : '—'}</p>
           <p>Gerado em: {new Date().toLocaleDateString('pt-BR')}</p>
         </div>
 
-        <section id="section-header" className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-primary/10 via-violet-500/5 to-transparent p-7 sm:p-8">
-          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-primary/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-violet-500/15 blur-3xl pointer-events-none" />
+        <section id="section-header" className="relative overflow-hidden dark rounded-3xl border border-border bg-background text-foreground p-7 sm:p-8">
           <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3 max-w-2xl">
               <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-primary uppercase">

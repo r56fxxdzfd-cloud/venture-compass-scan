@@ -12,11 +12,11 @@ import {
 } from '@/utils/report-helpers';
 import { noRedFlagsConclusion } from '@/utils/context-fields';
 import { computeParetoActions, selectTop5, generateMeetingAgenda, compute2x2Matrix } from '@/utils/pareto-engine';
-import logoDarwinUrl from '@/assets/logo-darwin.png';
+import logoComitteUrl from '@/assets/logo-comitte.png';
 
 async function fetchLogoDataUrl(): Promise<string | null> {
   try {
-    const res = await fetch(logoDarwinUrl);
+    const res = await fetch(logoComitteUrl);
     const blob = await res.blob();
     return await new Promise((resolve) => {
       const r = new FileReader();
@@ -31,18 +31,19 @@ async function fetchLogoDataUrl(): Promise<string | null> {
 
 
 
-// Darwin palette (kept in sync with theme)
+// Paleta Comitte (sincronizada com o tema do app)
 const C = {
-  bg: '0B1220',
-  panel: '111827',
-  panelLight: '1F2937',
-  text: 'E5E7EB',
-  textMuted: '94A3B8',
-  primary: '4ADE80',
-  accent: 'A78BFA',
+  bg: '181B20',          // grafite Comitte
+  panel: '22262C',
+  panelLight: '2C3138',
+  text: 'F3F4F5',
+  textMuted: 'A1A5AD',
+  primary: 'E05C5C',     // coral Comitte — acento da marca
+  accent: 'B9BEC6',      // grafite claro (secundário)
+  success: '4ADE80',     // semântico: "positivo" (a marca não tem verde)
   warning: 'F59E0B',
   danger: 'EF4444',
-  border: '334155',
+  border: '343941',
 };
 
 const SLIDE_W = 13.333;
@@ -114,7 +115,7 @@ export async function exportReportToPPTX(opts: {
   };
 
   const addFooter = (slide: any, pageNum: number, totalPages: number) => {
-    slide.addText('Darwin · Diagnóstico de Maturidade', {
+    slide.addText('Comitte · Diagnóstico de Maturidade', {
       x: MARGIN, y: SLIDE_H - 0.4, w: 6, h: 0.3,
       fontSize: 9, color: C.textMuted,
     });
@@ -144,7 +145,7 @@ export async function exportReportToPPTX(opts: {
   if (logoData) {
     s1.addImage({ data: logoData, x: MARGIN, y: 0.55, w: 2.4, h: 1.1 });
   } else {
-    s1.addText('DARWIN GROWTH', {
+    s1.addText('COMITTE', {
       x: MARGIN, y: 0.6, w: 6, h: 0.5,
       fontSize: 18, bold: true, color: C.primary, charSpacing: 4,
     });
@@ -192,7 +193,7 @@ export async function exportReportToPPTX(opts: {
   const kpiW = (SLIDE_W - MARGIN * 2 - 0.4) / 3;
   const kpis = [
     { label: 'Score Geral', value: String(overallPct), sub: `/ 100 · ${level.label}`, color: C.primary },
-    { label: 'Red Flags', value: String(result.red_flags.length), sub: 'identificados', color: result.red_flags.length > 0 ? C.warning : C.primary },
+    { label: 'Red Flags', value: String(result.red_flags.length), sub: 'identificados', color: result.red_flags.length > 0 ? C.warning : C.success },
     { label: 'Completude', value: `${completeness.pct}%`, sub: `${completeness.answered}/${completeness.total} questões`, color: C.accent },
   ];
   kpis.forEach((k, i) => {
@@ -253,7 +254,7 @@ export async function exportReportToPPTX(opts: {
   ], {
     x: MARGIN + 0.2, y: 1.75, w: SLIDE_W - MARGIN * 2 - 0.4, h: 5.1,
     radarStyle: 'standard',
-    chartColors: [C.primary, C.textMuted, C.accent],
+    chartColors: [C.primary, C.textMuted, C.text],
     showLegend: true, legendPos: 'b', legendColor: C.text, legendFontSize: 11,
     catAxisLabelColor: C.text, catAxisLabelFontSize: 10,
     valAxisLabelColor: C.textMuted, valAxisLabelFontSize: 9,
@@ -305,7 +306,7 @@ export async function exportReportToPPTX(opts: {
       card(slide, MARGIN, 2.5, SLIDE_W - MARGIN * 2, 2.5);
       slide.addText(`${rfConclusion.complete ? '✓' : '⚠'} ${rfConclusion.detail}`, {
         x: MARGIN + 0.4, y: 2.8, w: SLIDE_W - MARGIN * 2 - 0.8, h: 1.9,
-        fontSize: rfConclusion.complete ? 20 : 13, color: rfConclusion.complete ? C.primary : C.warning,
+        fontSize: rfConclusion.complete ? 20 : 13, color: rfConclusion.complete ? C.success : C.warning,
         align: rfConclusion.complete ? 'center' : 'left', valign: 'middle', bold: rfConclusion.complete,
       });
     } else {
@@ -381,7 +382,7 @@ export async function exportReportToPPTX(opts: {
       const cy = plotY + plotH - (pt.impact / 100) * plotH;
       const isRf = pt.type === 'red_flag';
       const r = 0.18;
-      const color = isRf ? C.danger : C.primary;
+      const color = isRf ? C.danger : C.accent;
       if (isRf) {
         sMat.addShape(pptx.ShapeType.triangle, { x: cx - r, y: cy - r, w: r * 2, h: r * 2, fill: { color }, line: { color } });
       } else {
@@ -395,7 +396,7 @@ export async function exportReportToPPTX(opts: {
       const col = idx % 3, row = Math.floor(idx / 3);
       const lx = MARGIN + col * legW;
       const ly = 5.85 + row * 0.25;
-      const color = pt.type === 'red_flag' ? C.danger : C.primary;
+      const color = pt.type === 'red_flag' ? C.danger : C.accent;
       sMat.addShape(pptx.ShapeType.ellipse, { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fill: { color }, line: { color } });
       sMat.addText(String(idx + 1), { x: lx, y: ly + 0.03, w: 0.2, h: 0.2, fontSize: 8, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle' });
       sMat.addText(pt.label, { x: lx + 0.28, y: ly, w: legW - 0.3, h: 0.25, fontSize: 9, color: C.text, valign: 'middle' });
@@ -452,7 +453,7 @@ export async function exportReportToPPTX(opts: {
     const waves = [
       { wave: 1 as const, label: 'WAVE 1 — 0-30 DIAS', color: C.danger },
       { wave: 2 as const, label: 'WAVE 2 — 31-90 DIAS', color: C.warning },
-      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.primary },
+      { wave: 3 as const, label: 'WAVE 3 — 91-180 DIAS', color: C.success },
     ];
     const wW = (SLIDE_W - MARGIN * 2 - 0.4) / 3;
     waves.forEach((w, i) => {
@@ -609,7 +610,7 @@ export async function exportReportToPPTX(opts: {
     ].join('\n'),
     { x: MARGIN, y: 3.0, w: SLIDE_W - MARGIN * 2, h: 3.0, fontSize: 18, color: C.text, paraSpaceAfter: 12 }
   );
-  s8.addText('Darwin · Growth OS', {
+  s8.addText('Comitte · Growth OS', {
     x: MARGIN, y: SLIDE_H - 0.9, w: SLIDE_W - MARGIN * 2, h: 0.4,
     fontSize: 12, color: C.textMuted, align: 'center',
   });

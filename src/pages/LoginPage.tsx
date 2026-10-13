@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import logoDarwin from '@/assets/logo-darwin.png';
+import logoComitte from '@/assets/logo-comitte.png';
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -89,14 +89,14 @@ export default function LoginPage() {
           transition={{ duration: 0.6 }}
           className="max-w-md">
           <div className="mb-8">
-            <img src={logoDarwin} alt="Darwin Growth" className="h-20 w-auto object-contain" />
+            <img src={logoComitte} alt="Comitte" className="h-12 w-auto max-w-full object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-white mb-4">
             Diagnóstico completo de maturidade e plano de ação para comitês de crescimento
           </h2>
           <p className="text-white/70 leading-relaxed">
             9 dimensões, radar interativo, red flags automáticos e relatórios exportáveis.
-            Tudo configurável pela equipe Darwin Growth.
+            Tudo configurável pela equipe Comitte.
           </p>
         </motion.div>
       </div>
@@ -125,7 +125,7 @@ export default function LoginPage() {
           className="w-full max-w-sm">
 
           <div className="lg:hidden flex justify-center mb-8">
-            <img src={logoDarwin} alt="Darwin Growth" className="h-14 w-auto object-contain dark:brightness-100 brightness-0" />
+            <img src={logoComitte} alt="Comitte" className="h-10 w-auto max-w-full object-contain" />
           </div>
 
           {rejectedError && (
@@ -200,7 +200,7 @@ export default function LoginPage() {
           </Card>
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            Acesso restrito à equipe Darwin Growth
+            Acesso restrito à equipe Comitte
           </p>
         </motion.div>
       </div>

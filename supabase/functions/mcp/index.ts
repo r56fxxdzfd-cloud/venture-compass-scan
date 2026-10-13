@@ -139,9 +139,9 @@ var list_action_items_default = defineTool4({
 var projectRef = "zazebhtkxojegimdfqry";
 var mcp_default = defineMcp({
   name: "darwin-growth-mcp",
-  title: "Darwin Growth MCP",
+  title: "Comitte MCP",
   version: "0.1.0",
-  instructions: "Ferramentas para acessar startups, diagn\xF3sticos e planos de a\xE7\xE3o da plataforma Darwin Growth. Use list_startups para descobrir empresas, get_startup para detalhes, list_assessments para diagn\xF3sticos e list_action_items para o plano de a\xE7\xE3o.",
+  instructions: "Ferramentas para acessar startups, diagn\xF3sticos e planos de a\xE7\xE3o da plataforma Comitte. Use list_startups para descobrir empresas, get_startup para detalhes, list_assessments para diagn\xF3sticos e list_action_items para o plano de a\xE7\xE3o.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"

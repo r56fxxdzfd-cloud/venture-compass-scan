@@ -1,6 +1,6 @@
 {
-  "name": "Darwin Growth",
-  "short_name": "Darwin",
+  "name": "Comitte",
+  "short_name": "Comitte",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -13,7 +13,7 @@
       "type": "image/png"
     }
   ],
-  "theme_color": "#111726",
-  "background_color": "#111726",
+  "theme_color": "#181b20",
+  "background_color": "#181b20",
   "display": "standalone"
 }

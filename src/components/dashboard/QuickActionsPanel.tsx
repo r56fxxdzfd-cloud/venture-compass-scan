@@ -8,7 +8,7 @@ const baseActions = [
   { label: 'Novo Diagnóstico', desc: 'Iniciar coleta para leitura de maturidade', icon: ClipboardList, href: '/app/startups' },
   { label: 'Avaliação de Liderança', desc: 'Registrar evolução semestral da liderança', icon: UserCheck, href: '/app/founder-assessments/new' },
   { label: 'Simulador', desc: 'Projetar cenários de desenvolvimento', icon: SlidersHorizontal, href: '/app/simulator' },
-  { label: 'Metodologia', desc: 'Consultar framework e critérios Darwin', icon: BookOpen, href: '/app/methodology' },
+  { label: 'Metodologia', desc: 'Consultar framework e critérios Comitte', icon: BookOpen, href: '/app/methodology' },
 ];
 
 export default function QuickActionsPanel() {

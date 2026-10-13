@@ -666,7 +666,7 @@ export default function StartupDetailPage() {
         <TabsContent value="overview" className="space-y-6">
       <Card className="executive-panel">
         <CardHeader>
-          <p className="executive-section-title text-xs">Fluxo Darwin Growth</p>
+          <p className="executive-section-title text-xs">Fluxo Comitte</p>
           <CardTitle>Cadastro inicial, Demo Day e devolutiva</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">

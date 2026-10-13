@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Building2, SlidersHorizontal, BookOpen, CalendarRange,
   Settings, Users, LogOut, Menu, Moon, Sun, Scale, Bell } from
 'lucide-react';
-import logoDarwin from '@/assets/logo-darwin.png';
+import logoComitte from '@/assets/logo-comitte.png';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -93,7 +93,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Logo */}
         <div className="flex h-16 items-center px-6 border-b border-sidebar-border/80 bg-sidebar-accent/30">
-          <img src={logoDarwin} alt="Darwin Growth" className="h-9 w-auto object-contain" />
+          <img src={logoComitte} alt="Comitte" className="h-8 w-auto max-w-full object-contain" />
         </div>
 
         {/* Nav */}
@@ -148,7 +148,7 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-3">
-          <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — Darwin</p>
+          <p className="text-[9px] text-sidebar-muted text-center tracking-wide">v1.0.0 — Comitte</p>
           <TooltipProvider>
             <div className="flex items-center justify-between">
               <Tooltip>
@@ -245,12 +245,12 @@ export function AppLayout({ children }: {children: React.ReactNode;}) {
         >
           {isDemoMode && (
             <div className="mb-4 rounded-xl border border-amber-300/40 bg-amber-100/50 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-              Modo Demo — dados fictícios do Darwin Growth
+              Modo Demo — dados fictícios do Comitte
             </div>
           )}
           <div className="flex-1 min-w-0 max-w-full">{children}</div>
           <div data-print-hide="true" className="flex flex-col items-center gap-3 pt-4 pb-3 select-none print:hidden">
-            <img src={logoDarwin} alt="Darwin" className="h-6 object-contain dark:brightness-100 brightness-0 opacity-70" />
+            <img src={logoComitte} alt="Comitte" className="h-5 object-contain opacity-80" />
             <p className="text-[11px] text-muted-foreground/60 tracking-[0.08em] text-center font-light italic">
               Developed by Victor Levy. All rights reserved.
             </p>

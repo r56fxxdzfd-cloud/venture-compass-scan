@@ -15,7 +15,8 @@ import { getAnswerableQuestions, getSkippedQuestions, type AssessmentQuestionCon
 import { getDemoDayDateLabel } from '@/utils/demo-day';
 import { getNextDimensionAfterCompletedQuestion, scrollQuestionnaireToTop } from '@/utils/questionnaire-navigation';
 import type { Answer, Company, ConfigJSON, ConfigQuestion, DemoDayDate } from '@/types/darwin';
-import { AlertCircle, Building2, CalendarDays, Check, CheckCircle2, HelpCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, CheckCircle2, HelpCircle, Loader2 } from 'lucide-react';
+import logoComitte from '@/assets/logo-comitte.png';
 
 type Phase = 'loading' | 'invalid' | 'registration' | 'demo_day' | 'diagnosis' | 'submitting' | 'done';
 type AnswerState = Record<string, { value: number | null; is_na: boolean; notes: string }>;
@@ -65,7 +66,7 @@ const FIELD_LABELS: Record<keyof RegistrationForm, string> = {
   headcount: 'Quantos colaboradores a empresa possui?',
   revenue_2025: 'Faturamento 2025',
   revenue_2026_target: 'Meta de faturamento 2026',
-  expectations_text: 'O que você espera obter com a participação no Darwin Growth?',
+  expectations_text: 'O que você espera obter com a participação no Comitte?',
 };
 
 const FORM_ORDER: (keyof RegistrationForm)[] = [
@@ -529,10 +530,10 @@ export default function IntakePage() {
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="mx-auto w-full max-w-5xl space-y-5">
-        <div className="flex items-center justify-center gap-2 text-muted-foreground">
-          <Building2 className="h-5 w-5" />
-          <span className="text-sm font-semibold tracking-wide">
-            {event ? `${event.name} · Darwin Growth` : 'Darwin Growth - Cadastro inicial'}
+        <div className="flex flex-col items-center justify-center gap-2 pt-2 text-muted-foreground">
+          <img src={logoComitte} alt="Comitte" className="h-7 w-auto max-w-[200px] object-contain" />
+          <span className="text-xs font-bold uppercase tracking-[0.16em]">
+            {event ? event.name : 'Cadastro inicial'}
           </span>
         </div>
 
@@ -977,7 +978,7 @@ function EventCompletionStep({ event, chosenDates }: { event: IntakeEvent; chose
         <div className="mx-auto max-w-2xl space-y-3">
           <h1 className="text-2xl font-bold">Tudo certo — nos vemos no {event.name}!</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Recebemos seu cadastro, seu diagnóstico e sua preferência de data. A equipe do Darwin Growth / Boardwise
+            Recebemos seu cadastro, seu diagnóstico e sua preferência de data. A equipe do Comitte / Boardwise
             vai analisar suas respostas e preparar a devolutiva, que será apresentada no evento.
           </p>
           {chosenDates.length > 0 && (
@@ -1008,7 +1009,7 @@ function CompletionStep({ debriefUrl, onClickDebrief }: { debriefUrl: string; on
         <div className="mx-auto max-w-2xl space-y-3">
           <h1 className="text-2xl font-bold">Diagnóstico recebido.</h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Obrigado por preencher as informações iniciais. A equipe do Darwin Growth / Boardwise irá analisar suas respostas e preparar uma devolutiva estruturada com os principais pontos de atenção, oportunidades e próximos passos sugeridos.
+            Obrigado por preencher as informações iniciais. A equipe do Comitte / Boardwise irá analisar suas respostas e preparar uma devolutiva estruturada com os principais pontos de atenção, oportunidades e próximos passos sugeridos.
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Para concluir esta etapa, agende agora sua reunião de devolutiva pelo link abaixo.
