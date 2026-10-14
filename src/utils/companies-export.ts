@@ -21,6 +21,8 @@ const HEADER_LABELS: Record<string, string> = {
   diagnosis_status: 'Status do diagnóstico',
   diagnosis_completed_at: 'Diagnóstico concluído em',
   pipeline_status: 'Status do pipeline',
+  event_name: 'Evento de origem',
+  event_dates: 'Datas escolhidas no evento',
   demo_day_selected: 'Selecionada Demo Day',
   demo_day_preferred_date_id: 'Data preferida Demo Day (ID)',
   is_demo: 'Ambiente demo',
@@ -41,7 +43,30 @@ export async function downloadCompaniesCsv(opts: { onlyDemoDay?: boolean } = {})
   if (opts.onlyDemoDay) query = query.eq('demo_day_selected', true);
   const { data, error } = await query;
   if (error) throw error;
-  const rows = data || [];
+
+  // Origem por evento (ex.: Comitte Experience) e as datas escolhidas nele.
+  const [{ data: eventIntakes }, { data: eventPrefs }] = await Promise.all([
+    supabase.from('intake_submissions').select('company_id, event:intake_events(name)')
+      .not('event_id', 'is', null).not('company_id', 'is', null),
+    supabase.from('company_demo_day_preferences')
+      .select('company_id, date:demo_day_dates(date, date_label, event_id)'),
+  ]);
+  const eventByCompany: Record<string, string> = {};
+  (eventIntakes || []).forEach((r) => {
+    const ev = Array.isArray(r.event) ? r.event[0] : r.event;
+    if (r.company_id && ev?.name) eventByCompany[r.company_id] = ev.name;
+  });
+  const eventDatesByCompany: Record<string, string[]> = {};
+  (eventPrefs || []).forEach((r) => {
+    const d = Array.isArray(r.date) ? r.date[0] : r.date;
+    if (!d?.event_id) return;
+    (eventDatesByCompany[r.company_id] ||= []).push(d.date_label || d.date);
+  });
+  const rows = (data || []).map((r) => ({
+    ...r,
+    event_name: eventByCompany[r.id] || '',
+    event_dates: (eventDatesByCompany[r.id] || []).sort().join(' / '),
+  }));
 
   const keys = Object.keys(HEADER_LABELS).filter((k) => rows.some((r) => k in (r as Record<string, unknown>)));
   const extra = rows.length

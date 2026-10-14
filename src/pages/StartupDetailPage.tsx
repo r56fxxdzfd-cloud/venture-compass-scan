@@ -62,6 +62,7 @@ const processEventLabel: Record<string, string> = {
   diagnosis_started: 'Diagnóstico iniciado',
   diagnosis_completed: 'Diagnóstico concluído',
   debrief_link_clicked: 'Link de devolutiva acessado',
+  event_dates_confirmed: 'Data(s) do evento confirmada(s)',
   pipeline_status_changed: 'Status do pipeline alterado',
 };
 
@@ -101,6 +102,8 @@ export default function StartupDetailPage() {
   const { isAdmin, isAnalyst, isAdvisor, isViewer, isSuperAdmin, user } = useAuth();
   const [company, setCompany] = useState<Company | null>(null);
   const [demoDayDates, setDemoDayDates] = useState<DemoDayDate[]>([]);
+  // Evento pelo qual a organização entrou (ex.: Comitte Experience), se houver.
+  const [eventName, setEventName] = useState<string | null>(null);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [answerCounts, setAnswerCounts] = useState<Record<string, number>>({});
   const [assessmentQuestionTotals, setAssessmentQuestionTotals] = useState<Record<string, number>>({});
@@ -185,6 +188,16 @@ export default function StartupDetailPage() {
       } else {
         setDemoDayDates([]);
       }
+
+      const { data: eventIntake } = await supabase
+        .from('intake_submissions')
+        .select('event:intake_events(name)')
+        .eq('company_id', id)
+        .not('event_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+      const eventRow = eventIntake ? (Array.isArray(eventIntake.event) ? eventIntake.event[0] : eventIntake.event) : null;
+      setEventName(eventRow?.name ?? null);
 
       // Load founders & founder assessments
       const currentSem = getCurrentSemester();
@@ -630,6 +643,7 @@ export default function StartupDetailPage() {
             {company.sector && <Badge variant="outline" className="executive-pill">{company.sector}</Badge>}
             <Badge variant={latestStatusVariant} className="executive-pill">Status geral: {lastResult?.level || latestStatusLabel}</Badge>
             {company.demo_day_selected && <Badge className="executive-pill bg-primary/80">Demo Day</Badge>}
+            {eventName && <Badge variant="outline" className="executive-pill border-primary/40 text-primary">{eventName}</Badge>}
             {company.archived_at && <Badge variant="destructive" className="executive-pill">Arquivada</Badge>}
           </div>
         </div>
@@ -667,7 +681,7 @@ export default function StartupDetailPage() {
       <Card className="executive-panel">
         <CardHeader>
           <p className="executive-section-title text-xs">Fluxo Comitte</p>
-          <CardTitle>Cadastro inicial, Demo Day e devolutiva</CardTitle>
+          <CardTitle>{eventName ? `Cadastro inicial, diagnóstico e ${eventName}` : 'Cadastro inicial, Demo Day e devolutiva'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-3 sm:grid-cols-3">
@@ -682,7 +696,7 @@ export default function StartupDetailPage() {
               </p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Demo Day preferido</p>
+              <p className="text-xs text-muted-foreground">{eventName ? `Data(s) no ${eventName}` : 'Demo Day preferido'}</p>
               <p className="mt-1 font-semibold">
                 {demoDayDates.length > 0
                   ? demoDayDates.map((date) => `${date.title} · ${getDemoDayDateLabel(date) || formatDateOnlyBR(date.date)}`).join(' / ')

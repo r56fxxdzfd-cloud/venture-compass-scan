@@ -39,6 +39,10 @@ export default function StartupsPage() {
   const [portfolioMetrics, setPortfolioMetrics] = useState<Record<string, PortfolioMetric>>({});
   const [search, setSearch] = useState('');
   const [pipelineFilter, setPipelineFilter] = useState<StartupPipelineStatus | 'all'>('all');
+  // Origem por evento (ex.: Comitte Experience): company_id -> nome do evento,
+  // derivado do intake pelo qual a organização entrou.
+  const [companyEvents, setCompanyEvents] = useState<Record<string, string>>({});
+  const [eventFilter, setEventFilter] = useState<string>('all');
   // O sino do cabeçalho navega para ?tab=intakes — abre a aba já com o painel.
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(searchParams.get('tab') === 'intakes' ? 'intakes' : 'portfolio');
@@ -81,6 +85,18 @@ export default function StartupsPage() {
     if (!data) return;
     const companiesData = data as Company[];
     setCompanies(companiesData);
+
+    const { data: eventIntakes } = await supabase
+      .from('intake_submissions')
+      .select('company_id, event:intake_events(name)')
+      .not('event_id', 'is', null)
+      .not('company_id', 'is', null);
+    const eventMap: Record<string, string> = {};
+    (eventIntakes || []).forEach((row) => {
+      const event = Array.isArray(row.event) ? row.event[0] : row.event;
+      if (row.company_id && event?.name) eventMap[row.company_id] = event.name;
+    });
+    setCompanyEvents(eventMap);
 
     const companyIds = companiesData.map((c) => c.id);
     if (companyIds.length === 0) {
@@ -203,8 +219,10 @@ export default function StartupsPage() {
 
   const filtered = companies.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) &&
-    (pipelineFilter === 'all' || (c.pipeline_status || 'invited') === pipelineFilter)
+    (pipelineFilter === 'all' || (c.pipeline_status || 'invited') === pipelineFilter) &&
+    (eventFilter === 'all' || companyEvents[c.id] === eventFilter)
   );
+  const eventNames = [...new Set(Object.values(companyEvents))].sort();
   const cnpjDigits = form.cnpj.replace(/\D/g, '');
   const cnpjError = cnpjDigits.length === 0
     ? ''
@@ -404,6 +422,19 @@ export default function StartupsPage() {
               ))}
             </SelectContent>
           </Select>
+          {eventNames.length > 0 && (
+            <Select value={eventFilter} onValueChange={setEventFilter}>
+              <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="Todas as origens" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                {eventNames.map((name) => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       )}
 
@@ -452,6 +483,9 @@ export default function StartupsPage() {
                             </span>
                             {company.demo_day_selected && (
                               <span className="executive-pill text-xs bg-primary/80 text-primary-foreground">Demo Day</span>
+                            )}
+                            {companyEvents[company.id] && (
+                              <span className="executive-pill text-xs border border-primary/40 text-primary">{companyEvents[company.id]}</span>
                             )}
                             {company.stage && (
                               <span className="executive-pill badge-success text-xs">{stageLabels[company.stage] || company.stage}</span>

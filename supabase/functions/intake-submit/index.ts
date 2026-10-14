@@ -475,10 +475,9 @@ Deno.serve(async (req) => {
             }).eq("id", notif.id);
           }
         }
-        await admin
-          .from("companies")
-          .update({ demo_day_preferred_date_id: demoDayDateIds[0], demo_day_selected: true })
-          .eq("id", companyId);
+        // Não marca demo_day_selected/demo_day_preferred_date_id: esses campos são
+        // do Demo Day (selo, filtro e export "Somente Demo Day"). As datas do
+        // evento ficam só em company_demo_day_preferences.
         return json({ ok: true, completed: true, chosen_dates: chosenDates || [] });
       }
 
