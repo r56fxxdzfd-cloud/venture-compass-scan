@@ -148,6 +148,12 @@ export default function IntakePage() {
 
   const [autoStartDiagnosis, setAutoStartDiagnosis] = useState(false);
 
+  // Cada etapa começa no topo — sem isso a rolagem do formulário longo é herdada
+  // e a etapa seguinte abre abaixo da dobra (parece tela vazia).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [phase]);
+
   const applyValidationPayload = useCallback((data: any) => {
     const companyData = data.company as Company | null;
     const isEvent = !!data.event;
@@ -229,7 +235,11 @@ export default function IntakePage() {
       if (!token && eventToken) {
         const resumeToken = readEventResume(eventToken);
         if (resumeToken) {
-          navigate(`/intake/${resumeToken}`, { replace: true });
+          // Redirecionamento real (não navigate): as rotas usam AnimatePresence
+          // mode="wait", e uma navegação no primeiro instante da página — ainda
+          // na animação de entrada — trava a troca e deixa a tela presa em
+          // "Validando link...".
+          window.location.replace(`/intake/${resumeToken}`);
           return;
         }
         const { data, error: fnError } = await supabase.functions.invoke('intake-validate', { body: { event_token: eventToken } });
@@ -533,7 +543,7 @@ export default function IntakePage() {
         <div className="flex flex-col items-center justify-center gap-2 pt-2 text-muted-foreground">
           <img src={logoComitte} alt="Comitte" className="h-7 w-auto max-w-[200px] object-contain" />
           <span className="text-xs font-bold uppercase tracking-[0.16em]">
-            {event ? event.name : 'Cadastro inicial'}
+            {phase === 'loading' ? '\u00a0' : event ? event.name : 'Cadastro inicial'}
           </span>
         </div>
 
